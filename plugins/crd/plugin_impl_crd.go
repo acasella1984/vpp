@@ -52,12 +52,13 @@ import (
 	"github.com/contiv/vpp/plugins/crd/handler/externalinterface"
 	"github.com/contiv/vpp/plugins/crd/handler/kvdbreflector"
 	"github.com/contiv/vpp/plugins/crd/handler/nodeconfig"
+	saseconfiguration "github.com/contiv/vpp/plugins/crd/handler/saseconfig"
 	"github.com/contiv/vpp/plugins/crd/handler/servicefunctionchain"
 	"github.com/contiv/vpp/plugins/crd/handler/telemetry"
 	"github.com/contiv/vpp/plugins/crd/validator"
 
 	"github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio"
-	"github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
+	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	nodeconfigv1 "github.com/contiv/vpp/plugins/crd/pkg/apis/nodeconfig/v1"
 	telemetryv1 "github.com/contiv/vpp/plugins/crd/pkg/apis/telemetry/v1"
 
@@ -94,6 +95,7 @@ type Plugin struct {
 	externalInterfaceController    *controller.CrdController
 	serviceFunctionChainController *controller.CrdController
 	customConfigController         *controller.CrdController
+	saseConfigController           *controller.CrdController
 	cache                          *cache.ContivTelemetryCache
 	processor                      api.ContivTelemetryProcessor
 	verbose                        bool
@@ -313,11 +315,42 @@ func (p *Plugin) initializeCRDs() error {
 		},
 	}
 
+	// Sase Config Crd
+	saseConfigInformer := p.sharedFactory.Contivpp().V1().SrConfigurations().Informer()
+	saseConfigLog := p.Log.NewLogger("saseConfigHandler")
+	p.saseConfigController = &controller.CrdController{
+		Deps: controller.Deps{
+			Log:       p.Log.NewLogger("saseConfigController"),
+			APIClient: p.apiclientset,
+			Informer:  saseConfigInformer,
+			EventHandler: &kvdbreflector.KvdbReflector{
+				Deps: kvdbreflector.Deps{
+					Log:          saseConfigLog,
+					ServiceLabel: p.ServiceLabel,
+					Publish:      p.Etcd.RawAccess(),
+					Informer:     saseConfigInformer,
+					Handler: &saseconfiguration.Handler{
+						Log:       saseConfigLog,
+						CrdClient: p.crdClient,
+					},
+				},
+			},
+		},
+		Spec: controller.CrdSpec{
+			TypeName:   reflect.TypeOf(v1.SrConfiguration{}).Name(),
+			Group:      contivppio.GroupName,
+			Version:    "v1",
+			Plural:     "srconfigurations",
+			Validation: saseconfiguration.Validation(),
+		},
+	}
+
 	p.nodeConfigController.Init()
 	p.customNetworkController.Init()
 	p.externalInterfaceController.Init()
 	p.serviceFunctionChainController.Init()
 	p.customConfigController.Init()
+	p.saseConfigController.Init()
 
 	if p.verbose {
 		p.customNetworkController.Log.SetLevel(logging.DebugLevel)
@@ -325,6 +358,7 @@ func (p *Plugin) initializeCRDs() error {
 		p.externalInterfaceController.Log.SetLevel(logging.DebugLevel)
 		p.serviceFunctionChainController.Log.SetLevel(logging.DebugLevel)
 		p.customConfigController.Log.SetLevel(logging.DebugLevel)
+		p.saseConfigController.Log.SetLevel(logging.DebugLevel)
 		customConfigLog.SetLevel(logging.DebugLevel)
 	}
 
@@ -448,6 +482,7 @@ func (p *Plugin) onEtcdConnect() error {
 		go p.externalInterfaceController.Run(p.ctx.Done())
 		go p.serviceFunctionChainController.Run(p.ctx.Done())
 		go p.customConfigController.Run(p.ctx.Done())
+		go p.saseConfigController.Run(p.ctx.Done())
 	}()
 	return nil
 }

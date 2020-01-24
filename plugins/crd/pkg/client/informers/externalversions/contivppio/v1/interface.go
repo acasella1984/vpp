@@ -30,6 +30,8 @@ type Interface interface {
 	ExternalInterfaces() ExternalInterfaceInformer
 	// ServiceFunctionChains returns a ServiceFunctionChainInformer.
 	ServiceFunctionChains() ServiceFunctionChainInformer
+	// SrConfigurations returns a SrConfigurationInformer.
+	SrConfigurations() SrConfigurationInformer
 }
 
 type version struct {
@@ -61,4 +63,9 @@ func (v *version) ExternalInterfaces() ExternalInterfaceInformer {
 // ServiceFunctionChains returns a ServiceFunctionChainInformer.
 func (v *version) ServiceFunctionChains() ServiceFunctionChainInformer {
 	return &serviceFunctionChainInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// SrConfigurations returns a SrConfigurationInformer.
+func (v *version) SrConfigurations() SrConfigurationInformer {
+	return &srConfigurationInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

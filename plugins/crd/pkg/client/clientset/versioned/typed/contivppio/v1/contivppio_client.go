@@ -28,6 +28,7 @@ type ContivppV1Interface interface {
 	CustomNetworksGetter
 	ExternalInterfacesGetter
 	ServiceFunctionChainsGetter
+	SrConfigurationsGetter
 }
 
 // ContivppV1Client is used to interact with features provided by the contivpp.io group.
@@ -49,6 +50,10 @@ func (c *ContivppV1Client) ExternalInterfaces(namespace string) ExternalInterfac
 
 func (c *ContivppV1Client) ServiceFunctionChains(namespace string) ServiceFunctionChainInterface {
 	return newServiceFunctionChains(c, namespace)
+}
+
+func (c *ContivppV1Client) SrConfigurations(namespace string) SrConfigurationInterface {
+	return newSrConfigurations(c, namespace)
 }
 
 // NewForConfig creates a new ContivppV1Client for the given config.

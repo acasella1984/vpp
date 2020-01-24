@@ -23,3 +23,5 @@ type CustomNetworkExpansion interface{}
 type ExternalInterfaceExpansion interface{}
 
 type ServiceFunctionChainExpansion interface{}
+
+type SrConfigurationExpansion interface{}

@@ -153,7 +153,7 @@ type CustomConfiguration struct {
 	Status meta_v1.Status `json:"status,omitempty"`
 }
 
-// CustomConfigurationSpec is the spec for custom configuration resource
+// CustomConfigurationSpec is the spec for Sase Service configuration resource
 type CustomConfigurationSpec struct {
 	// Microservice label determines where the configuration item should be applied.
 	// For Contiv/VPP vswitch use the hostname of the destination node, otherwise use
@@ -165,7 +165,7 @@ type CustomConfigurationSpec struct {
 	ConfigItems []ConfigurationItem `json:"configItems"`
 }
 
-// ConfigurationItem is the specification for a single custom configuration item
+// ConfigurationItem is the specification for a single Sase service configuration item
 type ConfigurationItem struct {
 	// Microservice label determines where the configuration item should be applied.
 	// For Contiv/VPP vswitch use the hostname of the destination node, otherwise use
@@ -201,7 +201,74 @@ type ConfigurationItem struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type CustomConfigurationList struct {
 	meta_v1.TypeMeta `json:",inline"`
-	meta_v1.ListMeta `json:"metadata"`
 
 	Items []CustomConfiguration `json:"items"`
+}
+
+// SrConfiguration defines (arbitrary) configuration to be applied for
+// contiv/vpp or for CNFs running on top of contiv/vpp.
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SrConfiguration struct {
+	// TypeMeta is the metadata for the resource, like kind and apiversion
+	meta_v1.TypeMeta `json:",inline"`
+	// ObjectMeta contains the metadata for the particular object
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	// Spec is the specification for the Sase Service configuration.
+	Spec SrConfigurationSpec `json:"spec"`
+	// Status informs about the status of the resource.
+	Status meta_v1.Status `json:"status,omitempty"`
+}
+
+// SrConfigurationSpec is the spec for Sase Service configuration resource
+type SrConfigurationSpec struct {
+	// Microservice label determines where the configuration item should be applied.
+	// For Contiv/VPP vswitch use the hostname of the destination node, otherwise use
+	// label as defined in the environment variable MICROSERVICE_LABEL of the
+	// destination pod.
+	// This microservice label will be used for all items in the list below which do not have microservice defined.
+	Microservice string `json:"microservice"`
+	// Items is a list of configuration items.
+	ConfigItems []SrConfigurationItem `json:"configItems"`
+}
+
+// SrConfigurationItem is the specification for a single sase service configuration item
+type SrConfigurationItem struct {
+	// Microservice label determines where the configuration item should be applied.
+	// For Contiv/VPP vswitch use the hostname of the destination node, otherwise use
+	// label as defined in the environment variable MICROSERVICE_LABEL of the
+	// destination pod.
+	// Microservice label defined at the level of an individual item overwrites the "crd-global" microservice
+	// defined under spec.
+	Microservice string `json:"microservice"`
+
+	// Module is the name of the module to which the item belongs (e.g. "vpp.nat", "vpp.l2", "linux.l3", etc.).
+	Module string `json:"module"`
+
+	// Type of the item (e.g. "dnat44", "acl", "bridge-domain").
+	Type string `json:"type"`
+
+	// Version of the configuration (e.g. "v1", "v2", ...).
+	// This field is optional - for core vpp-agent configuration items (i.e. shipped with the agent) the version
+	// is read from the installed module and for external modules "v1" is assumed as the default.
+	Version string `json:"version"`
+
+	// Name of the configuration item.
+	// This field is optional - for core vpp-agent configuration items (i.e. shipped with the agent) the name is
+	// determined dynamically using the installed module and the configuration of the item (passed in <Data>).
+	// For external modules, the name can be omitted if <Data> contains a top-level "Name" field and this would be just
+	// a duplication of it.
+	Name string `json:"name"`
+
+	// Data should be a YAML-formatted configuration of the item.
+	Data string `json:"data"`
+}
+
+// SrConfigurationList is a list of SrConfiguration resources
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SrConfigurationList struct {
+	meta_v1.TypeMeta `json:",inline"`
+
+	Items []SrConfiguration `json:"items"`
 }

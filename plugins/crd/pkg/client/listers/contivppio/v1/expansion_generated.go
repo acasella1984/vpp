@@ -47,3 +47,11 @@ type ServiceFunctionChainListerExpansion interface{}
 // ServiceFunctionChainNamespaceListerExpansion allows custom methods to be added to
 // ServiceFunctionChainNamespaceLister.
 type ServiceFunctionChainNamespaceListerExpansion interface{}
+
+// SrConfigurationListerExpansion allows custom methods to be added to
+// SrConfigurationLister.
+type SrConfigurationListerExpansion interface{}
+
+// SrConfigurationNamespaceListerExpansion allows custom methods to be added to
+// SrConfigurationNamespaceLister.
+type SrConfigurationNamespaceListerExpansion interface{}

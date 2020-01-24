@@ -53,6 +53,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ServiceFunctionChainList{},
 		&CustomConfiguration{},
 		&CustomConfigurationList{},
+		&SrConfiguration{},
+		&SrConfigurationList{},
 	)
 
 	// register the type in the scheme

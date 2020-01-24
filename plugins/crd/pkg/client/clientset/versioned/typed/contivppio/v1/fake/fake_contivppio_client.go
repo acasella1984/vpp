@@ -42,6 +42,10 @@ func (c *FakeContivppV1) ServiceFunctionChains(namespace string) v1.ServiceFunct
 	return &FakeServiceFunctionChains{c, namespace}
 }
 
+func (c *FakeContivppV1) SrConfigurations(namespace string) v1.SrConfigurationInterface {
+	return &FakeSrConfigurations{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeContivppV1) RESTClient() rest.Interface {
