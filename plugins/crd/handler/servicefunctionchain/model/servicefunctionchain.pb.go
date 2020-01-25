@@ -50,7 +50,7 @@ type ServiceFunctionChain struct {
 	// Name of the chain.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// true if the service chain should be unidirectional (the traffic should pass in one way only).
-	// Otherwise the chains is bidirectional (the traffic can pass both ways).
+	// Otherwise the chain is bidirectional (the traffic can pass both ways).
 	Unidirectional bool `protobuf:"varint,2,opt,name=unidirectional,proto3" json:"unidirectional,omitempty"`
 	// Name of the custom pod network where the chain resides
 	// (if applicable, can be left blank for the default pod network).

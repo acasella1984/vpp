@@ -25,6 +25,7 @@ import (
 	customnetmodel "github.com/contiv/vpp/plugins/crd/handler/customnetwork/model"
 	extifmodel "github.com/contiv/vpp/plugins/crd/handler/externalinterface/model"
 	nodeconfig "github.com/contiv/vpp/plugins/crd/handler/nodeconfig/model"
+	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	sfcmodel "github.com/contiv/vpp/plugins/crd/handler/servicefunctionchain/model"
 	epmodel "github.com/contiv/vpp/plugins/ksr/model/endpoints"
 	nsmodel "github.com/contiv/vpp/plugins/ksr/model/namespace"
@@ -116,6 +117,11 @@ func GetDBResources() []*DBResource {
 			Keyword:          idallocation.Keyword,
 			ProtoMessageName: proto.MessageName((*idallocation.AllocationPool)(nil)),
 			KeyPrefix:        idallocation.KeyPrefix(),
+		},
+		{
+			Keyword:          sasemodel.Keyword,
+			ProtoMessageName: proto.MessageName((*sasemodel.SaseConfig)(nil)),
+			KeyPrefix:        sasemodel.KeyPrefix(),
 		},
 	}
 }

@@ -14,6 +14,8 @@
  * // limitations under the License.
  */
 
+//go:generate protoc -I ./model --gogo_out=plugins=grpc:./model ./model/saseconfig.proto
+
 package saseconfiguration
 
 import (
