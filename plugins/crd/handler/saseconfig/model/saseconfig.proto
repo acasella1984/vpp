@@ -18,48 +18,57 @@ package model;
 
 // SaseConfig is used to store definition of a sase config as a k8s CRD resource.
 message SaseConfig {
-
-    // Name of the chain.
+    // Name of the SaseConfig
     string name = 1;
 
-    // true if the service chain should be unidirectional (the traffic should pass in one way only).
-    // Otherwise the chain is bidirectional (the traffic can pass both ways).
-    bool unidirectional = 2;
-
-    // Name of the custom pod network where the chain resides
-    // (if applicable, can be left blank for the default pod network).
-    string network = 3;
-
-    message ServiceFunction {
-        enum Type {
-            Pod = 0;
-            ExternalInterface = 1;
-        }
-        // Name of the service function (optional).
-        string name = 1;
-
-        // Type of the service function.
-        Type type = 2;
-
-        // Pod selector (k8s labels) identifying the pod(s)
-        // (applicable for pod service function type).
-        map<string, string> pod_selector = 3;
-
-        // Interface trough which the traffic enters or leaves the pod / external interface. Applicable for:
-        // - pods that use only a single interface for SFC (first/last pod in the chain
-        //   or pods using the same interface for SFC input and output).
-        // - external interfaces
-        string interface = 6;
-
-        // Interface trough which the traffic enters the service function. Applicable for:
-        // - pods using different interfaces for SFC input and output
-        string input_interface = 4;
-
-        // Interface trough which the traffic leaves the service function. Applicable for:
-        // - pods using different interfaces for SFC input and output
-        string output_interface = 5;
+    // Sase Service Names 
+    enum SaseService {
+        Firewall = 0;
+        Nat = 1;
+        IpSec = 2;
+        Route = 3;
     }
+    // Sase Service Name
+    SaseService sase_service = 2;
 
-    // List of service functions (chain elements) in the chain.
-    repeated ServiceFunction chain = 4;
+    // Sase Rule Direction
+    enum Direction {
+        Ingress = 0;
+        Egress = 1;
+    }
+    // Sase Rule Direction
+    Direction direction = 3;
+
+    // Sase Rule Match Attribute. 5 tuple match fields
+    message Match {
+        // interface name 
+        string interface_name = 1;
+
+        // ip address to statically assign to the interface
+        string ip = 2;
+
+        // Protocol 
+        enum Proto {
+            TCP = 0;
+            UDP = 1;
+        }
+
+        Proto proto = 3;
+
+        // Application Port 
+        string port = 4;
+    }
+    // Sase Rule Match condition
+    Match match = 4;
+
+    // Sase Rule action
+    enum Action {
+        DENY = 0;
+        PERMIT = 1;
+        NAT = 2;
+        FORWARD = 3;
+        SECURE = 4;
+    }
+    // Sase Rule action
+    Action action = 5;
 }
