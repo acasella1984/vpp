@@ -38,12 +38,12 @@ func (c *FakeContivppV1) ExternalInterfaces(namespace string) v1.ExternalInterfa
 	return &FakeExternalInterfaces{c, namespace}
 }
 
-func (c *FakeContivppV1) ServiceFunctionChains(namespace string) v1.ServiceFunctionChainInterface {
-	return &FakeServiceFunctionChains{c, namespace}
+func (c *FakeContivppV1) SaseServicePolicies(namespace string) v1.SaseServicePolicyInterface {
+	return &FakeSaseServicePolicies{c, namespace}
 }
 
-func (c *FakeContivppV1) SrConfigurations(namespace string) v1.SrConfigurationInterface {
-	return &FakeSrConfigurations{c, namespace}
+func (c *FakeContivppV1) ServiceFunctionChains(namespace string) v1.ServiceFunctionChainInterface {
+	return &FakeServiceFunctionChains{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

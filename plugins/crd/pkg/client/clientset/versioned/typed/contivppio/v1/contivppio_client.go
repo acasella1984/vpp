@@ -27,8 +27,8 @@ type ContivppV1Interface interface {
 	CustomConfigurationsGetter
 	CustomNetworksGetter
 	ExternalInterfacesGetter
+	SaseServicePoliciesGetter
 	ServiceFunctionChainsGetter
-	SrConfigurationsGetter
 }
 
 // ContivppV1Client is used to interact with features provided by the contivpp.io group.
@@ -48,12 +48,12 @@ func (c *ContivppV1Client) ExternalInterfaces(namespace string) ExternalInterfac
 	return newExternalInterfaces(c, namespace)
 }
 
-func (c *ContivppV1Client) ServiceFunctionChains(namespace string) ServiceFunctionChainInterface {
-	return newServiceFunctionChains(c, namespace)
+func (c *ContivppV1Client) SaseServicePolicies(namespace string) SaseServicePolicyInterface {
+	return newSaseServicePolicies(c, namespace)
 }
 
-func (c *ContivppV1Client) SrConfigurations(namespace string) SrConfigurationInterface {
-	return newSrConfigurations(c, namespace)
+func (c *ContivppV1Client) ServiceFunctionChains(namespace string) ServiceFunctionChainInterface {
+	return newServiceFunctionChains(c, namespace)
 }
 
 // NewForConfig creates a new ContivppV1Client for the given config.

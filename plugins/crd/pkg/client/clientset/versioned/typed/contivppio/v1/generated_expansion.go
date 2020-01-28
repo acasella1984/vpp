@@ -22,6 +22,6 @@ type CustomNetworkExpansion interface{}
 
 type ExternalInterfaceExpansion interface{}
 
-type ServiceFunctionChainExpansion interface{}
+type SaseServicePolicyExpansion interface{}
 
-type SrConfigurationExpansion interface{}
+type ServiceFunctionChainExpansion interface{}

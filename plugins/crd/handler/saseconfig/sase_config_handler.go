@@ -23,12 +23,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/vpp-agent/api/genericmanager"
-
 	"github.com/contiv/vpp/plugins/crd/handler/kvdbreflector"
+	"github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
+	"github.com/ligato/cn-infra/logging"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
@@ -46,7 +45,7 @@ func (h *Handler) CrdName() string {
 // CrdKeyPrefix returns the longest-common prefix under which the instances
 // of the given CRD are reflected into KVDB.
 func (h *Handler) CrdKeyPrefix() (prefix string, underKsrPrefix bool) {
-	return "/vnf-agent/", false
+	return model.Keyword + "/", true
 }
 
 // IsCrdKeySuffix excludes the KSR-reflected data.
@@ -57,10 +56,16 @@ func (h *Handler) IsCrdKeySuffix(keySuffix string) bool {
 // CrdObjectToKVData converts the K8s representation of SrConfiguration into the
 // corresponding configuration for vpp-agent(s) running in the destination microservice(s).
 func (h *Handler) CrdObjectToKVData(obj interface{}) (data []kvdbreflector.KVData, err error) {
-	saseConfig, ok := obj.(*v1.SrConfiguration)
+	saseConfig, ok := obj.(*v1.SaseServicePolicy)
 	fmt.Println("CrdObjectToKVData: ", saseConfig)
 	if !ok {
 		return nil, errors.New("failed to cast into SaseConfiguration struct")
+	}
+	data = []kvdbreflector.KVData{
+		{
+			ProtoMsg:  h.saseConfigCrdToProto(saseConfig),
+			KeySuffix: saseConfig.GetName(),
+		},
 	}
 	return
 }
@@ -69,10 +74,21 @@ type withName struct {
 	Name string `json:"name"`
 }
 
-func (h *Handler) configItemToKVData(item v1.SrConfigurationItem, globalMs string) (kvdata kvdbreflector.KVData, err error) {
-	var modelSpec *genericmanager.ModelInfo
-	fmt.Println("CrdObjectToKVData: ", modelSpec)
-	return kvdata, nil
+// saseConfigCrdToProto:: Convert sase crd config to protobuf
+// VENKAT: TBD.  curreeeeeeeeeeeeently hardcoded the values for testing
+func (h *Handler) saseConfigCrdToProto(crd *v1.SaseServicePolicy) *model.SaseConfig {
+	// Convert config recieved in crd to protobuf
+	scPb := &model.SaseConfig{
+		Name:        "sample-fw",
+		SaseService: model.SaseConfig_Firewall,
+		Direction:   model.SaseConfig_Ingress,
+		Match: &model.SaseConfig_Match{
+			Proto: model.SaseConfig_Match_TCP,
+		},
+		Action: model.SaseConfig_DENY,
+	}
+
+	return scPb
 }
 
 // IsExclusiveKVDB returns false - there can be multiple writers of the agent configuration in the database.
@@ -82,7 +98,7 @@ func (h *Handler) IsExclusiveKVDB() bool {
 
 // PublishCrdStatus updates the resource Status information.
 func (h *Handler) PublishCrdStatus(obj interface{}, opRetval error) error {
-	saseConfig, ok := obj.(*v1.SrConfiguration)
+	saseConfig, ok := obj.(*v1.SaseServicePolicy)
 	if !ok {
 		return errors.New("failed to cast into SaseConfiguration struct")
 	}
@@ -93,7 +109,7 @@ func (h *Handler) PublishCrdStatus(obj interface{}, opRetval error) error {
 		saseConfig.Status.Status = v1.StatusFailure
 		saseConfig.Status.Message = opRetval.Error()
 	}
-	_, err := h.CrdClient.ContivppV1().SrConfigurations(saseConfig.Namespace).Update(saseConfig)
+	_, err := h.CrdClient.ContivppV1().SaseServicePolicies(saseConfig.Namespace).Update(saseConfig)
 	return err
 }
 

@@ -28,10 +28,10 @@ type Interface interface {
 	CustomNetworks() CustomNetworkInformer
 	// ExternalInterfaces returns a ExternalInterfaceInformer.
 	ExternalInterfaces() ExternalInterfaceInformer
+	// SaseServicePolicies returns a SaseServicePolicyInformer.
+	SaseServicePolicies() SaseServicePolicyInformer
 	// ServiceFunctionChains returns a ServiceFunctionChainInformer.
 	ServiceFunctionChains() ServiceFunctionChainInformer
-	// SrConfigurations returns a SrConfigurationInformer.
-	SrConfigurations() SrConfigurationInformer
 }
 
 type version struct {
@@ -60,12 +60,12 @@ func (v *version) ExternalInterfaces() ExternalInterfaceInformer {
 	return &externalInterfaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
+// SaseServicePolicies returns a SaseServicePolicyInformer.
+func (v *version) SaseServicePolicies() SaseServicePolicyInformer {
+	return &saseServicePolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // ServiceFunctionChains returns a ServiceFunctionChainInformer.
 func (v *version) ServiceFunctionChains() ServiceFunctionChainInformer {
 	return &serviceFunctionChainInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// SrConfigurations returns a SrConfigurationInformer.
-func (v *version) SrConfigurations() SrConfigurationInformer {
-	return &srConfigurationInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

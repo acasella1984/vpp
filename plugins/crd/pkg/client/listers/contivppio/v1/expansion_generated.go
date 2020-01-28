@@ -40,6 +40,14 @@ type ExternalInterfaceListerExpansion interface{}
 // ExternalInterfaceNamespaceLister.
 type ExternalInterfaceNamespaceListerExpansion interface{}
 
+// SaseServicePolicyListerExpansion allows custom methods to be added to
+// SaseServicePolicyLister.
+type SaseServicePolicyListerExpansion interface{}
+
+// SaseServicePolicyNamespaceListerExpansion allows custom methods to be added to
+// SaseServicePolicyNamespaceLister.
+type SaseServicePolicyNamespaceListerExpansion interface{}
+
 // ServiceFunctionChainListerExpansion allows custom methods to be added to
 // ServiceFunctionChainLister.
 type ServiceFunctionChainListerExpansion interface{}
@@ -47,11 +55,3 @@ type ServiceFunctionChainListerExpansion interface{}
 // ServiceFunctionChainNamespaceListerExpansion allows custom methods to be added to
 // ServiceFunctionChainNamespaceLister.
 type ServiceFunctionChainNamespaceListerExpansion interface{}
-
-// SrConfigurationListerExpansion allows custom methods to be added to
-// SrConfigurationLister.
-type SrConfigurationListerExpansion interface{}
-
-// SrConfigurationNamespaceListerExpansion allows custom methods to be added to
-// SrConfigurationNamespaceLister.
-type SrConfigurationNamespaceListerExpansion interface{}

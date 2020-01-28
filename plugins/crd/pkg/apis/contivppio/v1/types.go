@@ -205,70 +205,54 @@ type CustomConfigurationList struct {
 	Items []CustomConfiguration `json:"items"`
 }
 
-// SrConfiguration defines (arbitrary) configuration to be applied for
-// contiv/vpp or for CNFs running on top of contiv/vpp.
+// SaseServicePolicy defines service policy definitioons to be applied for
+// for trafic handles by a Sase Service.
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type SrConfiguration struct {
+type SaseServicePolicy struct {
 	// TypeMeta is the metadata for the resource, like kind and apiversion
 	meta_v1.TypeMeta `json:",inline"`
 	// ObjectMeta contains the metadata for the particular object
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec is the specification for the Sase Service configuration.
-	Spec SrConfigurationSpec `json:"spec"`
+	Spec SaseServicePolicySpec `json:"spec"`
 	// Status informs about the status of the resource.
 	Status meta_v1.Status `json:"status,omitempty"`
 }
 
-// SrConfigurationSpec is the spec for Sase Service configuration resource
-type SrConfigurationSpec struct {
-	// Microservice label determines where the configuration item should be applied.
-	// For Contiv/VPP vswitch use the hostname of the destination node, otherwise use
-	// label as defined in the environment variable MICROSERVICE_LABEL of the
-	// destination pod.
-	// This microservice label will be used for all items in the list below which do not have microservice defined.
-	Microservice string `json:"microservice"`
-	// Items is a list of configuration items.
-	ConfigItems []SrConfigurationItem `json:"configItems"`
+// SaseServicePolicySpec is the spec for Sase Service Policy resource
+type SaseServicePolicySpec struct {
+	// Sase Service Name
+	Service string `json:"service"`
+	// List of Policy Rules.
+	Config []SasePolicyRule `json:"config"`
 }
 
-// SrConfigurationItem is the specification for a single sase service configuration item
-type SrConfigurationItem struct {
-	// Microservice label determines where the configuration item should be applied.
-	// For Contiv/VPP vswitch use the hostname of the destination node, otherwise use
-	// label as defined in the environment variable MICROSERVICE_LABEL of the
-	// destination pod.
-	// Microservice label defined at the level of an individual item overwrites the "crd-global" microservice
-	// defined under spec.
-	Microservice string `json:"microservice"`
-
-	// Module is the name of the module to which the item belongs (e.g. "vpp.nat", "vpp.l2", "linux.l3", etc.).
-	Module string `json:"module"`
-
-	// Type of the item (e.g. "dnat44", "acl", "bridge-domain").
-	Type string `json:"type"`
-
-	// Version of the configuration (e.g. "v1", "v2", ...).
-	// This field is optional - for core vpp-agent configuration items (i.e. shipped with the agent) the version
-	// is read from the installed module and for external modules "v1" is assumed as the default.
-	Version string `json:"version"`
-
-	// Name of the configuration item.
-	// This field is optional - for core vpp-agent configuration items (i.e. shipped with the agent) the name is
-	// determined dynamically using the installed module and the configuration of the item (passed in <Data>).
-	// For external modules, the name can be omitted if <Data> contains a top-level "Name" field and this would be just
-	// a duplication of it.
-	Name string `json:"name"`
-
-	// Data should be a YAML-formatted configuration of the item.
-	Data string `json:"data"`
+// SasePolicyMatch specifies match conditions for a policy to be applied
+type SasePolicyMatch struct {
+	Protocol        string `json:"protocol"`
+	ProtocolPort    uint32 `json:"protocolport"`
+	SourceCIDR      string `json:"sourcecidr"`
+	DestinationCIDR string `json:"destinationcidr"`
+	Port            string `json:"port"`
 }
 
-// SrConfigurationList is a list of SrConfiguration resources
+// SasePolicyAction specifies action to be taken when a policy match happens
+type SasePolicyAction struct {
+	Action string `json:"action"`
+}
+
+// SasePolicyRule is the specification for a sase service configuration item
+type SasePolicyRule struct {
+	Direction string           `json:"direction"`
+	Match     SasePolicyMatch  `json:"match"`
+	Action    SasePolicyAction `json:"action"`
+}
+
+// SaseServicePolicyList is a list of SasePolicy
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type SrConfigurationList struct {
+type SaseServicePolicyList struct {
 	meta_v1.TypeMeta `json:",inline"`
-
-	Items []SrConfiguration `json:"items"`
+	Items            []SaseServicePolicy `json:"items"`
 }

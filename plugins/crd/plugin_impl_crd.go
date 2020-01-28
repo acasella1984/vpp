@@ -95,7 +95,7 @@ type Plugin struct {
 	externalInterfaceController    *controller.CrdController
 	serviceFunctionChainController *controller.CrdController
 	customConfigController         *controller.CrdController
-	saseConfigController           *controller.CrdController
+	saseServiceController          *controller.CrdController
 	cache                          *cache.ContivTelemetryCache
 	processor                      api.ContivTelemetryProcessor
 	verbose                        bool
@@ -315,20 +315,20 @@ func (p *Plugin) initializeCRDs() error {
 		},
 	}
 
-	// Sase Config Crd
-	saseConfigInformer := p.sharedFactory.Contivpp().V1().SrConfigurations().Informer()
-	saseConfigLog := p.Log.NewLogger("saseConfigHandler")
-	p.saseConfigController = &controller.CrdController{
+	// Sase Service Policy Crd
+	saseServiceInformer := p.sharedFactory.Contivpp().V1().SaseServicePolicies().Informer()
+	saseConfigLog := p.Log.NewLogger("saseServiceHandler")
+	p.saseServiceController = &controller.CrdController{
 		Deps: controller.Deps{
-			Log:       p.Log.NewLogger("saseConfigController"),
+			Log:       p.Log.NewLogger("saseServiceController"),
 			APIClient: p.apiclientset,
-			Informer:  saseConfigInformer,
+			Informer:  saseServiceInformer,
 			EventHandler: &kvdbreflector.KvdbReflector{
 				Deps: kvdbreflector.Deps{
 					Log:          saseConfigLog,
 					ServiceLabel: p.ServiceLabel,
 					Publish:      p.Etcd.RawAccess(),
-					Informer:     saseConfigInformer,
+					Informer:     saseServiceInformer,
 					Handler: &saseconfiguration.Handler{
 						Log:       saseConfigLog,
 						CrdClient: p.crdClient,
@@ -337,10 +337,10 @@ func (p *Plugin) initializeCRDs() error {
 			},
 		},
 		Spec: controller.CrdSpec{
-			TypeName:   reflect.TypeOf(v1.SrConfiguration{}).Name(),
+			TypeName:   reflect.TypeOf(v1.SaseServicePolicy{}).Name(),
 			Group:      contivppio.GroupName,
 			Version:    "v1",
-			Plural:     "srconfigurations",
+			Plural:     "saseservicepolicies",
 			Validation: saseconfiguration.Validation(),
 		},
 	}
@@ -350,7 +350,7 @@ func (p *Plugin) initializeCRDs() error {
 	p.externalInterfaceController.Init()
 	p.serviceFunctionChainController.Init()
 	p.customConfigController.Init()
-	p.saseConfigController.Init()
+	p.saseServiceController.Init()
 
 	if p.verbose {
 		p.customNetworkController.Log.SetLevel(logging.DebugLevel)
@@ -358,7 +358,7 @@ func (p *Plugin) initializeCRDs() error {
 		p.externalInterfaceController.Log.SetLevel(logging.DebugLevel)
 		p.serviceFunctionChainController.Log.SetLevel(logging.DebugLevel)
 		p.customConfigController.Log.SetLevel(logging.DebugLevel)
-		p.saseConfigController.Log.SetLevel(logging.DebugLevel)
+		p.saseServiceController.Log.SetLevel(logging.DebugLevel)
 		customConfigLog.SetLevel(logging.DebugLevel)
 	}
 
@@ -482,7 +482,7 @@ func (p *Plugin) onEtcdConnect() error {
 		go p.externalInterfaceController.Run(p.ctx.Done())
 		go p.serviceFunctionChainController.Run(p.ctx.Done())
 		go p.customConfigController.Run(p.ctx.Done())
-		go p.saseConfigController.Run(p.ctx.Done())
+		go p.saseServiceController.Run(p.ctx.Done())
 	}()
 	return nil
 }
