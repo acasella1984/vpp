@@ -42,6 +42,7 @@ import (
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/podmanager"
 	"github.com/contiv/vpp/plugins/policy"
+	"github.com/contiv/vpp/plugins/sase"
 	"github.com/contiv/vpp/plugins/service"
 	"github.com/contiv/vpp/plugins/sfc"
 	"github.com/contiv/vpp/plugins/statscollector"
@@ -109,6 +110,7 @@ type ContivAgent struct {
 	SFC           *sfc.Plugin
 	DeviceManager *devicemanager.DeviceManager
 	BGPReflector  *bgpreflector.BGPReflector
+	Sase          *sase.Plugin
 }
 
 func (c *ContivAgent) String() string {
@@ -227,6 +229,16 @@ func main() {
 		deps.ContivConf = contivConf
 	}))
 
+	// sase plugin
+	sasePlugin := sase.NewPlugin(sase.UseDeps(func(deps *sase.Deps) {
+		deps.ContivConf = contivConf
+		deps.IDAlloc = idAllocPlugin
+		deps.IPAM = ipamPlugin
+		deps.IPNet = ipNetPlugin
+		deps.NodeSync = nodeSyncPlugin
+		deps.PodManager = podManager
+	}))
+
 	controller := controller.NewPlugin(controller.UseDeps(func(deps *controller.Deps) {
 		deps.LocalDB = &bolt.DefaultPlugin
 		deps.RemoteDB = &etcd.DefaultPlugin
@@ -241,6 +253,7 @@ func main() {
 			servicePlugin,
 			sfcPlugin,
 			policyPlugin,
+			sasePlugin,
 			bgpReflector,
 			statsCollector,
 		}
@@ -261,6 +274,7 @@ func main() {
 	bgpReflector.EventLoop = controller
 	servicePlugin.ConfigRetriever = controller
 	sfcPlugin.ConfigRetriever = controller
+	sasePlugin.ConfigRetriever = controller
 
 	// initialize the agent
 	contivAgent := &ContivAgent{
@@ -295,6 +309,7 @@ func main() {
 		Policy:              policyPlugin,
 		Service:             servicePlugin,
 		SFC:                 sfcPlugin,
+		Sase:                sasePlugin,
 		BGPReflector:        bgpReflector,
 	}
 
