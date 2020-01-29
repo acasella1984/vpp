@@ -337,11 +337,11 @@ func (p *Plugin) initializeCRDs() error {
 			},
 		},
 		Spec: controller.CrdSpec{
-			TypeName:   reflect.TypeOf(v1.SaseServicePolicy{}).Name(),
-			Group:      contivppio.GroupName,
-			Version:    "v1",
-			Plural:     "saseservicepolicies",
-			Validation: saseconfiguration.Validation(),
+			TypeName: reflect.TypeOf(v1.SaseServicePolicy{}).Name(),
+			Group:    contivppio.GroupName,
+			Version:  "v1",
+			Plural:   "saseservicepolicies",
+			//Validation: saseconfiguration.Validation(),
 		},
 	}
 

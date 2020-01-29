@@ -201,8 +201,8 @@ type ConfigurationItem struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type CustomConfigurationList struct {
 	meta_v1.TypeMeta `json:",inline"`
-
-	Items []CustomConfiguration `json:"items"`
+	meta_v1.ListMeta `json:"metadata"`
+	Items            []CustomConfiguration `json:"items"`
 }
 
 // SaseServicePolicy defines service policy definitioons to be applied for
@@ -254,5 +254,6 @@ type SasePolicyRule struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type SaseServicePolicyList struct {
 	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata"`
 	Items            []SaseServicePolicy `json:"items"`
 }

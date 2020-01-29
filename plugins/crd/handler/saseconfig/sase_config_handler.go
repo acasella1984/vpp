@@ -28,7 +28,6 @@ import (
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
 	"github.com/ligato/cn-infra/logging"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
 // Handler implements the Handler interface for CRD<->KVDB Reflector.
@@ -74,13 +73,20 @@ type withName struct {
 	Name string `json:"name"`
 }
 
+// convertSaseServiceNameToProto:: get the sase service name
+// VENKAT: TBD
+func convertSaseServiceNameToProto(name string) model.SaseConfig_SaseService {
+	return model.SaseConfig_Firewall
+}
+
 // saseConfigCrdToProto:: Convert sase crd config to protobuf
 // VENKAT: TBD.  curreeeeeeeeeeeeently hardcoded the values for testing
 func (h *Handler) saseConfigCrdToProto(crd *v1.SaseServicePolicy) *model.SaseConfig {
+
 	// Convert config recieved in crd to protobuf
 	scPb := &model.SaseConfig{
-		Name:        "sample-fw",
-		SaseService: model.SaseConfig_Firewall,
+		Name:        crd.GetName(),
+		SaseService: convertSaseServiceNameToProto(crd.Spec.Service),
 		Direction:   model.SaseConfig_Ingress,
 		Match: &model.SaseConfig_Match{
 			Proto: model.SaseConfig_Match_TCP,
@@ -113,53 +119,5 @@ func (h *Handler) PublishCrdStatus(obj interface{}, opRetval error) error {
 	return err
 }
 
-// Validation generates OpenAPIV3 validator for SaseConfiguration CRD
-func Validation() *apiextv1beta1.CustomResourceValidation {
-	validation := &apiextv1beta1.CustomResourceValidation{
-		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
-			Required: []string{"spec"},
-			Type:     "object",
-			Properties: map[string]apiextv1beta1.JSONSchemaProps{
-				"spec": {
-					Type:     "object",
-					Required: []string{"configItems"},
-					Properties: map[string]apiextv1beta1.JSONSchemaProps{
-						"configItems": {
-							Type: "array",
-							Items: &apiextv1beta1.JSONSchemaPropsOrArray{
-								Schema: &apiextv1beta1.JSONSchemaProps{
-									Type:     "object",
-									Required: []string{"module", "type", "data"},
-									Properties: map[string]apiextv1beta1.JSONSchemaProps{
-										"module": {
-											Type: "string",
-										},
-										"type": {
-											Type: "string",
-										},
-										"data": {
-											Type: "string",
-										},
-										"name": {
-											Type: "string",
-										},
-										"version": {
-											Type: "string",
-										},
-										"microservice": {
-											Type: "string",
-										},
-									},
-								},
-							},
-						},
-						"microservice": {
-							Type: "string",
-						},
-					},
-				},
-			},
-		},
-	}
-	return validation
-}
+// Validation generates OpenAPIV3 validator for SaseServicePolicy CRD
+// VENKAT:: TBD

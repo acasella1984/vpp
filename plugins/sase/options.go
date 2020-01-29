@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sase 
+package sase
 
 import (
 	"github.com/contiv/vpp/plugins/statscollector"
@@ -26,7 +26,7 @@ import (
 func NewPlugin(opts ...Option) *Plugin {
 	p := &Plugin{}
 
-	p.PluginName = "sfc"
+	p.PluginName = "sase"
 	p.ServiceLabel = &servicelabel.DefaultPlugin
 	p.GoVPP = &govppmux.DefaultPlugin
 	p.Stats = &statscollector.DefaultPlugin

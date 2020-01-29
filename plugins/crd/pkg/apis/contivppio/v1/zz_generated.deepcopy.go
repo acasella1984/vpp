@@ -70,6 +70,7 @@ func (in *CustomConfiguration) DeepCopyObject() runtime.Object {
 func (in *CustomConfigurationList) DeepCopyInto(out *CustomConfigurationList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CustomConfiguration, len(*in))
@@ -376,6 +377,7 @@ func (in *SaseServicePolicy) DeepCopyObject() runtime.Object {
 func (in *SaseServicePolicyList) DeepCopyInto(out *SaseServicePolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]SaseServicePolicy, len(*in))

@@ -67,7 +67,24 @@ type Deps struct {
 
 // Init initializes the Sase plugin and starts watching ETCD for K8s configuration.
 func (p *Plugin) Init() error {
-	// load configuration
+	var err error
+
+	p.Log.Infof("Sase plugin Init")
+	p.processor = &processor.SaseProcessor{
+		Deps: processor.Deps{
+			Log:          p.Log.NewLogger("-saseProcessor"),
+			ServiceLabel: p.ServiceLabel,
+			ContivConf:   p.ContivConf,
+			IPAM:         p.IPAM,
+			IPNet:        p.IPNet,
+			NodeSync:     p.NodeSync,
+			PodManager:   p.PodManager,
+		},
+	}
+	err = p.processor.Init()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -78,7 +95,7 @@ func (p *Plugin) AfterInit() error {
 
 // HandlesEvent selects:
 //  - any resync event
-//  - KubeStateChange for SFCs and pods
+//  - KubeStateChange for Sase Service Policy
 //  - pod custom interfaces update
 //  - external interfaces update
 func (p *Plugin) HandlesEvent(event controller.Event) bool {

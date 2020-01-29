@@ -48,6 +48,7 @@ type Deps struct {
 
 // Init initializes Sase processor.
 func (sp *SaseProcessor) Init() error {
+	sp.Log.Debug("Sase Processor Init")
 	return nil
 }
 
@@ -63,6 +64,7 @@ func (sp *SaseProcessor) AfterInit() error {
 // Update is called for:
 //  - KubeStateChange for Sase-related config
 func (sp *SaseProcessor) Update(event controller.Event) error {
+	sp.Log.Infof("Update: %v", event)
 	if k8sChange, isK8sChange := event.(*controller.KubeStateChange); isK8sChange {
 		switch k8sChange.Resource {
 		case sasemodel.Keyword:
@@ -100,19 +102,19 @@ func (sp *SaseProcessor) Close() error {
 
 // processNewSaseServiceConfig
 func (sp *SaseProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
-
+	sp.Log.Infof("processNewSaseServiceConfig: %v", cfg)
 	return nil
 }
 
 // processUpdateSaseServiceConfig
 func (sp *SaseProcessor) processUpdateSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
-
+	sp.Log.Infof("processUpdateSaseServiceConfig: %v", cfg)
 	return nil
 }
 
 // processDeletedSaseServiceConfig
 func (sp *SaseProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
-
+	sp.Log.Infof("processDeletedSaseServiceConfig: %v", cfg)
 	return nil
 }
 
