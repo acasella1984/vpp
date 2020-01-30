@@ -13,3 +13,32 @@
 // limitations under the License.
 
 package config
+
+const (
+	// by default traffic is equally distributed between local and remote backends
+	defaultServiceLocalEndpointWeight = 1
+)
+
+// Config holds default values for sase services
+type Config struct {
+}
+
+// DefaultNatConfig returns configuration for service plugin with default values.
+func DefaultNatConfig() *Config {
+	return &Config{}
+}
+
+// DefaultFirewallConfig returns configuration for service plugin with default values.
+func DefaultFirewallConfig() *Config {
+	return &Config{}
+}
+
+// DefaultIPSecConfig returns configuration for service plugin with default values.
+func DefaultIPSecConfig() *Config {
+	return &Config{}
+}
+
+// DefaultRouteConfig returns configuration for service plugin with default values.
+func DefaultRouteConfig() *Config {
+	return &Config{}
+}

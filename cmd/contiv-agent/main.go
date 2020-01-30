@@ -230,6 +230,7 @@ func main() {
 	}))
 
 	// sase plugin
+	// VENKAT: TBD: To revist plugin dependencies
 	sasePlugin := sase.NewPlugin(sase.UseDeps(func(deps *sase.Deps) {
 		deps.ContivConf = contivConf
 		deps.IDAlloc = idAllocPlugin
@@ -239,6 +240,8 @@ func main() {
 		deps.PodManager = podManager
 	}))
 
+	// VENKAT: Here we register Sase Plugin to controller event handlers
+	// Sase Plugin also implements EventHandler interface inaddition to Plugin Interface
 	controller := controller.NewPlugin(controller.UseDeps(func(deps *controller.Deps) {
 		deps.LocalDB = &bolt.DefaultPlugin
 		deps.RemoteDB = &etcd.DefaultPlugin

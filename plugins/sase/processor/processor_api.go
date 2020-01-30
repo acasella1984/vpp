@@ -17,6 +17,7 @@
 package processor
 
 import (
+	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/ligato/cn-infra/datasync"
 )
 
@@ -38,5 +39,5 @@ type SaseProcessorAPI interface {
 
 	// RegisterRenderer registers a new service function chain renderer.
 	// The renderer will be receiving updates for all SFCs on the cluster.
-	//RegisterRenderer(renderer renderer.SFCRendererAPI) error
+	RegisterRenderer(renderer renderer.SaseServiceRendererAPI) error
 }

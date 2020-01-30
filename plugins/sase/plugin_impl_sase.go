@@ -25,8 +25,12 @@ import (
 	"github.com/contiv/vpp/plugins/ipnet"
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/podmanager"
+	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/processor"
-	"github.com/contiv/vpp/plugins/sfc/config"
+	firewallservice "github.com/contiv/vpp/plugins/sase/renderer/firewall"
+	ipsecservice "github.com/contiv/vpp/plugins/sase/renderer/ipsec"
+	natservice "github.com/contiv/vpp/plugins/sase/renderer/nat"
+	routeservice "github.com/contiv/vpp/plugins/sase/renderer/route"
 	"github.com/contiv/vpp/plugins/statscollector"
 	"github.com/ligato/cn-infra/infra"
 	"github.com/ligato/cn-infra/servicelabel"
@@ -44,10 +48,15 @@ type Plugin struct {
 	// ongoing transaction
 	resyncTxn controller.ResyncOperations
 	updateTxn controller.UpdateOperations
-	changes   []string
 
 	// layers of the sase plugin
-	processor *processor.SaseProcessor
+	// Processor
+	processor *processor.SaseServiceProcessor
+	// Renderers
+	firewallRenderer *firewallservice.Renderer
+	natRenderer      *natservice.Renderer
+	ipsecRenderer    *ipsecservice.Renderer
+	routeRenderer    *routeservice.Renderer
 }
 
 // Deps defines dependencies of the Sase plugin.
@@ -65,12 +74,112 @@ type Deps struct {
 	ConfigRetriever controller.ConfigRetriever
 }
 
+func (p *Plugin) registerNatServiceRenderer() {
+	p.natRenderer = &natservice.Renderer{
+		Deps: natservice.Deps{
+			Log:        p.Log.NewLogger("-natServiceRenderer"),
+			Config:     p.config,
+			ContivConf: p.ContivConf,
+			IPAM:       p.IPAM,
+			IPNet:      p.IPNet,
+			GoVPPChan:  p.GoVPP,
+			UpdateTxnFactory: func(change string) controller.UpdateOperations {
+				p.changes = append(p.changes, change)
+				return p.updateTxn
+			},
+			ResyncTxnFactory: func() controller.ResyncOperations {
+				return p.resyncTxn
+			},
+			Stats: p.Stats,
+		},
+	}
+
+	p.natRenderer.Init()
+	// Register renderer.
+	p.processor.RegisterRenderer(p.natRenderer)
+}
+
+func (p *Plugin) registerFirewallServiceRenderer() {
+	p.firewallRenderer = &firewallservice.Renderer{
+		Deps: natservice.Deps{
+			Log:        p.Log.NewLogger("-firewallServiceRenderer"),
+			Config:     p.config,
+			ContivConf: p.ContivConf,
+			IPAM:       p.IPAM,
+			IPNet:      p.IPNet,
+			GoVPPChan:  p.GoVPP,
+			UpdateTxnFactory: func(change string) controller.UpdateOperations {
+				p.changes = append(p.changes, change)
+				return p.updateTxn
+			},
+			ResyncTxnFactory: func() controller.ResyncOperations {
+				return p.resyncTxn
+			},
+			Stats: p.Stats,
+		},
+	}
+
+	p.firewallRenderer.Init()
+	// Register renderer.
+	p.processor.RegisterRenderer(p.firewallRenderer)
+}
+
+func (p *Plugin) registerIPSecServiceRenderer() {
+	p.ipsecRenderer = &natservice.Renderer{
+		Deps: natservice.Deps{
+			Log:        p.Log.NewLogger("-ipSecServiceRenderer"),
+			Config:     p.config,
+			ContivConf: p.ContivConf,
+			IPAM:       p.IPAM,
+			IPNet:      p.IPNet,
+			GoVPPChan:  p.GoVPP,
+			UpdateTxnFactory: func(change string) controller.UpdateOperations {
+				p.changes = append(p.changes, change)
+				return p.updateTxn
+			},
+			ResyncTxnFactory: func() controller.ResyncOperations {
+				return p.resyncTxn
+			},
+			Stats: p.Stats,
+		},
+	}
+
+	p.ipsecRenderer.Init()
+	// Register renderer.
+	p.processor.RegisterRenderer(p.ipsecRenderer)
+}
+
+func (p *Plugin) registerRouteServiceRenderer() {
+	p.routeRenderer = &natservice.Renderer{
+		Deps: natservice.Deps{
+			Log:        p.Log.NewLogger("-routeServiceRenderer"),
+			Config:     p.config,
+			ContivConf: p.ContivConf,
+			IPAM:       p.IPAM,
+			IPNet:      p.IPNet,
+			GoVPPChan:  p.GoVPP,
+			UpdateTxnFactory: func(change string) controller.UpdateOperations {
+				p.changes = append(p.changes, change)
+				return p.updateTxn
+			},
+			ResyncTxnFactory: func() controller.ResyncOperations {
+				return p.resyncTxn
+			},
+			Stats: p.Stats,
+		},
+	}
+
+	p.routeRenderer.Init()
+	// Register renderer.
+	p.processor.RegisterRenderer(p.routeRenderer)
+}
+
 // Init initializes the Sase plugin and starts watching ETCD for K8s configuration.
 func (p *Plugin) Init() error {
 	var err error
 
 	p.Log.Infof("Sase plugin Init")
-	p.processor = &processor.SaseProcessor{
+	p.processor = &processor.SaseServiceProcessor{
 		Deps: processor.Deps{
 			Log:          p.Log.NewLogger("-saseProcessor"),
 			ServiceLabel: p.ServiceLabel,
@@ -85,6 +194,10 @@ func (p *Plugin) Init() error {
 	if err != nil {
 		return err
 	}
+
+	// register all the supported sase services renderers
+
+	p.processor.RegisterRenderers()
 	return nil
 }
 

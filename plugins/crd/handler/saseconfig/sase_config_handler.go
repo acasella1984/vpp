@@ -66,6 +66,7 @@ func (h *Handler) CrdObjectToKVData(obj interface{}) (data []kvdbreflector.KVDat
 			KeySuffix: saseConfig.GetName(),
 		},
 	}
+	fmt.Println("CrdObjectToKVData: proto data", data)
 	return
 }
 
@@ -76,7 +77,7 @@ type withName struct {
 // convertSaseServiceNameToProto:: get the sase service name
 // VENKAT: TBD
 func convertSaseServiceNameToProto(name string) model.SaseConfig_SaseService {
-	return model.SaseConfig_Firewall
+	return model.SaseConfig_Nat
 }
 
 // saseConfigCrdToProto:: Convert sase crd config to protobuf
@@ -87,13 +88,14 @@ func (h *Handler) saseConfigCrdToProto(crd *v1.SaseServicePolicy) *model.SaseCon
 	scPb := &model.SaseConfig{
 		Name:        crd.GetName(),
 		SaseService: convertSaseServiceNameToProto(crd.Spec.Service),
-		Direction:   model.SaseConfig_Ingress,
+		Direction:   model.SaseConfig_Egress,
 		Match: &model.SaseConfig_Match{
-			Proto: model.SaseConfig_Match_TCP,
+			Proto: model.SaseConfig_Match_UDP,
 		},
-		Action: model.SaseConfig_DENY,
+		Action: model.SaseConfig_PERMIT,
 	}
 
+	fmt.Println("saseConfigCrdToProto ", scPb)
 	return scPb
 }
 
