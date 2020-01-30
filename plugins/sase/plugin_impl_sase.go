@@ -48,6 +48,7 @@ type Plugin struct {
 	// ongoing transaction
 	resyncTxn controller.ResyncOperations
 	updateTxn controller.UpdateOperations
+	changes   []string
 
 	// layers of the sase plugin
 	// Processor
@@ -82,7 +83,6 @@ func (p *Plugin) registerNatServiceRenderer() {
 			ContivConf: p.ContivConf,
 			IPAM:       p.IPAM,
 			IPNet:      p.IPNet,
-			GoVPPChan:  p.GoVPP,
 			UpdateTxnFactory: func(change string) controller.UpdateOperations {
 				p.changes = append(p.changes, change)
 				return p.updateTxn
@@ -96,18 +96,17 @@ func (p *Plugin) registerNatServiceRenderer() {
 
 	p.natRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(p.natRenderer)
+	p.processor.RegisterRenderer(sasemodel.SaseConfig_Nat, p.natRenderer)
 }
 
 func (p *Plugin) registerFirewallServiceRenderer() {
 	p.firewallRenderer = &firewallservice.Renderer{
-		Deps: natservice.Deps{
+		Deps: firewallservice.Deps{
 			Log:        p.Log.NewLogger("-firewallServiceRenderer"),
 			Config:     p.config,
 			ContivConf: p.ContivConf,
 			IPAM:       p.IPAM,
 			IPNet:      p.IPNet,
-			GoVPPChan:  p.GoVPP,
 			UpdateTxnFactory: func(change string) controller.UpdateOperations {
 				p.changes = append(p.changes, change)
 				return p.updateTxn
@@ -121,18 +120,17 @@ func (p *Plugin) registerFirewallServiceRenderer() {
 
 	p.firewallRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(p.firewallRenderer)
+	p.processor.RegisterRenderer(sasemodel.SaseConfig_Firewall, p.firewallRenderer)
 }
 
 func (p *Plugin) registerIPSecServiceRenderer() {
-	p.ipsecRenderer = &natservice.Renderer{
-		Deps: natservice.Deps{
+	p.ipsecRenderer = &ipsecservice.Renderer{
+		Deps: ipsecservice.Deps{
 			Log:        p.Log.NewLogger("-ipSecServiceRenderer"),
 			Config:     p.config,
 			ContivConf: p.ContivConf,
 			IPAM:       p.IPAM,
 			IPNet:      p.IPNet,
-			GoVPPChan:  p.GoVPP,
 			UpdateTxnFactory: func(change string) controller.UpdateOperations {
 				p.changes = append(p.changes, change)
 				return p.updateTxn
@@ -146,18 +144,17 @@ func (p *Plugin) registerIPSecServiceRenderer() {
 
 	p.ipsecRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(p.ipsecRenderer)
+	p.processor.RegisterRenderer(sasemodel.SaseConfig_IpSec, p.ipsecRenderer)
 }
 
 func (p *Plugin) registerRouteServiceRenderer() {
-	p.routeRenderer = &natservice.Renderer{
-		Deps: natservice.Deps{
+	p.routeRenderer = &routeservice.Renderer{
+		Deps: routeservice.Deps{
 			Log:        p.Log.NewLogger("-routeServiceRenderer"),
 			Config:     p.config,
 			ContivConf: p.ContivConf,
 			IPAM:       p.IPAM,
 			IPNet:      p.IPNet,
-			GoVPPChan:  p.GoVPP,
 			UpdateTxnFactory: func(change string) controller.UpdateOperations {
 				p.changes = append(p.changes, change)
 				return p.updateTxn
@@ -171,7 +168,7 @@ func (p *Plugin) registerRouteServiceRenderer() {
 
 	p.routeRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(p.routeRenderer)
+	p.processor.RegisterRenderer(sasemodel.SaseConfig_Route, p.routeRenderer)
 }
 
 // Init initializes the Sase plugin and starts watching ETCD for K8s configuration.
@@ -196,8 +193,11 @@ func (p *Plugin) Init() error {
 	}
 
 	// register all the supported sase services renderers
+	p.registerFirewallServiceRenderer()
+	p.registerNatServiceRenderer()
+	p.registerIPSecServiceRenderer()
+	p.registerRouteServiceRenderer()
 
-	p.processor.RegisterRenderers()
 	return nil
 }
 

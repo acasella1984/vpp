@@ -18,6 +18,7 @@ package firewallservice
 
 import (
 	"github.com/contiv/vpp/plugins/contivconf"
+	controller "github.com/contiv/vpp/plugins/controller/api"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
 	"github.com/contiv/vpp/plugins/sase/config"
@@ -40,7 +41,6 @@ type Deps struct {
 	IPNet            ipnet.API
 	UpdateTxnFactory func(change string) (txn controller.UpdateOperations)
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
-	GoVPPChan        govpp.Channel      /* used for direct NAT binary API calls */
 	Stats            statscollector.API /* used for exporting the statistics */
 }
 

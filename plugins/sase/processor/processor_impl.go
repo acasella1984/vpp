@@ -138,14 +138,14 @@ func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseC
 	// Get Pod Microservice Label
 
 	// Fill in the relevant information
-	p := renderer.SaseServicePolicy{}
+	p := &renderer.SaseServicePolicy{}
 	// Get the type of Sase Service
 	saseService := cfg.GetSaseService()
-	rndr, err := sp.GetRenderer(sasemodel)
+	rndr, err := sp.GetRenderer(saseService)
 	if err != nil {
 		return err
 	}
-	err := rndr.AddPolicy(p)
+	err = rndr.AddPolicy(p)
 	return err
 }
 
@@ -160,15 +160,15 @@ func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemod
 	// Get Pod Microservice Label
 
 	// Fill in the relevant information
-	oldP := renderer.SaseServicePolicy{}
-	newP := renderer.SaseServicePolicy{}
+	oldP := &renderer.SaseServicePolicy{}
+	newP := &renderer.SaseServicePolicy{}
 	// Get the type of Sase Service
-	saseService := cfg.GetSaseService()
-	rndr, err := sp.GetRenderer(sasemodel)
+	saseService := new.GetSaseService()
+	rndr, err := sp.GetRenderer(saseService)
 	if err != nil {
 		return err
 	}
-	err := rndr.UpdatePolicy(oldP, newP)
+	err = rndr.UpdatePolicy(oldP, newP)
 	return err
 }
 
@@ -183,14 +183,14 @@ func (sp *SaseServiceProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.S
 	// Get Pod Microservice Label
 
 	// Fill in the relevant information
-	cfg := renderer.SaseServicePolicy{}
+	p := &renderer.SaseServicePolicy{}
 	// Get the type of Sase Service
 	saseService := cfg.GetSaseService()
-	rndr, err := sp.GetRenderer(sasemodel)
+	rndr, err := sp.GetRenderer(saseService)
 	if err != nil {
 		return err
 	}
-	err := rndr.DeletePolicy(cfg)
+	err = rndr.DeletePolicy(p)
 	return err
 }
 

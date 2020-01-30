@@ -17,9 +17,7 @@
 package natservice
 
 import (
-	govpp "git.fd.io/govpp.git/api"
 	"github.com/ligato/cn-infra/logging"
-	vpp_nat "github.com/ligato/vpp-agent/api/models/vpp/nat"
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
@@ -44,15 +42,11 @@ type Deps struct {
 	IPNet            ipnet.API
 	UpdateTxnFactory func(change string) (txn controller.UpdateOperations)
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
-	GoVPPChan        govpp.Channel      /* used for direct NAT binary API calls */
 	Stats            statscollector.API /* used for exporting the statistics */
 }
 
 // Init initializes the renderer.
 func (rndr *Renderer) Init() error {
-	rndr.natGlobalCfg = &vpp_nat.Nat44Global{
-		Forwarding: true,
-	}
 	if rndr.Config == nil {
 		rndr.Config = config.DefaultNatConfig()
 	}
