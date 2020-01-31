@@ -73,6 +73,7 @@ type Deps struct {
 	GoVPP           govppmux.API
 	Stats           statscollector.API
 	ConfigRetriever controller.ConfigRetriever
+	RemoteDB        nodesync.KVDBWithAtomic // For posting commands to remote vpp dataplane
 }
 
 func (p *Plugin) registerNatServiceRenderer() {
@@ -90,7 +91,8 @@ func (p *Plugin) registerNatServiceRenderer() {
 			ResyncTxnFactory: func() controller.ResyncOperations {
 				return p.resyncTxn
 			},
-			Stats: p.Stats,
+			Stats:    p.Stats,
+			RemoteDB: p.RemoteDB,
 		},
 	}
 
@@ -114,7 +116,8 @@ func (p *Plugin) registerFirewallServiceRenderer() {
 			ResyncTxnFactory: func() controller.ResyncOperations {
 				return p.resyncTxn
 			},
-			Stats: p.Stats,
+			Stats:    p.Stats,
+			RemoteDB: p.RemoteDB,
 		},
 	}
 
@@ -138,7 +141,8 @@ func (p *Plugin) registerIPSecServiceRenderer() {
 			ResyncTxnFactory: func() controller.ResyncOperations {
 				return p.resyncTxn
 			},
-			Stats: p.Stats,
+			Stats:    p.Stats,
+			RemoteDB: p.RemoteDB,
 		},
 	}
 
@@ -162,7 +166,8 @@ func (p *Plugin) registerRouteServiceRenderer() {
 			ResyncTxnFactory: func() controller.ResyncOperations {
 				return p.resyncTxn
 			},
-			Stats: p.Stats,
+			Stats:    p.Stats,
+			RemoteDB: p.RemoteDB,
 		},
 	}
 

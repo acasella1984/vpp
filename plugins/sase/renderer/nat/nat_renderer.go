@@ -23,6 +23,7 @@ import (
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
+	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
@@ -43,6 +44,7 @@ type Deps struct {
 	UpdateTxnFactory func(change string) (txn controller.UpdateOperations)
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
 	Stats            statscollector.API /* used for exporting the statistics */
+	RemoteDB         nodesync.KVDBWithAtomic
 }
 
 // Init initializes the renderer.

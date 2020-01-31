@@ -27,6 +27,7 @@ import (
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
+	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
@@ -49,6 +50,7 @@ type Deps struct {
 	UpdateTxnFactory func(change string) (txn controller.UpdateOperations)
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
 	Stats            statscollector.API /* used for exporting the statistics */
+	RemoteDB         nodesync.KVDBWithAtomic
 }
 
 // Init initializes the renderer.
@@ -72,7 +74,7 @@ func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
 	rndr.Log.Infof("AddPolicy: fwRule: %v", fwRule)
 	vppACL := rndr.renderVppACL(fwRule, true)
 	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL)
-	return rndr.Commit(vppACL)
+	return renderer.Commit(rndr.RemoteDB, "eos-rtr", vpp_acl.Key(vppACL.Name), vppACL, renderer.ConfigAdd)
 }
 
 // UpdatePolicy updates exiting firewall  related policies
@@ -90,6 +92,7 @@ func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
 // ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
 func convertSasePolicyToFirewallRule(sp *renderer.SaseServicePolicy) *FirewallRule {
 
+	// VENKAT: Temp for test
 	_, ipv4SrcNet, _ := net.ParseCIDR("192.0.2.1/24")
 	_, ipv4DstNet, _ := net.ParseCIDR("100.0.2.1/24")
 
@@ -293,11 +296,12 @@ func (rndr *Renderer) renderVppACL(rule *FirewallRule, isReflectiveACL bool) *vp
 	return acl
 }
 
-// Commit proceeds with the rendering. A minimalistic set of changes is
-// calculated using RendererCache and applied as one transaction via the
-// localclient.
+// Commit proceeds with the rendering to the local vpp dataplane instead of posting to
+// etcd for re-direction.
 func (rndr *Renderer) Commit(acl *vpp_acl.ACL) error {
+
 	txn := rndr.UpdateTxnFactory(fmt.Sprintf("commit acl %s", acl.Name))
 	txn.Put(vpp_acl.Key(acl.Name), acl)
+
 	return nil
 }

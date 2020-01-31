@@ -232,6 +232,7 @@ func main() {
 	// sase plugin
 	// VENKAT: TBD: To revist plugin dependencies
 	sasePlugin := sase.NewPlugin(sase.UseDeps(func(deps *sase.Deps) {
+		deps.RemoteDB = &etcd.DefaultPlugin // For posting configs into remote vpp dataplane
 		deps.ContivConf = contivConf
 		deps.IDAlloc = idAllocPlugin
 		deps.IPAM = ipamPlugin
