@@ -77,7 +77,7 @@ type withName struct {
 // convertSaseServiceNameToProto:: get the sase service name
 // VENKAT: TBD
 func convertSaseServiceNameToProto(name string) model.SaseConfig_SaseService {
-	return model.SaseConfig_Nat
+	return model.SaseConfig_Firewall
 }
 
 // saseConfigCrdToProto:: Convert sase crd config to protobuf

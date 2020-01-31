@@ -37,6 +37,9 @@ import (
 type SaseServiceProcessor struct {
 	Deps
 	renderers map[sasemodel.SaseConfig_SaseService]renderer.SaseServiceRendererAPI
+
+	// Maintain local cache of all the sase service policies that are applied
+	// Housekeeping stuff
 }
 
 // Deps lists dependencies of SFC Processor.
@@ -78,6 +81,7 @@ func (sp *SaseServiceProcessor) GetRenderer(name sasemodel.SaseConfig_SaseServic
 	if !ok {
 		return nil, errors.New("GetRenderer: Renderer Not found")
 	}
+	sp.Log.Infof(" GetRenderer: rndr returned for Sase Service %d", name)
 	return rndr, nil
 }
 

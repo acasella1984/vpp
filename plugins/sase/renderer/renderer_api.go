@@ -1,5 +1,9 @@
 package renderer
 
+import (
+	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
+)
+
 // SaseServiceRendererAPI defines the APIs for Sase Service rendering.
 type SaseServiceRendererAPI interface {
 
@@ -31,4 +35,5 @@ type SaseServicePolicy struct {
 	// eg. Microservice Label, Interfaces, IPAddress
 
 	// Policy Details
+	policy *sasemodel.SaseConfig
 }
