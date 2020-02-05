@@ -19,6 +19,9 @@ set -e
 # obtain the current git tag for tagging the Docker images
 TAG=`git describe --tags`
 
+# source VPP commit ID and repo URL
+source ../../vpp.env
+
 # build vpp-binaries image
 cd vpp-binaries
 ./build.sh ${TAG}

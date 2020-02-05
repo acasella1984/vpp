@@ -67,10 +67,6 @@ fi
 cd vpp-vswitch
 ./build.sh
 
-# builds the new images (vpp-cni, vpp-ksr)
-#cd ..
-./build-new.sh
-
 # remove dangling images
 set +e
 docker rmi `docker images --filter=dangling=true -q` 2>/dev/null

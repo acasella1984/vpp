@@ -17,6 +17,9 @@
 package natservice
 
 import (
+	"net"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/cn-infra/logging"
 
 	"github.com/contiv/vpp/plugins/contivconf"
@@ -27,6 +30,7 @@ import (
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
+	vpp_nat "github.com/ligato/vpp-agent/api/models/vpp/nat"
 )
 
 // Renderer implements rendering of Nat policies
@@ -62,7 +66,22 @@ func (rndr *Renderer) AfterInit() error {
 
 // AddPolicy adds route related policies
 func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
-	return nil
+	var key string
+	var vppNAT proto.Message
+	rndr.Log.Info("NAT Service: AddPolicy: ")
+	// convert Sase Service Policy to native NAT representation
+	natRule := convertSasePolicyToNatRule(sp)
+	rndr.Log.Infof("AddPolicy: NatRule: %v", natRule)
+	if natRule.Type == SourceNAT {
+		vppNAT = rndr.renderVppSNAT(natRule)
+		key = vpp_nat.GlobalNAT44Key()
+	} else if natRule.Type == DestinationNAT {
+		vppNAT = rndr.renderVppDNAT(sp.Policy.Name, natRule)
+		key = vpp_nat.DNAT44Key(natRule.DNat.Key)
+	}
+
+	rndr.Log.Infof("AddPolicy: vppNAT: %v", vppNAT, "type: %d", natRule.Type)
+	return renderer.Commit(rndr.RemoteDB, "eos-rtr", key, vppNAT, renderer.ConfigAdd)
 }
 
 // UpdatePolicy updates exiting route related policies
@@ -73,4 +92,80 @@ func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServicePolicy) error {
 // DeletePolicy deletes an existing route policy
 func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
 	return nil
+}
+
+// convertSasePolicyToNatRule: convert SaseServicePolicy to firewall policy
+func convertSasePolicyToNatRule(sp *renderer.SaseServicePolicy) *NATRule {
+
+	rule := &NATRule{}
+	return rule
+}
+
+// NatType :
+type NatType int
+
+const (
+	// None : No Nat configuration
+	None NatType = iota
+
+	// SourceNAT :
+	SourceNAT
+
+	// DestinationNAT :
+	DestinationNAT
+)
+
+// NATRule :
+type NATRule struct {
+	Type NatType
+	SNat SNATConfig
+	DNat DNATConfig
+}
+
+// SNATConfig : SNAT allows inside hosts with private IP Addresses
+// to connect to outside Public network
+type SNATConfig struct {
+	// Local Private Subnets that needs NAT
+	LocalSubnetList []renderer.Subnets
+	// Public IP
+	ExternalIP []net.IP
+	// Local Interface List
+	LocalInterfaces   []renderer.Interface
+	ExternalInterface []renderer.Interface
+}
+
+// EndPoint : Represents an endpoint idenified by IP/Port/Protocol
+type EndPoint struct {
+	IPAddr   net.IP
+	Protocol renderer.ProtocolType
+	AppPort  uint32
+	Intf     renderer.Interface
+}
+
+// DNATConfig : DNAT allows Outside hosts to connect to inside hosts with private IP Address
+// Local private IP Address could represent an HTTPS server or application server on specific port
+// (Local Resource: {IP, Port, Protocol})
+type DNATConfig struct {
+	Key                string
+	LocalEndPoints     []EndPoint
+	ExternalEndPoint   EndPoint
+	ExternalInterfaces renderer.Interface
+	TwiceNatEnabled    bool
+}
+
+// Ligato VPP Nat Plugin
+// https://ligato-docs.readthedocs.io/en/latest/user-guide/articles/NAT-plugin/
+// - NAT Global Config
+// - DNAT44 config
+
+// renderVppSNAT :: Renders VPP Global Nat Config
+func (rndr *Renderer) renderVppSNAT(natRule *NATRule) *vpp_nat.Nat44Global {
+	globalNat := &vpp_nat.Nat44Global{}
+	return globalNat
+}
+
+// renderVppSNAT :: Renders VPP DNAT Config
+func (rndr *Renderer) renderVppDNAT(key string, natRule *NATRule) *vpp_nat.DNat44 {
+	dnatCfg := &vpp_nat.DNat44{}
+	return dnatCfg
 }

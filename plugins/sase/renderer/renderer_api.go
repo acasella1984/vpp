@@ -1,6 +1,8 @@
 package renderer
 
 import (
+	"net"
+
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/gogo/protobuf/proto"
@@ -39,7 +41,19 @@ type SaseServicePolicy struct {
 	// eg. Microservice Label, Interfaces, IPAddress
 
 	// Policy Details
-	policy *sasemodel.SaseConfig
+	Policy *sasemodel.SaseConfig
+}
+
+// Interface : Nat Interface
+type Interface struct {
+	Name string
+}
+
+// Subnets : Subnet Addresses
+type Subnets struct {
+	Vrf    uint32
+	Subnet net.IPNet
+	// Any other attributes here for the given subnet??
 }
 
 // ConfigEventType represents the type of an configuration event processed by the ipnet plugin
@@ -53,6 +67,35 @@ const (
 	// ConfigDelete deletion of existing config
 	ConfigDelete
 )
+
+// ProtocolType is either TCP or UDP or OTHER.
+type ProtocolType int
+
+const (
+	// TCP protocol.
+	TCP ProtocolType = iota
+	// UDP protocol.
+	UDP
+	// OTHER is some NON-UDP, NON-TCP traffic (used ONLY in unit tests).
+	OTHER
+	// ANY L4 protocol or even pure L3 traffic (port numbers are ignored).
+	ANY
+)
+
+// String converts ProtocolType into a human-readable string.
+func (at ProtocolType) String() string {
+	switch at {
+	case TCP:
+		return "TCP"
+	case UDP:
+		return "UDP"
+	case OTHER:
+		return "OTHER"
+	case ANY:
+		return "ANY"
+	}
+	return "INVALID"
+}
 
 // Commit to remote persistent DB
 func Commit(remotedb nodesync.KVDBWithAtomic, serviceLabel string, key string, value proto.Message, eventType ConfigEventType) error {

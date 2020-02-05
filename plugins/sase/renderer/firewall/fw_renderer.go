@@ -72,7 +72,7 @@ func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
 	// convert Sase Service Policy to native firewall representation
 	fwRule := convertSasePolicyToFirewallRule(sp)
 	rndr.Log.Infof("AddPolicy: fwRule: %v", fwRule)
-	vppACL := rndr.renderVppACL(fwRule, true)
+	vppACL := rndr.renderVppACL(sp.Policy.Name, fwRule, true)
 	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL)
 	return renderer.Commit(rndr.RemoteDB, "eos-rtr", vpp_acl.Key(vppACL.Name), vppACL, renderer.ConfigAdd)
 }
@@ -84,7 +84,11 @@ func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServicePolicy) error {
 
 // DeletePolicy deletes an existing firewall  policy
 func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
-	return nil
+	rndr.Log.Infof("Firewall Service: DeletePolicy: ")
+	// convert Sase Service Policy to native firewall representation
+	fwRule := convertSasePolicyToFirewallRule(sp)
+	vppACL := rndr.renderVppACL(sp.Policy.Name, fwRule, true)
+	return renderer.Commit(rndr.RemoteDB, "eos-rtr", vpp_acl.Key(vppACL.Name), vppACL, renderer.ConfigDelete)
 }
 
 /////////////////////////// Firewall Rule related routines ////////////////
@@ -98,7 +102,7 @@ func convertSasePolicyToFirewallRule(sp *renderer.SaseServicePolicy) *FirewallRu
 
 	rule := &FirewallRule{
 		Action:      ActionDeny,
-		Protocol:    TCP,
+		Protocol:    renderer.TCP,
 		SrcNetwork:  ipv4SrcNet,
 		DestNetwork: ipv4DstNet,
 		SrcPort:     1004,
@@ -128,35 +132,6 @@ func (at ActionType) String() string {
 	return "INVALID"
 }
 
-// ProtocolType is either TCP or UDP or OTHER.
-type ProtocolType int
-
-const (
-	// TCP protocol.
-	TCP ProtocolType = iota
-	// UDP protocol.
-	UDP
-	// OTHER is some NON-UDP, NON-TCP traffic (used ONLY in unit tests).
-	OTHER
-	// ANY L4 protocol or even pure L3 traffic (port numbers are ignored).
-	ANY
-)
-
-// String converts ProtocolType into a human-readable string.
-func (at ProtocolType) String() string {
-	switch at {
-	case TCP:
-		return "TCP"
-	case UDP:
-		return "UDP"
-	case OTHER:
-		return "OTHER"
-	case ANY:
-		return "ANY"
-	}
-	return "INVALID"
-}
-
 const (
 	// ACLNamePrefix is used to tag ACLs created for the implementation of K8s policies.
 	ACLNamePrefix = "sase-firewall-"
@@ -180,7 +155,7 @@ type FirewallRule struct {
 	DestNetwork *net.IPNet // empty = match all
 
 	// L4
-	Protocol ProtocolType
+	Protocol renderer.ProtocolType
 	SrcPort  uint16 // 0 = match all
 	DestPort uint16 // 0 = match all
 }
@@ -222,11 +197,11 @@ func expandAnyAddr(rule *vpp_acl.ACL_Rule) []*vpp_acl.ACL_Rule {
 }
 
 // renderACL renders ContivRuleTable into the equivalent ACL configuration.
-func (rndr *Renderer) renderVppACL(rule *FirewallRule, isReflectiveACL bool) *vpp_acl.ACL {
+func (rndr *Renderer) renderVppACL(name string, rule *FirewallRule, isReflectiveACL bool) *vpp_acl.ACL {
 	const maxPortNum = ^uint16(0)
 	acl := &vpp_acl.ACL{}
 	if isReflectiveACL {
-		acl.Name = ACLNamePrefix + ReflectiveACLName
+		acl.Name = name
 	} else {
 		//acl.Name = ACLNamePrefix + table.GetID()
 	}
@@ -255,7 +230,7 @@ func (rndr *Renderer) renderVppACL(rule *FirewallRule, isReflectiveACL bool) *vp
 	}
 
 	// Protocol TCP
-	if rule.Protocol == TCP {
+	if rule.Protocol == renderer.TCP {
 		aclRule.IpRule.Tcp = &vpp_acl.ACL_Rule_IpRule_Tcp{}
 		aclRule.IpRule.Tcp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
 		aclRule.IpRule.Tcp.SourcePortRange.LowerPort = uint32(rule.SrcPort)
@@ -274,7 +249,7 @@ func (rndr *Renderer) renderVppACL(rule *FirewallRule, isReflectiveACL bool) *vp
 	}
 
 	// Protocol UDP
-	if rule.Protocol == UDP {
+	if rule.Protocol == renderer.UDP {
 		aclRule.IpRule.Udp = &vpp_acl.ACL_Rule_IpRule_Udp{}
 		aclRule.IpRule.Udp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
 		aclRule.IpRule.Udp.SourcePortRange.LowerPort = uint32(rule.SrcPort)
