@@ -76,6 +76,8 @@ const (
 	TCP ProtocolType = iota
 	// UDP protocol.
 	UDP
+	// ESP Protocol
+	ESP
 	// OTHER is some NON-UDP, NON-TCP traffic (used ONLY in unit tests).
 	OTHER
 	// ANY L4 protocol or even pure L3 traffic (port numbers are ignored).

@@ -57,3 +57,112 @@ func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServicePolicy) error {
 func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
 	return nil
 }
+
+///////////////////// VPN Service Functionality //////////////////
+//
+// Functionality:
+//    1. Establish Secure Tunnel between 2 end points
+//    2. Encrpyt all or subset of traffic egress out of Tunnel
+//    3. Decrpy all or subset of traffic ingress into the tunnel
+//
+// Parameters :
+//    1. Tunnel EndPoints
+//    2. Authentication and Encryption Algorithms and Security Associations/Policy Definitions
+//    3. Traffic parameters that needs to be encrypted/decrypted (Applicable in Transport Mode)
+//    4. Tunnel Mode - Anything ingress/egress (Protect Tunnel)
+//
+////////////////////////////////////////////////////////////////////
+
+// CryptoAuth :
+type CryptoAuth int
+
+const (
+	// None :
+	None CryptoAuth = iota
+	// Sha1 :
+	Sha1
+	// Sha25696 :
+	Sha25696
+	// Sha256128 :
+	Sha256128
+	// Sha384192 :
+	Sha384192
+	// Sha512256 :
+	Sha512256
+)
+
+// CryptoEncrypt :
+type CryptoEncrypt int
+
+const (
+	// NoEncrypt :
+	NoEncrypt CryptoEncrypt = iota
+	// AEScbc128 :
+	AEScbc128
+	// AEScbc192 :
+	AEScbc192
+	// AEScbc256 :
+	AEScbc256
+	// AESctr128 :
+	AESctr128
+	// AESctr192 :
+	AESctr192
+	// AESctr256 :
+	AESctr256
+)
+
+// EncapMode :
+type EncapMode int
+
+const (
+	// NoEncap :
+	NoEncap EncapMode = iota
+	// TunnelMode :
+	TunnelMode
+	// TransportMode :
+	TransportMode
+)
+
+// SecurityAction :
+type SecurityAction int
+
+const (
+	// ByPass :
+	ByPass SecurityAction = iota
+	// Discard :
+	Discard
+	// Protect :
+	Protect
+)
+
+// SecurityAssociations :
+type SecurityAssociations struct {
+	Name        string
+	Protocol    renderer.ProtocolType
+	AuthAlgo    CryptoAuth
+	AuthKey     string
+	EncryptAlgo CryptoEncrypt
+	EncryptKey  string
+}
+
+// SecurityPolicyDefinition :
+type SecurityPolicyDefinition struct {
+	Name       string
+	InboundSa  SecurityAssociations
+	OutboundSa SecurityAssociations
+	Action     SecurityAction
+}
+
+// IPSecTunnelEndPoint :
+type IPSecTunnelEndPoint struct {
+	source      string
+	destination string
+}
+
+// VPNRule :
+type VPNRule struct {
+	Name           string
+	Encap          EncapMode
+	Tunnel         IPSecTunnelEndPoint
+	SecurityPolicy SecurityPolicyDefinition
+}

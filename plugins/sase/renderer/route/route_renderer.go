@@ -17,8 +17,6 @@
 package routeservice
 
 import (
-	"net"
-
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 
 	"github.com/contiv/vpp/plugins/contivconf"
@@ -109,8 +107,8 @@ const (
 type RouteRule struct {
 	Type        RouteType
 	VrfID       uint32
-	DestNetwork *net.IPNet
-	Gateway     *net.IP
+	DestNetwork string
+	NextHop     string
 	EgressIntf  *renderer.Interface
 }
 
