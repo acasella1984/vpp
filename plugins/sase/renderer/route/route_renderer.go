@@ -17,6 +17,10 @@
 package routeservice
 
 import (
+	"net"
+
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	"github.com/contiv/vpp/plugins/ipam"
@@ -26,6 +30,7 @@ import (
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
 	"github.com/ligato/cn-infra/logging"
+	"github.com/ligato/vpp-agent/pkg/models"
 )
 
 // Renderer implements rendering of Nat policies
@@ -56,7 +61,13 @@ func (rndr *Renderer) Init() error {
 
 // AddPolicy adds route related policies
 func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
-	return nil
+	rndr.Log.Infof("Route Service: AddPolicy: ")
+	// convert Sase Service Policy to native Route representation
+	routeRule := convertSasePolicyToRouteRule(sp)
+	rndr.Log.Infof("AddPolicy: routeRule: %v", routeRule)
+	vppRoute := rndr.renderVppRoute(sp.Policy.Name, routeRule)
+	rndr.Log.Infof("AddPolicy: vppRoute: %v", vppRoute)
+	return renderer.Commit(rndr.RemoteDB, "eos-rtr", models.Key(vppRoute), vppRoute, renderer.ConfigAdd)
 }
 
 // UpdatePolicy updates exiting route related policies
@@ -72,4 +83,39 @@ func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
 // AfterInit starts asynchronous NAT session cleanup.
 func (rndr *Renderer) AfterInit() error {
 	return nil
+}
+
+// ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
+func convertSasePolicyToRouteRule(sp *renderer.SaseServicePolicy) *RouteRule {
+	rule := &RouteRule{}
+	return rule
+}
+
+// RouteType :
+type RouteType int
+
+const (
+	// Local : No Nat configuration
+	Local RouteType = iota
+	// Drop :
+	Drop
+	// InterVrf :
+	InterVrf
+	// IntraVrf :
+	IntraVrf
+)
+
+// RouteRule :
+type RouteRule struct {
+	Type        RouteType
+	VrfID       uint32
+	DestNetwork *net.IPNet
+	Gateway     *net.IP
+	EgressIntf  *renderer.Interface
+}
+
+// renderVppSNAT :: Renders VPP DNAT Config
+func (rndr *Renderer) renderVppRoute(key string, routeRule *RouteRule) *vpp_l3.Route {
+	routeCfg := &vpp_l3.Route{}
+	return routeCfg
 }
