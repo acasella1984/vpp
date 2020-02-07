@@ -10,6 +10,8 @@ import (
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
 	"github.com/ligato/cn-infra/logging"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_ipsec "github.com/ligato/vpp-agent/api/models/vpp/ipsec"
 )
 
 // Renderer implements rendering of Nat policies
@@ -155,14 +157,24 @@ type SecurityPolicyDefinition struct {
 
 // IPSecTunnelEndPoint :
 type IPSecTunnelEndPoint struct {
-	source      string
-	destination string
+	Source      string
+	Destination string
 }
 
-// VPNRule :
-type VPNRule struct {
-	Name           string
-	Encap          EncapMode
-	Tunnel         IPSecTunnelEndPoint
-	SecurityPolicy SecurityPolicyDefinition
+// renderVppSPD :: Renders VPP IPSec Tunnel Interface
+func (rndr *Renderer) renderVppIPSecTunnelInterface(key string, tunnel *IPSecTunnelEndPoint) *vpp_interfaces.IPSecLink {
+	vppIPSecTunnel := &vpp_interfaces.IPSecLink{}
+	return vppIPSecTunnel
+}
+
+// renderVppSPD :: Renders VPP IPSec Security Policy Database
+func (rndr *Renderer) renderVppSPD(key string, spd *SecurityPolicyDefinition) *vpp_ipsec.SecurityPolicyDatabase {
+	vppSpd := &vpp_ipsec.SecurityPolicyDatabase{}
+	return vppSpd
+}
+
+// renderVppSA :: Renders VPP IPSec Security Association
+func (rndr *Renderer) renderVppSA(key string, sa *SecurityAssociations) *vpp_ipsec.SecurityAssociation {
+	vppSa := &vpp_ipsec.SecurityAssociation{}
+	return vppSa
 }
