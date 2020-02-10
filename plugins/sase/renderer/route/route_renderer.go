@@ -114,6 +114,11 @@ type RouteRule struct {
 
 // renderVppSNAT :: Renders VPP DNAT Config
 func (rndr *Renderer) renderVppRoute(key string, routeRule *RouteRule) *vpp_l3.Route {
-	routeCfg := &vpp_l3.Route{}
+	routeCfg := &vpp_l3.Route{
+		VrfId:             routeRule.VrfID,
+		DstNetwork:        routeRule.DestNetwork,
+		NextHopAddr:       routeRule.NextHop,
+		OutgoingInterface: routeRule.EgressIntf.Name,
+	}
 	return routeCfg
 }

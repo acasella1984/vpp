@@ -214,6 +214,8 @@ func (sp *SaseServiceProcessor) processNewPod(pod *podmodel.Pod) error {
 }
 
 // processUpdatedPod handles the event of updating runtime state of a pod.
+// Service Add/Delete intent can be sent via Pod annotations and actions
+// corresponding to Service Addition, Deletion to be taken.
 func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 	// ignore pods without IP (not yet scheduled)
 	if pod.IpAddress == "" {
@@ -227,9 +229,9 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 		return nil
 	}
 
+	// Cache the services enabled to keep track of updates
 	if hasSaseServicesAnnotation(pod.Annotations) == true {
 		saseServices := getSaseServices(pod.Annotations)
-
 		for _, saseService := range saseServices {
 			saseServiceInfo, _ := parseSaseServiceName(saseService)
 			sp.Log.Infof("New / Updated pod: SaseServiceInfo %v", saseServiceInfo)

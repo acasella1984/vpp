@@ -128,7 +128,7 @@ type SNATConfig struct {
 	// Local Private Subnets that needs NAT
 	LocalSubnetList []renderer.Subnets
 	// Public IP
-	ExternalIP []net.IP
+	ExternalIP []renderer.Subnets
 	// Local Interface List
 	LocalInterfaces   []renderer.Interface
 	ExternalInterface []renderer.Interface
@@ -160,7 +160,25 @@ type DNATConfig struct {
 
 // renderVppSNAT :: Renders VPP Global Nat Config
 func (rndr *Renderer) renderVppSNAT(natRule *NATRule) *vpp_nat.Nat44Global {
-	globalNat := &vpp_nat.Nat44Global{}
+	globalNat := &vpp_nat.Nat44Global{
+		Forwarding: true,
+		VirtualReassembly: &vpp_nat.VirtualReassembly{
+			Timeout:       10,
+			DropFragments: true,
+		},
+		NatInterfaces: getSNATInterfaceList(append(natRule.SNat.LocalInterfaces, natRule.SNat.ExternalInterface...)),
+	}
+
+	// Get NAT Local Address Pool
+	for _, addr := range natRule.SNat.LocalSubnetList {
+		globalNat.AddressPool = append(globalNat.AddressPool, getSNATAddress(addr))
+	}
+
+	// Get NAT global address Pool
+	for _, addr := range natRule.SNat.ExternalIP {
+		globalNat.AddressPool = append(globalNat.AddressPool, getSNATAddress(addr))
+	}
+
 	return globalNat
 }
 
@@ -168,4 +186,33 @@ func (rndr *Renderer) renderVppSNAT(natRule *NATRule) *vpp_nat.Nat44Global {
 func (rndr *Renderer) renderVppDNAT(key string, natRule *NATRule) *vpp_nat.DNat44 {
 	dnatCfg := &vpp_nat.DNat44{}
 	return dnatCfg
+}
+
+func getSNATInterfaceList(natInterfaceList []renderer.Interface) []*vpp_nat.Nat44Global_Interface {
+	var vppNatInterfaces []*vpp_nat.Nat44Global_Interface
+	for _, intf := range natInterfaceList {
+		vppNatInterfaces = append(vppNatInterfaces, getSNATInterface(intf))
+	}
+	return vppNatInterfaces
+}
+
+func getSNATInterface(natIntf renderer.Interface) *vpp_nat.Nat44Global_Interface {
+	// Get VPP Interface
+	natInterface := &vpp_nat.Nat44Global_Interface{
+		Name:          natIntf.Name,
+		IsInside:      natIntf.IsLocal,
+		OutputFeature: natIntf.TwiceNat,
+	}
+	return natInterface
+}
+
+func getSNATAddress(address renderer.Subnets) *vpp_nat.Nat44Global_Address {
+
+	// Get VPP  Address
+	vppAddress := &vpp_nat.Nat44Global_Address{
+		Address: address.Subnet,
+		VrfId:   address.Vrf,
+		//TwiceNat:
+	}
+	return vppAddress
 }

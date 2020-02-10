@@ -1,8 +1,6 @@
 package renderer
 
 import (
-	"net"
-
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/gogo/protobuf/proto"
@@ -45,14 +43,18 @@ type SaseServicePolicy struct {
 }
 
 // Interface : Nat Interface
+// Local inside Interface (true) or external Public Interface (false)
+// Twice Nat Enabled (true)
 type Interface struct {
-	Name string
+	Name     string
+	IsLocal  bool
+	TwiceNat bool
 }
 
 // Subnets : Subnet Addresses
 type Subnets struct {
 	Vrf    uint32
-	Subnet net.IPNet
+	Subnet string
 	// Any other attributes here for the given subnet??
 }
 
