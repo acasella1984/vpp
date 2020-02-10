@@ -17,6 +17,7 @@
 package processor
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -26,12 +27,27 @@ const (
 	contivMicroserviceLabelAnnotation = contivAnnotationPrefix + "microservice-label"  // k8s annotation used to specify microservice label of a pod
 	contivServiceEndpointIfAnnotation = contivAnnotationPrefix + "service-endpoint-if" // k8s annotation used to specify k8s service endpoint interface
 	contivCustomIfAnnotation          = contivAnnotationPrefix + "custom-if"           // k8s annotation used to request custom pod interfaces
-	contivCustomIfSeparator           = ","                                            // separator used to split multiple interfaces in k8s annotation
+	contivSaseServiceAnnotation       = contivAnnotationPrefix + "sase-service"        // k8s annotation used to specify sase service deplyed on the pod
+	contivNamesSeparator              = ","                                            // separator used to split multiple interfaces in k8s annotation
 
 	memifIfType = "memif"
 	tapIfType   = "tap"
 	vethIfType  = "veth"
+
+	// Sase Services type
+	firewall = "firewall"
+	nat      = "nat"
+	routing  = "routing"
+	ipsecVpn = "ipsecvpn"
 )
+
+// podSaseServiceInfo holds information about a Sase Service Instance deployed on a Pod
+// There could be multiple instances of same service in a service location
+type podSaseServiceInfo struct {
+	serviceID       string
+	serviceLocation string
+	serviceType     string
+}
 
 // getContivMicroserviceLabel returns microservice label defined in pod annotations
 // (or an empty string if it is not defined).
@@ -71,7 +87,7 @@ func getContivCustomIfs(annotations map[string]string) []string {
 
 	for k, v := range annotations {
 		if strings.HasPrefix(k, contivCustomIfAnnotation) {
-			ifs := strings.Split(v, contivCustomIfSeparator)
+			ifs := strings.Split(v, contivNamesSeparator)
 			for _, i := range ifs {
 				out = append(out, strings.TrimSpace(i))
 			}
@@ -79,4 +95,48 @@ func getContivCustomIfs(annotations map[string]string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// hasSaseServicesAnnotation returns true if provided annotations contain sase service annotation, false otherwise.
+func hasSaseServicesAnnotation(annotations map[string]string) bool {
+	for k := range annotations {
+		if strings.HasPrefix(k, contivSaseServiceAnnotation) {
+			return true
+		}
+	}
+	return false
+}
+
+// getSaseServices returns alphabetically ordered slice of sase services defined in pod annotations.
+func getSaseServices(annotations map[string]string) []string {
+	out := make([]string, 0)
+
+	for k, v := range annotations {
+		if strings.HasPrefix(k, contivSaseServiceAnnotation) {
+			ifs := strings.Split(v, contivNamesSeparator)
+			for _, i := range ifs {
+				out = append(out, strings.TrimSpace(i))
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// parseSaseServiceName parses Sase Service annotation into individual service name and instance
+// eg. contivpp.io/sase-service: 1/sjc/firewall, 1/sjc/nat
+// 	   contivpp.io/sase-service: 1/blr/routing, 1/blr/nat
+func parseSaseServiceName(ifAnnotation string) (serviceInfo *podSaseServiceInfo, err error) {
+	ifParts := strings.Split(ifAnnotation, "/")
+	if len(ifParts) < 2 {
+		err = fmt.Errorf("invalid %s annotation value: %s", contivSaseServiceAnnotation, ifAnnotation)
+		return
+	}
+	serviceInfo = &podSaseServiceInfo{
+		serviceID:       ifParts[0],
+		serviceLocation: ifParts[1],
+		serviceType:     ifParts[2],
+	}
+
+	return
 }

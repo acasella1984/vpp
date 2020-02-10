@@ -108,6 +108,16 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			}
 			saseDelCfg := k8sChange.PrevValue.(*sasemodel.SaseConfig)
 			return sp.processDeletedSaseServiceConfig(saseDelCfg)
+		case podmodel.PodKeyword:
+			if k8sChange.NewValue != nil {
+				pod := k8sChange.NewValue.(*podmodel.Pod)
+				if k8sChange.PrevValue == nil {
+					return sp.processNewPod(pod)
+				}
+				return sp.processUpdatedPod(pod)
+			}
+			pod := k8sChange.PrevValue.(*podmodel.Pod)
+			return sp.processDeletedPod(pod)
 		default:
 		}
 	}
@@ -210,11 +220,20 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 		return nil
 	}
 
-	sp.Log.Debugf("New / Updated pod: %v", pod)
+	sp.Log.Infof("New / Updated pod: %v", pod)
 
 	podData := sp.PodManager.GetPods()[podmodel.GetID(pod)]
 	if podData == nil {
 		return nil
+	}
+
+	if hasSaseServicesAnnotation(pod.Annotations) == true {
+		saseServices := getSaseServices(pod.Annotations)
+
+		for _, saseService := range saseServices {
+			saseServiceInfo, _ := parseSaseServiceName(saseService)
+			sp.Log.Infof("New / Updated pod: SaseServiceInfo %v", saseServiceInfo)
+		}
 	}
 
 	return nil

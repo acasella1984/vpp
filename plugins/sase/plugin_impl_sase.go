@@ -23,6 +23,7 @@ import (
 	"github.com/contiv/vpp/plugins/idalloc"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
+	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/podmanager"
 	"github.com/contiv/vpp/plugins/sase/config"
@@ -223,6 +224,8 @@ func (p *Plugin) HandlesEvent(event controller.Event) bool {
 	if ksChange, isKSChange := event.(*controller.KubeStateChange); isKSChange {
 		switch ksChange.Resource {
 		case sasemodel.Keyword:
+			return true
+		case podmodel.PodKeyword:
 			return true
 		default:
 			// unhandled Kubernetes state change
