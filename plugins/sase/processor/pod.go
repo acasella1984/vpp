@@ -49,6 +49,32 @@ type podSaseServiceInfo struct {
 	serviceType     string
 }
 
+// InterfaceMode : Operating mode of Interface
+type InterfaceMode int
+
+const (
+	// L2 : L2 Mode
+	L2 InterfaceMode = iota
+	// L3 : L3 Mode
+	L3
+	// VxLan : Vxlan Tunnel Interface
+	VxLan
+	// IPSec : IpSec Tunnel Interface
+	IPSec
+)
+
+// PodInterfaceInfo : Pod Interface represents the ingress/egress interfaces
+// of a CNF Pod where services are deployed
+type PodInterfaceInfo struct {
+	Name         string // Identified outside in abstractions
+	InternalName string // Represented in datapath if different
+	Type         string
+	Mode         InterfaceMode
+	IPAddress    string
+	MacAddress   string
+	IsIngress    bool // IsIngress (true) would mean local network facing ingress interface
+}
+
 // getContivMicroserviceLabel returns microservice label defined in pod annotations
 // (or an empty string if it is not defined).
 func getContivMicroserviceLabel(annotations map[string]string) string {
@@ -126,13 +152,13 @@ func getSaseServices(annotations map[string]string) []string {
 // parseSaseServiceName parses Sase Service annotation into individual service name and instance
 // eg. contivpp.io/sase-service: 1/sjc/firewall, 1/sjc/nat
 // 	   contivpp.io/sase-service: 1/blr/routing, 1/blr/nat
-func parseSaseServiceName(ifAnnotation string) (serviceInfo *podSaseServiceInfo, err error) {
+func parseSaseServiceName(ifAnnotation string) (serviceInfo podSaseServiceInfo, err error) {
 	ifParts := strings.Split(ifAnnotation, "/")
 	if len(ifParts) < 2 {
 		err = fmt.Errorf("invalid %s annotation value: %s", contivSaseServiceAnnotation, ifAnnotation)
 		return
 	}
-	serviceInfo = &podSaseServiceInfo{
+	serviceInfo = podSaseServiceInfo{
 		serviceID:       ifParts[0],
 		serviceLocation: ifParts[1],
 		serviceType:     ifParts[2],

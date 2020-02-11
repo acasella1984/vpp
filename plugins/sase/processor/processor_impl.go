@@ -40,6 +40,11 @@ type SaseServiceProcessor struct {
 
 	// Maintain local cache of all the sase service policies that are applied
 	// Housekeeping stuff
+
+	// Service Info
+	services map[podSaseServiceInfo]*ServiceInfo
+	// Pod to Service Mapping
+	podServiceList map[podmodel.ID][]podSaseServiceInfo
 }
 
 // Deps lists dependencies of SFC Processor.
@@ -224,19 +229,30 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 
 	sp.Log.Infof("New / Updated pod: %v", pod)
 
-	podData := sp.PodManager.GetPods()[podmodel.GetID(pod)]
+	podID := podmodel.GetID(pod)
+	podData := sp.PodManager.GetPods()[podID]
 	if podData == nil {
 		return nil
 	}
 
-	// Cache the services enabled to keep track of updates
+	// Handle Service Updates
 	if hasSaseServicesAnnotation(pod.Annotations) == true {
+		var saseServiceList []podSaseServiceInfo
 		saseServices := getSaseServices(pod.Annotations)
 		for _, saseService := range saseServices {
 			saseServiceInfo, _ := parseSaseServiceName(saseService)
 			sp.Log.Infof("New / Updated pod: SaseServiceInfo %v", saseServiceInfo)
+			saseServiceList = append(saseServiceList, saseServiceInfo)
 		}
+
+		// Check for updates in the sase services deployed on the pod.
+		// New services added or existing services deleted
+		newServices, deletedServices := getPodUpdateServiceList(saseServiceList, sp.podServiceList[podID])
+		sp.processServiceAddition(podID, newServices)
+		sp.processServiceDeletion(podID, deletedServices)
 	}
+
+	// Handle CNF Pod interface updates
 
 	return nil
 }
@@ -252,6 +268,10 @@ func (sp *SaseServiceProcessor) processDeletedPod(pod *podmodel.Pod) error {
 		Annotations: pod.Annotations,
 	}
 	sp.Log.Debugf("Delete pod: %v", podData)
+
+	// Cleanup Service related information on Pod Delete trigger.
+	// Service existence no longer relevant when Pod is deleted
+	sp.processServiceDeletion(podData.ID, sp.podServiceList[podData.ID])
 	return nil
 }
 
@@ -284,4 +304,55 @@ func (sp *SaseServiceProcessor) podMatchesSelector(pod *podmanager.Pod, podSelec
 		}
 	}
 	return true
+}
+
+// processServiceAddition handles the event of adding new services on a given pod
+// Add Service info in the services DB and invoke any init routine for the service if any
+func (sp *SaseServiceProcessor) processServiceAddition(podID podmodel.ID, addService []podSaseServiceInfo) error {
+
+	for _, s := range addService {
+		service := &ServiceInfo{
+			Name:  s,
+			PodID: podID,
+			//Interfaces:
+		}
+		// Add service info in service cache
+		sp.services[s] = service
+		// Init Service
+	}
+	return nil
+}
+
+// processUpdatedPodCustomIfs handles the event of updating pod custom interfaces.
+// Delete Service info from the services DB and invoke any de-init routine for the service if any
+func (sp *SaseServiceProcessor) processServiceDeletion(podID podmodel.ID, delService []podSaseServiceInfo) error {
+	for _, s := range delService {
+		// De-Init service
+		// Delete Service from the service cache
+		delete(sp.services, s)
+	}
+
+	return nil
+}
+
+// getPodUpdateServiceList :
+func getPodUpdateServiceList(newList, existingList []podSaseServiceInfo) (addService []podSaseServiceInfo, delService []podSaseServiceInfo) {
+	serviceMap := make(map[podSaseServiceInfo]bool, len(existingList))
+	for _, serviceInfo := range existingList {
+		serviceMap[serviceInfo] = true
+	}
+
+	for _, service := range newList {
+		if _, found := serviceMap[service]; !found {
+			addService = append(addService, service)
+		}
+		//
+		delete(serviceMap, service)
+	}
+
+	for key := range serviceMap {
+		delService = append(delService, key)
+	}
+
+	return addService, delService
 }
