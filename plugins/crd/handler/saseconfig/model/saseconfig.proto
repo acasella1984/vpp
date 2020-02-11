@@ -21,15 +21,8 @@ message SaseConfig {
     // Name of the SaseConfig
     string name = 1;
 
-    // Sase Service Names 
-    enum SaseService {
-        Firewall = 0;
-        Nat = 1;
-        IpSec = 2;
-        Route = 3;
-    }
     // Sase Service Name
-    SaseService sase_service = 2;
+    string sase_service_name = 2;
 
     // Sase Rule Direction
     enum Direction {

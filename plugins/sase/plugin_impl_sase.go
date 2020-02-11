@@ -26,6 +26,7 @@ import (
 	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/podmanager"
+	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/processor"
 	firewallservice "github.com/contiv/vpp/plugins/sase/renderer/firewall"
@@ -99,7 +100,7 @@ func (p *Plugin) registerNatServiceRenderer() {
 
 	p.natRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(sasemodel.SaseConfig_Nat, p.natRenderer)
+	p.processor.RegisterRenderer(common.ServiceTypeNAT, p.natRenderer)
 }
 
 func (p *Plugin) registerFirewallServiceRenderer() {
@@ -124,7 +125,7 @@ func (p *Plugin) registerFirewallServiceRenderer() {
 
 	p.firewallRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(sasemodel.SaseConfig_Firewall, p.firewallRenderer)
+	p.processor.RegisterRenderer(common.ServiceTypeFirewall, p.firewallRenderer)
 }
 
 func (p *Plugin) registerIPSecServiceRenderer() {
@@ -149,7 +150,7 @@ func (p *Plugin) registerIPSecServiceRenderer() {
 
 	p.ipsecRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(sasemodel.SaseConfig_IpSec, p.ipsecRenderer)
+	p.processor.RegisterRenderer(common.ServiceTypeIPSecVpn, p.ipsecRenderer)
 }
 
 func (p *Plugin) registerRouteServiceRenderer() {
@@ -174,7 +175,7 @@ func (p *Plugin) registerRouteServiceRenderer() {
 
 	p.routeRenderer.Init()
 	// Register renderer.
-	p.processor.RegisterRenderer(sasemodel.SaseConfig_Route, p.routeRenderer)
+	p.processor.RegisterRenderer(common.ServiceTypeRouting, p.routeRenderer)
 }
 
 // Init initializes the Sase plugin and starts watching ETCD for K8s configuration.

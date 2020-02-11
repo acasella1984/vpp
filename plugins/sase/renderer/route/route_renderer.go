@@ -57,6 +57,11 @@ func (rndr *Renderer) Init() error {
 	return nil
 }
 
+// DeInit clean up service config
+func (rndr *Renderer) DeInit() error {
+	return nil
+}
+
 // AddPolicy adds route related policies
 func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
 	rndr.Log.Infof("Route Service: AddPolicy: ")

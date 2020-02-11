@@ -59,6 +59,11 @@ func (rndr *Renderer) Init() error {
 	return nil
 }
 
+// DeInit clean up service config
+func (rndr *Renderer) DeInit() error {
+	return nil
+}
+
 // AfterInit starts asynchronous NAT session cleanup.
 func (rndr *Renderer) AfterInit() error {
 	return nil
@@ -96,7 +101,6 @@ func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
 
 // convertSasePolicyToNatRule: convert SaseServicePolicy to firewall policy
 func convertSasePolicyToNatRule(sp *renderer.SaseServicePolicy) *NATRule {
-
 	rule := &NATRule{}
 	return rule
 }

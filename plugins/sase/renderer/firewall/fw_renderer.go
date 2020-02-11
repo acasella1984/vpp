@@ -61,7 +61,12 @@ func (rndr *Renderer) Init() error {
 	return nil
 }
 
-// AfterInit starts asynchronous NAT session cleanup.
+// DeInit clean up service config
+func (rndr *Renderer) DeInit() error {
+	return nil
+}
+
+// AfterInit starts cleanup.
 func (rndr *Renderer) AfterInit() error {
 	return nil
 }

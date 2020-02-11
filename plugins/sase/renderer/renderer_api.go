@@ -3,6 +3,7 @@ package renderer
 import (
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/nodesync"
+	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/cn-infra/db/keyval"
 	"github.com/ligato/cn-infra/servicelabel"
@@ -13,6 +14,9 @@ type SaseServiceRendererAPI interface {
 
 	// Renderer Init
 	Init() error
+
+	// Renderer DeInit
+	DeInit() error
 
 	// Renderer AfterInit
 	AfterInit() error
@@ -31,13 +35,11 @@ type SaseServiceRendererAPI interface {
 	// and the currently rendered configuration.
 }
 
-// SaseServicePolicy is common abstraction which contains neccessary information to be consumed
-// by rendering services
+// SaseServicePolicy is common abstraction which contains neccessary information that would be
+// required by renderer to render the config into dataplane
 type SaseServicePolicy struct {
-	// Pod details to where service is running
-	// This is to derive relevant information to render the policy
-	// eg. Microservice Label, Interfaces, IPAddress
-
+	// Service Info
+	ServiceInfo *common.ServiceInfo
 	// Policy Details
 	Policy *sasemodel.SaseConfig
 }
