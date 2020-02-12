@@ -21,9 +21,11 @@ import (
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
+	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
 	"github.com/contiv/vpp/plugins/nodesync"
+	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
@@ -39,7 +41,7 @@ type Renderer struct {
 // Deps lists dependencies of the Renderer.
 type Deps struct {
 	Log              logging.Logger
-	Config           *config.Config
+	Config           *config.SaseServiceConfig
 	ContivConf       contivconf.API
 	IPAM             ipam.API
 	IPNet            ipnet.API
@@ -62,24 +64,47 @@ func (rndr *Renderer) DeInit() error {
 	return nil
 }
 
+// AddServiceConfig :
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+	// Check for service config type
+	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	default:
+	}
+	return nil
+}
+
+// UpdateServiceConfig :
+func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) error {
+	return nil
+}
+
+// DeleteServiceConfig :
+func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
+	return nil
+}
+
+////////////////// Route Policies Renderer Routines ////////////////////
+
 // AddPolicy adds route related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	rndr.Log.Infof("Route Service: AddPolicy: ")
 	// convert Sase Service Policy to native Route representation
 	routeRule := convertSasePolicyToRouteRule(sp)
 	rndr.Log.Infof("AddPolicy: routeRule: %v", routeRule)
-	vppRoute := rndr.renderVppRoute(sp.Policy.Name, routeRule)
+	vppRoute := rndr.renderVppRoute(sp.Name, routeRule)
 	rndr.Log.Infof("AddPolicy: vppRoute: %v", vppRoute)
-	return renderer.Commit(rndr.RemoteDB, sp.ServiceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, renderer.ConfigAdd)
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Add)
 }
 
 // UpdatePolicy updates exiting route related policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) UpdatePolicy(old, new *config.SaseServiceConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing route policy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) DeletePolicy(sp *config.SaseServiceConfig) error {
 	return nil
 }
 
@@ -89,7 +114,7 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToRouteRule(sp *renderer.SaseServiceConfig) *RouteRule {
+func convertSasePolicyToRouteRule(sp *sasemodel.SaseConfig) *RouteRule {
 	rule := &RouteRule{}
 	return rule
 }
@@ -114,7 +139,7 @@ type RouteRule struct {
 	VrfID       uint32
 	DestNetwork string
 	NextHop     string
-	EgressIntf  *renderer.Interface
+	EgressIntf  *config.Interface
 }
 
 // renderVppSNAT :: Renders VPP DNAT Config

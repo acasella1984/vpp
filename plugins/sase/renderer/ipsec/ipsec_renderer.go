@@ -3,11 +3,12 @@ package ipsecservice
 import (
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
+	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
 	"github.com/contiv/vpp/plugins/nodesync"
+	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
-	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
 	"github.com/ligato/cn-infra/logging"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
@@ -22,7 +23,7 @@ type Renderer struct {
 // Deps lists dependencies of the Renderer.
 type Deps struct {
 	Log              logging.Logger
-	Config           *config.Config
+	Config           *config.SaseServiceConfig
 	ContivConf       contivconf.API
 	IPAM             ipam.API
 	IPNet            ipnet.API
@@ -50,18 +51,79 @@ func (rndr *Renderer) AfterInit() error {
 	return nil
 }
 
+// AddServiceConfig :
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+	// Check for service config type
+	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	case *sasemodel.IPSecVpnTunnel:
+		rndr.AddIPSecVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
+	case *sasemodel.SecurityAssociation:
+		rndr.AddSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation))
+	default:
+	}
+	return nil
+}
+
+// UpdateServiceConfig :
+func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) error {
+	return nil
+}
+
+// DeleteServiceConfig :
+func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
+	return nil
+}
+
+////////////////// IPSec VPN Tunnel Config Handlers //////////////////////////////////
+
+// AddIPSecVpnTunnel adds ipsec vpn tunnel
+func (rndr *Renderer) AddIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+	return nil
+}
+
+// UpdateIPSecVpnTunnel updates exiting ipsec vpn tunnel
+func (rndr *Renderer) UpdateIPSecVpnTunnel(serviceInfo *common.ServiceInfo, old, new *sasemodel.IPSecVpnTunnel) error {
+	return nil
+}
+
+// DeleteIPSecVpnTunnel deletes an existing ipsec vpn tunnel
+func (rndr *Renderer) DeleteIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+	return nil
+}
+
+////////////////// IPSec VPN Tunnel Config Handlers //////////////////////////////////
+
+// AddSecurityAssociation adds new security association
+func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp *sasemodel.SecurityAssociation) error {
+	return nil
+}
+
+// UpdateSecurityAssociation updates exiting security association
+func (rndr *Renderer) UpdateSecurityAssociation(serviceInfo *common.ServiceInfo, old, new *sasemodel.SecurityAssociation) error {
+	return nil
+}
+
+// DeleteSecurityAssociation deletes an existing Security Association
+func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo, sp *sasemodel.SecurityAssociation) error {
+	return nil
+}
+
+////////////////// IPSec VPN Policy handlers //////////////////////////////////
+
 // AddPolicy adds ipsec related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	return nil
 }
 
 // UpdatePolicy updates exiting ipsecrelated policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing ipsecpolicy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	return nil
 }
 
@@ -145,7 +207,7 @@ const (
 // SecurityAssociations :
 type SecurityAssociations struct {
 	Name        string
-	Protocol    renderer.ProtocolType
+	Protocol    config.ProtocolType
 	AuthAlgo    CryptoAuth
 	AuthKey     string
 	EncryptAlgo CryptoEncrypt

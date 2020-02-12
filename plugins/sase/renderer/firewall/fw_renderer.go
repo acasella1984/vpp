@@ -25,9 +25,11 @@ import (
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
+	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
 	"github.com/contiv/vpp/plugins/nodesync"
+	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
@@ -43,7 +45,7 @@ type Renderer struct {
 // Deps lists dependencies of the Renderer.
 type Deps struct {
 	Log              logging.Logger
-	Config           *config.Config
+	Config           *config.SaseServiceConfig
 	ContivConf       contivconf.API
 	IPAM             ipam.API
 	IPNet            ipnet.API
@@ -71,35 +73,57 @@ func (rndr *Renderer) AfterInit() error {
 	return nil
 }
 
+// AddServiceConfig :
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+
+	// Check for service config type
+	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	default:
+	}
+	return nil
+}
+
+// UpdateServiceConfig :
+func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) error {
+	return nil
+}
+
+// DeleteServiceConfig :
+func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
+	return nil
+}
+
 // AddPolicy adds firewall related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	rndr.Log.Infof("Firewall Service: AddPolicy: ")
 	// convert Sase Service Policy to native firewall representation
 	fwRule := convertSasePolicyToFirewallRule(sp)
 	rndr.Log.Infof("AddPolicy: fwRule: %v", fwRule)
-	vppACL := rndr.renderVppACL(sp.Policy.Name, fwRule, true)
+	vppACL := rndr.renderVppACL(sp.Name, fwRule, true)
 	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL)
-	return renderer.Commit(rndr.RemoteDB, "eos-rtr", vpp_acl.Key(vppACL.Name), vppACL, renderer.ConfigAdd)
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
 }
 
 // UpdatePolicy updates exiting firewall  related policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing firewall  policy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	rndr.Log.Infof("Firewall Service: DeletePolicy: ")
 	// convert Sase Service Policy to native firewall representation
 	fwRule := convertSasePolicyToFirewallRule(sp)
-	vppACL := rndr.renderVppACL(sp.Policy.Name, fwRule, true)
-	return renderer.Commit(rndr.RemoteDB, sp.ServiceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, renderer.ConfigDelete)
+	vppACL := rndr.renderVppACL(sp.Name, fwRule, true)
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Delete)
 }
 
-/////////////////////////// Firewall Rule related routines ////////////////
+/////////////////////////// Firewall Policies related routines ////////////////
 
 // ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToFirewallRule(sp *renderer.SaseServiceConfig) *FirewallRule {
+func convertSasePolicyToFirewallRule(sp *sasemodel.SaseConfig) *FirewallRule {
 
 	// VENKAT: Temp for test
 	_, ipv4SrcNet, _ := net.ParseCIDR("192.0.2.1/24")
@@ -107,7 +131,7 @@ func convertSasePolicyToFirewallRule(sp *renderer.SaseServiceConfig) *FirewallRu
 
 	rule := &FirewallRule{
 		Action:      ActionDeny,
-		Protocol:    renderer.TCP,
+		Protocol:    config.TCP,
 		SrcNetwork:  ipv4SrcNet,
 		DestNetwork: ipv4DstNet,
 		SrcPort:     1004,
@@ -160,7 +184,7 @@ type FirewallRule struct {
 	DestNetwork *net.IPNet // empty = match all
 
 	// L4
-	Protocol renderer.ProtocolType
+	Protocol config.ProtocolType
 	SrcPort  uint16 // 0 = match all
 	DestPort uint16 // 0 = match all
 }
@@ -232,7 +256,7 @@ func (rndr *Renderer) renderVppACL(name string, rule *FirewallRule, isReflective
 	}
 
 	// Protocol TCP
-	if rule.Protocol == renderer.TCP {
+	if rule.Protocol == config.TCP {
 		aclRule.IpRule.Tcp = &vpp_acl.ACL_Rule_IpRule_Tcp{}
 		aclRule.IpRule.Tcp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
 		aclRule.IpRule.Tcp.SourcePortRange.LowerPort = uint32(rule.SrcPort)
@@ -251,7 +275,7 @@ func (rndr *Renderer) renderVppACL(name string, rule *FirewallRule, isReflective
 	}
 
 	// Protocol UDP
-	if rule.Protocol == renderer.UDP {
+	if rule.Protocol == config.UDP {
 		aclRule.IpRule.Udp = &vpp_acl.ACL_Rule_IpRule_Udp{}
 		aclRule.IpRule.Udp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
 		aclRule.IpRule.Udp.SourcePortRange.LowerPort = uint32(rule.SrcPort)

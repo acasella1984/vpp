@@ -45,7 +45,7 @@ import (
 type Plugin struct {
 	Deps
 
-	config *config.Config
+	config *config.SaseServiceConfig
 
 	// ongoing transaction
 	resyncTxn controller.ResyncOperations

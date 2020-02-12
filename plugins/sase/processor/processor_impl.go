@@ -31,6 +31,7 @@ import (
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/podmanager"
 	"github.com/contiv/vpp/plugins/sase/common"
+	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 )
 
@@ -44,8 +45,21 @@ type SaseServiceProcessor struct {
 
 	// podInfo DB
 	podsList map[podmodel.ID]*common.PodInfo
+
 	// Service Info
 	services map[common.PodSaseServiceInfo]*common.ServiceInfo
+
+	// Sase Service Policies
+	servicePolicies map[string]*sasemodel.SaseConfig
+
+	// Site Resource Groups
+	siteResourceGroups map[string]*sasemodel.SiteResourceGroup
+
+	// Security Associations
+	securityAssociations map[string]*sasemodel.SecurityAssociation
+
+	// IPSecVpnTunnels
+	ipSecVpnTunnel map[string]*sasemodel.IPSecVpnTunnel
 }
 
 // Deps lists dependencies of SFC Processor.
@@ -199,11 +213,11 @@ func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseC
 	}
 
 	// Fill in the relevant information
-	p := &renderer.SaseServiceConfig{
+	p := &config.SaseServiceConfig{
 		ServiceInfo: serviceInfo,
-		Policy:      cfg,
+		Config:      cfg,
 	}
-	err = rndr.AddPolicy(p)
+	err = rndr.AddServiceConfig(p)
 	return err
 }
 
@@ -221,15 +235,15 @@ func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemod
 	}
 
 	// Fill in the relevant information
-	oldP := &renderer.SaseServiceConfig{
+	oldP := &config.SaseServiceConfig{
 		ServiceInfo: serviceInfo,
-		Policy:      old,
+		Config:      old,
 	}
-	newP := &renderer.SaseServiceConfig{
+	newP := &config.SaseServiceConfig{
 		ServiceInfo: serviceInfo,
-		Policy:      new,
+		Config:      new,
 	}
-	err = rndr.UpdatePolicy(oldP, newP)
+	err = rndr.UpdateServiceConfig(oldP, newP)
 	return err
 }
 
@@ -247,17 +261,19 @@ func (sp *SaseServiceProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.S
 	}
 
 	// Fill in the relevant information
-	p := &renderer.SaseServiceConfig{
+	p := &config.SaseServiceConfig{
 		ServiceInfo: serviceInfo,
-		Policy:      cfg,
+		Config:      cfg,
 	}
-	err = rndr.DeletePolicy(p)
+	err = rndr.DeleteServiceConfig(p)
 	return err
 }
 
 //////////////////////////////// Site Resource Group Processor Routines ////////////////////////
 
 // processNewSiteResourceConfig
+// Site Resource Group consists of local and public networks and any other relevant resource information
+// within a site.
 func (sp *SaseServiceProcessor) processNewSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
 	sp.Log.Infof("processNewSiteResourceConfig: %v", cfg)
 	return nil

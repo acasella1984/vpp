@@ -24,9 +24,11 @@ import (
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
+	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipnet"
 	"github.com/contiv/vpp/plugins/nodesync"
+	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
@@ -41,7 +43,7 @@ type Renderer struct {
 // Deps lists dependencies of the Renderer.
 type Deps struct {
 	Log              logging.Logger
-	Config           *config.Config
+	Config           *config.SaseServiceConfig
 	ContivConf       contivconf.API
 	IPAM             ipam.API
 	IPNet            ipnet.API
@@ -69,8 +71,29 @@ func (rndr *Renderer) AfterInit() error {
 	return nil
 }
 
+// AddServiceConfig :
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+	// Check for service config type
+	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	default:
+	}
+	return nil
+}
+
+// UpdateServiceConfig :
+func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) error {
+	return nil
+}
+
+// DeleteServiceConfig :
+func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
+	return nil
+}
+
 // AddPolicy adds route related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	var key string
 	var vppNAT proto.Message
 	rndr.Log.Info("NAT Service: AddPolicy: ")
@@ -81,26 +104,26 @@ func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
 		vppNAT = rndr.renderVppSNAT(natRule)
 		key = vpp_nat.GlobalNAT44Key()
 	} else if natRule.Type == DestinationNAT {
-		vppNAT = rndr.renderVppDNAT(sp.Policy.Name, natRule)
+		vppNAT = rndr.renderVppDNAT(sp.Name, natRule)
 		key = vpp_nat.DNAT44Key(natRule.DNat.Key)
 	}
 
 	rndr.Log.Infof("AddPolicy: vppNAT: %v", vppNAT, "type: %d", natRule.Type)
-	return renderer.Commit(rndr.RemoteDB, sp.ServiceInfo.GetServicePodLabel(), key, vppNAT, renderer.ConfigAdd)
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), key, vppNAT, config.Add)
 }
 
 // UpdatePolicy updates exiting route related policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing route policy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
+func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	return nil
 }
 
 // convertSasePolicyToNatRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToNatRule(sp *renderer.SaseServiceConfig) *NATRule {
+func convertSasePolicyToNatRule(sp *sasemodel.SaseConfig) *NATRule {
 	rule := &NATRule{}
 	return rule
 }
@@ -130,20 +153,20 @@ type NATRule struct {
 // to connect to outside Public network
 type SNATConfig struct {
 	// Local Private Subnets that needs NAT
-	LocalSubnetList []renderer.Subnets
+	LocalSubnetList []config.Subnets
 	// Public IP
-	ExternalIP []renderer.Subnets
+	ExternalIP []config.Subnets
 	// Local Interface List
-	LocalInterfaces   []renderer.Interface
-	ExternalInterface []renderer.Interface
+	LocalInterfaces   []config.Interface
+	ExternalInterface []config.Interface
 }
 
 // EndPoint : Represents an endpoint idenified by IP/Port/Protocol
 type EndPoint struct {
 	IPAddr   net.IP
-	Protocol renderer.ProtocolType
+	Protocol config.ProtocolType
 	AppPort  uint32
-	Intf     renderer.Interface
+	Intf     config.Interface
 }
 
 // DNATConfig : DNAT allows Outside hosts to connect to inside hosts with private IP Address
@@ -153,7 +176,7 @@ type DNATConfig struct {
 	Key                string
 	LocalEndPoints     []EndPoint
 	ExternalEndPoint   EndPoint
-	ExternalInterfaces renderer.Interface
+	ExternalInterfaces config.Interface
 	TwiceNatEnabled    bool
 }
 
@@ -192,7 +215,7 @@ func (rndr *Renderer) renderVppDNAT(key string, natRule *NATRule) *vpp_nat.DNat4
 	return dnatCfg
 }
 
-func getSNATInterfaceList(natInterfaceList []renderer.Interface) []*vpp_nat.Nat44Global_Interface {
+func getSNATInterfaceList(natInterfaceList []config.Interface) []*vpp_nat.Nat44Global_Interface {
 	var vppNatInterfaces []*vpp_nat.Nat44Global_Interface
 	for _, intf := range natInterfaceList {
 		vppNatInterfaces = append(vppNatInterfaces, getSNATInterface(intf))
@@ -200,7 +223,7 @@ func getSNATInterfaceList(natInterfaceList []renderer.Interface) []*vpp_nat.Nat4
 	return vppNatInterfaces
 }
 
-func getSNATInterface(natIntf renderer.Interface) *vpp_nat.Nat44Global_Interface {
+func getSNATInterface(natIntf config.Interface) *vpp_nat.Nat44Global_Interface {
 	// Get VPP Interface
 	natInterface := &vpp_nat.Nat44Global_Interface{
 		Name:          natIntf.Name,
@@ -210,7 +233,7 @@ func getSNATInterface(natIntf renderer.Interface) *vpp_nat.Nat44Global_Interface
 	return natInterface
 }
 
-func getSNATAddress(address renderer.Subnets) *vpp_nat.Nat44Global_Address {
+func getSNATAddress(address config.Subnets) *vpp_nat.Nat44Global_Address {
 
 	// Get VPP  Address
 	vppAddress := &vpp_nat.Nat44Global_Address{
