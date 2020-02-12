@@ -55,6 +55,12 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CustomConfigurationList{},
 		&SaseServicePolicy{},
 		&SaseServicePolicyList{},
+		&SiteResourceGroup{},
+		&SiteResourceGroupList{},
+		&SaseSecurityAssociation{},
+		&SaseSecurityAssociationList{},
+		&IPSecVpnTunnel{},
+		&IPSecVpnTunnelList{},
 	)
 
 	// register the type in the scheme

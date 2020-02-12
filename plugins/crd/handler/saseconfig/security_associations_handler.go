@@ -14,7 +14,7 @@
  * // limitations under the License.
  */
 
-//go:generate protoc -I ./model --gogo_out=plugins=grpc:./model ./model/saseconfig.proto
+//go:generate protoc -I ./model --gogo_out=plugins=grpc:./model ./model/securityassociations.proto
 
 package saseconfiguration
 
@@ -30,40 +30,40 @@ import (
 	"github.com/ligato/cn-infra/logging"
 )
 
-// SaseServicePolicyHandler implements the Handler interface for CRD<->KVDB Reflector.
-type SaseServicePolicyHandler struct {
+// SecurityAssociationsHandler implements the Handler interface for CRD<->KVDB Reflector.
+type SecurityAssociationsHandler struct {
 	Log       logging.Logger
 	CrdClient *crdClientSet.Clientset
 }
 
 // CrdName returns name of the CRD.
-func (h *SaseServicePolicyHandler) CrdName() string {
-	return "SrConfiguration"
+func (h *SecurityAssociationsHandler) CrdName() string {
+	return "SecurityAssociation"
 }
 
 // CrdKeyPrefix returns the longest-common prefix under which the instances
 // of the given CRD are reflected into KVDB.
-func (h *SaseServicePolicyHandler) CrdKeyPrefix() (prefix string, underKsrPrefix bool) {
+func (h *SecurityAssociationsHandler) CrdKeyPrefix() (prefix string, underKsrPrefix bool) {
 	return model.Keyword + "/", true
 }
 
 // IsCrdKeySuffix excludes the KSR-reflected data.
-func (h *SaseServicePolicyHandler) IsCrdKeySuffix(keySuffix string) bool {
+func (h *SecurityAssociationsHandler) IsCrdKeySuffix(keySuffix string) bool {
 	return !strings.HasPrefix(keySuffix, "contiv-ksr/")
 }
 
 // CrdObjectToKVData converts the K8s representation of SrConfiguration into the
 // corresponding configuration for vpp-agent(s) running in the destination microservice(s).
-func (h *SaseServicePolicyHandler) CrdObjectToKVData(obj interface{}) (data []kvdbreflector.KVData, err error) {
-	saseConfig, ok := obj.(*v1.SaseServicePolicy)
-	fmt.Println("CrdObjectToKVData: ", saseConfig)
+func (h *SecurityAssociationsHandler) CrdObjectToKVData(obj interface{}) (data []kvdbreflector.KVData, err error) {
+	config, ok := obj.(*v1.SaseSecurityAssociation)
+	fmt.Println("CrdObjectToKVData: ", config)
 	if !ok {
-		return nil, errors.New("failed to cast into SaseConfiguration struct")
+		return nil, errors.New("failed to cast into SecurityAssociation struct")
 	}
 	data = []kvdbreflector.KVData{
 		{
-			ProtoMsg:  h.saseConfigCrdToProto(saseConfig),
-			KeySuffix: saseConfig.GetName(),
+			ProtoMsg:  h.siteResourceGroupCrdToProto(config),
+			KeySuffix: config.GetName(),
 		},
 	}
 	fmt.Println("CrdObjectToKVData: proto data", data)
@@ -71,43 +71,37 @@ func (h *SaseServicePolicyHandler) CrdObjectToKVData(obj interface{}) (data []kv
 }
 
 // saseConfigCrdToProto:: Convert sase crd config to protobuf
-// VENKAT: TBD.  currently hardcoded the values for testing
-func (h *SaseServicePolicyHandler) saseConfigCrdToProto(crd *v1.SaseServicePolicy) *model.SaseConfig {
-
-	// Convert config recieved in crd to protobuf
-	scPb := &model.SaseConfig{
-		Name: crd.GetName(),
-		//SaseServiceName: // TBD: Modify CRD
-		Direction: model.SaseConfig_Egress,
-		Match: &model.SaseConfig_Match{
-			Proto: model.SaseConfig_Match_UDP,
-		},
-		Action: model.SaseConfig_PERMIT,
+func (h *SecurityAssociationsHandler) siteResourceGroupCrdToProto(crd *v1.SaseSecurityAssociation) *model.SecurityAssociation {
+	ssapb := &model.SecurityAssociation{
+		Name:             crd.GetName(),
+		AuthAlgorithm:    crd.Spec.AuthAlgo,
+		AuthSharedKey:    crd.Spec.AuthKey,
+		EncryptAlgorithm: crd.Spec.EncryptAlgo,
+		EncryptSharedKey: crd.Spec.EncryptKey,
+		Mode:             crd.Spec.Mode,
 	}
-
-	fmt.Println("saseConfigCrdToProto ", scPb)
-	return scPb
+	return ssapb
 }
 
 // IsExclusiveKVDB returns false - there can be multiple writers of the agent configuration in the database.
-func (h *SaseServicePolicyHandler) IsExclusiveKVDB() bool {
+func (h *SecurityAssociationsHandler) IsExclusiveKVDB() bool {
 	return false
 }
 
 // PublishCrdStatus updates the resource Status information.
-func (h *SaseServicePolicyHandler) PublishCrdStatus(obj interface{}, opRetval error) error {
-	saseConfig, ok := obj.(*v1.SaseServicePolicy)
+func (h *SecurityAssociationsHandler) PublishCrdStatus(obj interface{}, opRetval error) error {
+	config, ok := obj.(*v1.SaseSecurityAssociation)
 	if !ok {
-		return errors.New("failed to cast into SaseConfiguration struct")
+		return errors.New("failed to cast into SaseSecurityAssociation struct")
 	}
-	saseConfig = saseConfig.DeepCopy()
+	config = config.DeepCopy()
 	if opRetval == nil {
-		saseConfig.Status.Status = v1.StatusSuccess
+		config.Status.Status = v1.StatusSuccess
 	} else {
-		saseConfig.Status.Status = v1.StatusFailure
-		saseConfig.Status.Message = opRetval.Error()
+		config.Status.Status = v1.StatusFailure
+		config.Status.Message = opRetval.Error()
 	}
-	_, err := h.CrdClient.ContivppV1().SaseServicePolicies(saseConfig.Namespace).Update(saseConfig)
+	_, err := h.CrdClient.ContivppV1().SaseSecurityAssociations(config.Namespace).Update(config)
 	return err
 }
 

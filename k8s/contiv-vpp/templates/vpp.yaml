@@ -1639,6 +1639,7 @@ spec:
         {{- end }}
 ---
 
+# VENKAT:
 # This cluster role defines a set of permissions required for contiv-crd.
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
@@ -1660,6 +1661,9 @@ rules:
       - servicefunctionchains
       - customconfigurations
       - saseservicepolicies
+      - ipsecvpntunnels
+      - securityassociations
+      - siteresourcegroups
     verbs:
       - "*"
 

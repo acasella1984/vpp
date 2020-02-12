@@ -51,6 +51,7 @@ type DBResource struct {
 
 // GetDBResources returns metadata for all DB resources currently used by Contiv.
 // Resources must be stored in DB under KSR key prefix!
+// VENKAT::
 func GetDBResources() []*DBResource {
 	return []*DBResource{
 		{
@@ -119,9 +120,24 @@ func GetDBResources() []*DBResource {
 			KeyPrefix:        idallocation.KeyPrefix(),
 		},
 		{
-			Keyword:          sasemodel.Keyword,
+			Keyword:          sasemodel.SasePolicyKey,
 			ProtoMessageName: proto.MessageName((*sasemodel.SaseConfig)(nil)),
-			KeyPrefix:        sasemodel.KeyPrefix(),
+			KeyPrefix:        sasemodel.KeyPrefixSasePolicy(),
+		},
+		{
+			Keyword:          sasemodel.IPSecVpnTunnelKey,
+			ProtoMessageName: proto.MessageName((*sasemodel.IPSecVpnTunnel)(nil)),
+			KeyPrefix:        sasemodel.KeyPrefixIPSecVpnTunnel(),
+		},
+		{
+			Keyword:          sasemodel.SiteResourceGroupKey,
+			ProtoMessageName: proto.MessageName((*sasemodel.SiteResourceGroup)(nil)),
+			KeyPrefix:        sasemodel.KeyPrefixSiteResourceGroup(),
+		},
+		{
+			Keyword:          sasemodel.SecurityAssociationKey,
+			ProtoMessageName: proto.MessageName((*sasemodel.SecurityAssociation)(nil)),
+			KeyPrefix:        sasemodel.KeyPrefixSecurityAssociation(),
 		},
 	}
 }

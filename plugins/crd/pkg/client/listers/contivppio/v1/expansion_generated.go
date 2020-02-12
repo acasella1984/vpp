@@ -40,6 +40,22 @@ type ExternalInterfaceListerExpansion interface{}
 // ExternalInterfaceNamespaceLister.
 type ExternalInterfaceNamespaceListerExpansion interface{}
 
+// IPSecVpnTunnelListerExpansion allows custom methods to be added to
+// IPSecVpnTunnelLister.
+type IPSecVpnTunnelListerExpansion interface{}
+
+// IPSecVpnTunnelNamespaceListerExpansion allows custom methods to be added to
+// IPSecVpnTunnelNamespaceLister.
+type IPSecVpnTunnelNamespaceListerExpansion interface{}
+
+// SaseSecurityAssociationListerExpansion allows custom methods to be added to
+// SaseSecurityAssociationLister.
+type SaseSecurityAssociationListerExpansion interface{}
+
+// SaseSecurityAssociationNamespaceListerExpansion allows custom methods to be added to
+// SaseSecurityAssociationNamespaceLister.
+type SaseSecurityAssociationNamespaceListerExpansion interface{}
+
 // SaseServicePolicyListerExpansion allows custom methods to be added to
 // SaseServicePolicyLister.
 type SaseServicePolicyListerExpansion interface{}
@@ -55,3 +71,11 @@ type ServiceFunctionChainListerExpansion interface{}
 // ServiceFunctionChainNamespaceListerExpansion allows custom methods to be added to
 // ServiceFunctionChainNamespaceLister.
 type ServiceFunctionChainNamespaceListerExpansion interface{}
+
+// SiteResourceGroupListerExpansion allows custom methods to be added to
+// SiteResourceGroupLister.
+type SiteResourceGroupListerExpansion interface{}
+
+// SiteResourceGroupNamespaceListerExpansion allows custom methods to be added to
+// SiteResourceGroupNamespaceLister.
+type SiteResourceGroupNamespaceListerExpansion interface{}

@@ -28,10 +28,16 @@ type Interface interface {
 	CustomNetworks() CustomNetworkInformer
 	// ExternalInterfaces returns a ExternalInterfaceInformer.
 	ExternalInterfaces() ExternalInterfaceInformer
+	// IPSecVpnTunnels returns a IPSecVpnTunnelInformer.
+	IPSecVpnTunnels() IPSecVpnTunnelInformer
+	// SaseSecurityAssociations returns a SaseSecurityAssociationInformer.
+	SaseSecurityAssociations() SaseSecurityAssociationInformer
 	// SaseServicePolicies returns a SaseServicePolicyInformer.
 	SaseServicePolicies() SaseServicePolicyInformer
 	// ServiceFunctionChains returns a ServiceFunctionChainInformer.
 	ServiceFunctionChains() ServiceFunctionChainInformer
+	// SiteResourceGroups returns a SiteResourceGroupInformer.
+	SiteResourceGroups() SiteResourceGroupInformer
 }
 
 type version struct {
@@ -60,6 +66,16 @@ func (v *version) ExternalInterfaces() ExternalInterfaceInformer {
 	return &externalInterfaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
+// IPSecVpnTunnels returns a IPSecVpnTunnelInformer.
+func (v *version) IPSecVpnTunnels() IPSecVpnTunnelInformer {
+	return &iPSecVpnTunnelInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// SaseSecurityAssociations returns a SaseSecurityAssociationInformer.
+func (v *version) SaseSecurityAssociations() SaseSecurityAssociationInformer {
+	return &saseSecurityAssociationInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // SaseServicePolicies returns a SaseServicePolicyInformer.
 func (v *version) SaseServicePolicies() SaseServicePolicyInformer {
 	return &saseServicePolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
@@ -68,4 +84,9 @@ func (v *version) SaseServicePolicies() SaseServicePolicyInformer {
 // ServiceFunctionChains returns a ServiceFunctionChainInformer.
 func (v *version) ServiceFunctionChains() ServiceFunctionChainInformer {
 	return &serviceFunctionChainInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// SiteResourceGroups returns a SiteResourceGroupInformer.
+func (v *version) SiteResourceGroups() SiteResourceGroupInformer {
+	return &siteResourceGroupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

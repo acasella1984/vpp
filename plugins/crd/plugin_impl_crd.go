@@ -89,16 +89,19 @@ type Plugin struct {
 	pendingResync  datasync.ResyncEvent
 	pendingChanges []datasync.ChangeEvent
 
-	telemetryController            *controller.CrdController
-	nodeConfigController           *controller.CrdController
-	customNetworkController        *controller.CrdController
-	externalInterfaceController    *controller.CrdController
-	serviceFunctionChainController *controller.CrdController
-	customConfigController         *controller.CrdController
-	saseServiceController          *controller.CrdController
-	cache                          *cache.ContivTelemetryCache
-	processor                      api.ContivTelemetryProcessor
-	verbose                        bool
+	telemetryController               *controller.CrdController
+	nodeConfigController              *controller.CrdController
+	customNetworkController           *controller.CrdController
+	externalInterfaceController       *controller.CrdController
+	serviceFunctionChainController    *controller.CrdController
+	customConfigController            *controller.CrdController
+	saseServiceController             *controller.CrdController
+	siteResourceGroupController       *controller.CrdController
+	saseSecurityAssociationController *controller.CrdController
+	ipsecVPNTunnelController          *controller.CrdController
+	cache                             *cache.ContivTelemetryCache
+	processor                         api.ContivTelemetryProcessor
+	verbose                           bool
 
 	crdClient     *crdClientSet.Clientset
 	apiclientset  *apiextcs.Clientset
@@ -317,10 +320,10 @@ func (p *Plugin) initializeCRDs() error {
 
 	// Sase Service Policy Crd
 	saseServiceInformer := p.sharedFactory.Contivpp().V1().SaseServicePolicies().Informer()
-	saseConfigLog := p.Log.NewLogger("saseServiceHandler")
+	saseConfigLog := p.Log.NewLogger("saseServicePolicyHandler")
 	p.saseServiceController = &controller.CrdController{
 		Deps: controller.Deps{
-			Log:       p.Log.NewLogger("saseServiceController"),
+			Log:       p.Log.NewLogger("saseServicePoliciesController"),
 			APIClient: p.apiclientset,
 			Informer:  saseServiceInformer,
 			EventHandler: &kvdbreflector.KvdbReflector{
@@ -329,7 +332,7 @@ func (p *Plugin) initializeCRDs() error {
 					ServiceLabel: p.ServiceLabel,
 					Publish:      p.Etcd.RawAccess(),
 					Informer:     saseServiceInformer,
-					Handler: &saseconfiguration.Handler{
+					Handler: &saseconfiguration.SaseServicePolicyHandler{
 						Log:       saseConfigLog,
 						CrdClient: p.crdClient,
 					},
@@ -345,12 +348,105 @@ func (p *Plugin) initializeCRDs() error {
 		},
 	}
 
+	// SiteResourceGroup :
+	siteResourceGroupInformer := p.sharedFactory.Contivpp().V1().SiteResourceGroups().Informer()
+	siteResourceGroupLog := p.Log.NewLogger("siteResourceGroupHandler")
+	p.siteResourceGroupController = &controller.CrdController{
+		Deps: controller.Deps{
+			Log:       p.Log.NewLogger("siteResourceGrouoController"),
+			APIClient: p.apiclientset,
+			Informer:  siteResourceGroupInformer,
+			EventHandler: &kvdbreflector.KvdbReflector{
+				Deps: kvdbreflector.Deps{
+					Log:          siteResourceGroupLog,
+					ServiceLabel: p.ServiceLabel,
+					Publish:      p.Etcd.RawAccess(),
+					Informer:     siteResourceGroupInformer,
+					Handler: &saseconfiguration.SiteResourceGroupHandler{
+						Log:       siteResourceGroupLog,
+						CrdClient: p.crdClient,
+					},
+				},
+			},
+		},
+		Spec: controller.CrdSpec{
+			TypeName: reflect.TypeOf(v1.SiteResourceGroup{}).Name(),
+			Group:    contivppio.GroupName,
+			Version:  "v1",
+			Plural:   "siteresourcegroups",
+			//Validation: saseconfiguration.Validation(),
+		},
+	}
+
+	// SaseSecurityAssociations :
+	saseSecurityAssociationInformer := p.sharedFactory.Contivpp().V1().SaseSecurityAssociations().Informer()
+	securityAssociationsLog := p.Log.NewLogger("securityAssociationsHandler")
+	p.saseSecurityAssociationController = &controller.CrdController{
+		Deps: controller.Deps{
+			Log:       p.Log.NewLogger("saseSecurityAssociationController"),
+			APIClient: p.apiclientset,
+			Informer:  saseSecurityAssociationInformer,
+			EventHandler: &kvdbreflector.KvdbReflector{
+				Deps: kvdbreflector.Deps{
+					Log:          securityAssociationsLog,
+					ServiceLabel: p.ServiceLabel,
+					Publish:      p.Etcd.RawAccess(),
+					Informer:     saseSecurityAssociationInformer,
+					Handler: &saseconfiguration.SecurityAssociationsHandler{
+						Log:       securityAssociationsLog,
+						CrdClient: p.crdClient,
+					},
+				},
+			},
+		},
+		Spec: controller.CrdSpec{
+			TypeName: reflect.TypeOf(v1.SaseSecurityAssociation{}).Name(),
+			Group:    contivppio.GroupName,
+			Version:  "v1",
+			Plural:   "securityassociations",
+			//Validation: saseconfiguration.Validation(),
+		},
+	}
+
+	// IPSecVPNTunnel :
+	ipsecVpnTunnelInformer := p.sharedFactory.Contivpp().V1().IPSecVpnTunnels().Informer()
+	ipsecVpnTunnelLog := p.Log.NewLogger("ipsecVpnTunnelHandler")
+	p.ipsecVPNTunnelController = &controller.CrdController{
+		Deps: controller.Deps{
+			Log:       p.Log.NewLogger("ipsecVpnTunnelController"),
+			APIClient: p.apiclientset,
+			Informer:  ipsecVpnTunnelInformer,
+			EventHandler: &kvdbreflector.KvdbReflector{
+				Deps: kvdbreflector.Deps{
+					Log:          ipsecVpnTunnelLog,
+					ServiceLabel: p.ServiceLabel,
+					Publish:      p.Etcd.RawAccess(),
+					Informer:     ipsecVpnTunnelInformer,
+					Handler: &saseconfiguration.IPSecVpnTunnelHandler{
+						Log:       ipsecVpnTunnelLog,
+						CrdClient: p.crdClient,
+					},
+				},
+			},
+		},
+		Spec: controller.CrdSpec{
+			TypeName: reflect.TypeOf(v1.IPSecVpnTunnel{}).Name(),
+			Group:    contivppio.GroupName,
+			Version:  "v1",
+			Plural:   "ipsecvpntunnels",
+			//Validation: saseconfiguration.Validation(),
+		},
+	}
+
 	p.nodeConfigController.Init()
 	p.customNetworkController.Init()
 	p.externalInterfaceController.Init()
 	p.serviceFunctionChainController.Init()
 	p.customConfigController.Init()
 	p.saseServiceController.Init()
+	p.siteResourceGroupController.Init()
+	p.saseSecurityAssociationController.Init()
+	p.ipsecVPNTunnelController.Init()
 
 	if p.verbose {
 		p.customNetworkController.Log.SetLevel(logging.DebugLevel)

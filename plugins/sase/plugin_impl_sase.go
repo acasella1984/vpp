@@ -224,7 +224,13 @@ func (p *Plugin) HandlesEvent(event controller.Event) bool {
 	}
 	if ksChange, isKSChange := event.(*controller.KubeStateChange); isKSChange {
 		switch ksChange.Resource {
-		case sasemodel.Keyword:
+		case sasemodel.SasePolicyKey:
+			return true
+		case sasemodel.SiteResourceGroupKey:
+			return true
+		case sasemodel.IPSecVpnTunnelKey:
+			return true
+		case sasemodel.SecurityAssociationKey:
 			return true
 		case podmodel.PodKeyword:
 			return true

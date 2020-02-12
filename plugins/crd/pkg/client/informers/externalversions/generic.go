@@ -59,10 +59,16 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().CustomNetworks().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("externalinterfaces"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().ExternalInterfaces().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("ipsecvpntunnels"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().IPSecVpnTunnels().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("sasesecurityassociations"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SaseSecurityAssociations().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("saseservicepolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SaseServicePolicies().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("servicefunctionchains"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().ServiceFunctionChains().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("siteresourcegroups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SiteResourceGroups().Informer()}, nil
 
 		// Group=nodeconfig.contiv.vpp, Version=v1
 	case nodeconfigv1.SchemeGroupVersion.WithResource("nodeconfigs"):

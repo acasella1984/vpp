@@ -16,15 +16,33 @@ package model
 
 import "github.com/contiv/vpp/plugins/ksr/model/ksrkey"
 
-// Keyword defines the keyword identifying SaseConfig data.
-const Keyword = "saseconfig"
+const (
+	// SasePolicyKey :
+	SasePolicyKey = "sasepolicy"
+	// SiteResourceGroupKey :
+	SiteResourceGroupKey = "siteresourcegroup"
+	// SecurityAssociationKey :
+	SecurityAssociationKey = "securityassociation"
+	// IPSecVpnTunnelKey :
+	IPSecVpnTunnelKey = "ipsecvpntunnel"
+)
 
-// KeyPrefix return prefix where all sase configs are persisted.
-func KeyPrefix() string {
-	return ksrkey.KsrK8sPrefix + "/" + Keyword + "/"
+// KeyPrefixSasePolicy return prefix for Sase Policy
+func KeyPrefixSasePolicy() string {
+	return ksrkey.KsrK8sPrefix + "/" + SasePolicyKey + "/"
 }
 
-// Key returns the key for configuration of a given sase config.
-func Key(chain string) string {
-	return KeyPrefix() + chain
+// KeyPrefixSiteResourceGroup return prefix for Site Resource Group
+func KeyPrefixSiteResourceGroup() string {
+	return ksrkey.KsrK8sPrefix + "/" + SiteResourceGroupKey + "/"
+}
+
+// KeyPrefixSecurityAssociation return prefix for Security Association
+func KeyPrefixSecurityAssociation() string {
+	return ksrkey.KsrK8sPrefix + "/" + SecurityAssociationKey + "/"
+}
+
+// KeyPrefixIPSecVpnTunnel return prefix for IPSecVpnTunnel
+func KeyPrefixIPSecVpnTunnel() string {
+	return ksrkey.KsrK8sPrefix + "/" + IPSecVpnTunnelKey + "/"
 }

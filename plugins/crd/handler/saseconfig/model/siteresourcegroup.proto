@@ -1,0 +1,33 @@
+// Copyright (c) 2019 Cisco and/or its affiliates.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package model;
+
+// SiteResourceGroup is used to store definition of a SiteResourceGroup as a k8s CRD resource.
+message SiteResourceGroup {
+   // Site Name
+   string site_name = 1;
+   // list of physical interfaces on individual nodes
+    message NetworkInfo {
+  	 string name   = 1;    
+	 string network_cidr = 2;
+	 string network_type = 3; 
+    }
+    // List of local networks in the site
+    repeated NetworkInfo local_network = 2;
+    // List of Public IPs in the site
+    repeated NetworkInfo public_network = 3;
+}

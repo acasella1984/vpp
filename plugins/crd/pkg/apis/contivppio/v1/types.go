@@ -257,3 +257,115 @@ type SaseServicePolicyList struct {
 	meta_v1.ListMeta `json:"metadata"`
 	Items            []SaseServicePolicy `json:"items"`
 }
+
+// SiteResourceGroup is grouping of all the resources that exists in a site/location
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SiteResourceGroup struct {
+	// TypeMeta is the metadata for the resource, like kind and apiversion
+	meta_v1.TypeMeta `json:",inline"`
+	// ObjectMeta contains the metadata for the particular object
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	// Spec is the specification for the SiteResourceGroup
+	Spec SiteResourceGroupSpec `json:"spec"`
+	// Status informs about the status of the resource.
+	Status meta_v1.Status `json:"status,omitempty"`
+}
+
+// SiteResourceGroupSpec is the spec for a SiteResourceGroup
+type SiteResourceGroupSpec struct {
+	// SiteName
+	SiteName string `json:"sitename"`
+	// Local Networks
+	LocalNetworks []NetworkInfo `json:"localnetworks"`
+	PublicIP      []NetworkInfo `json:"publicip"`
+}
+
+// NetworkInfo specifies Networks in a SiteResourceGroup
+// NetworkType (Private, PublicNonSecure, PublicSecure)
+type NetworkInfo struct {
+	Name        string `json:"name"`
+	NetworkCIDR string `json:"networkcidr"`
+	NetworkType string `json:"networktype"`
+}
+
+// SiteResourceGroupList is a list of SiteResourceGroup
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SiteResourceGroupList struct {
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata"`
+	Items            []SiteResourceGroup `json:"items"`
+}
+
+// SaseSecurityAssociation defines security attributes (algorithms and security keys) between
+// networks for secure communication
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SaseSecurityAssociation struct {
+	// TypeMeta is the metadata for the resource, like kind and apiversion
+	meta_v1.TypeMeta `json:",inline"`
+	// ObjectMeta contains the metadata for the particular object
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	// Spec is the specification for the SaseSecurityAssociation
+	Spec SaseSecurityAssociationSpec `json:"spec"`
+	// Status informs about the status of the resource.
+	Status meta_v1.Status `json:"status,omitempty"`
+}
+
+// SaseSecurityAssociationSpec is the spec for a SaseSecurityAssociation
+// Auth and Encrypt algos can be changed to enum - TBD
+type SaseSecurityAssociationSpec struct {
+	Name string `json:"name"`
+	// Authentication algorith and key
+	AuthAlgo string `json:"authalgo"`
+	AuthKey  string `json:"authkey"`
+	// Encryption algorithm and key
+	EncryptAlgo string `json:"encryptalgo"`
+	EncryptKey  string `json:"encryptkey"`
+	// Tunnel Mode or Transport Mode
+	Mode string `json:"mode"`
+}
+
+// SaseSecurityAssociationList is a list of SaseSecurityAssociations
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SaseSecurityAssociationList struct {
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata"`
+	Items            []SaseSecurityAssociation `json:"items"`
+}
+
+// IPSecVpnTunnel defines IPSec VPN Tunnel attributes for secure site-site communication
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type IPSecVpnTunnel struct {
+	// TypeMeta is the metadata for the resource, like kind and apiversion
+	meta_v1.TypeMeta `json:",inline"`
+	// ObjectMeta contains the metadata for the particular object
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	// Spec is the specification for the SiteResourceGroup
+	Spec IPSecVpnTunnelSpec `json:"spec"`
+	// Status informs about the status of the resource.
+	Status meta_v1.Status `json:"status,omitempty"`
+}
+
+// IPSecVpnTunnelSpec is the spec for a IPSecVpnTunnel
+// Multi-Point tunnels support is available to avoid scale issues. Note
+type IPSecVpnTunnelSpec struct {
+	// Tunnel Destination IP
+	DestinationIP string `json:"destinationip"`
+	// Tunnel Source IP
+	SourceIP string `json:"sourceip"`
+	// Reference to security association cro name
+	SecurityAssociation string `json:"securityassociation"`
+}
+
+// IPSecVpnTunnelList is a list of IPSecVpnTunnel
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type IPSecVpnTunnelList struct {
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata"`
+	Items            []IPSecVpnTunnel `json:"items"`
+}

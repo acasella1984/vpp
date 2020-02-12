@@ -102,7 +102,7 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 	sp.Log.Infof("Update: %v", event)
 	if k8sChange, isK8sChange := event.(*controller.KubeStateChange); isK8sChange {
 		switch k8sChange.Resource {
-		case sasemodel.Keyword:
+		case sasemodel.SasePolicyKey:
 			if k8sChange.NewValue != nil {
 				// Get the Sase Model Config Data.
 				saseNewCfg := k8sChange.NewValue.(*sasemodel.SaseConfig)
@@ -114,6 +114,42 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			}
 			saseDelCfg := k8sChange.PrevValue.(*sasemodel.SaseConfig)
 			return sp.processDeletedSaseServiceConfig(saseDelCfg)
+		case sasemodel.SecurityAssociationKey:
+			if k8sChange.NewValue != nil {
+				// Get the Security Association Config Data.
+				saNewCfg := k8sChange.NewValue.(*sasemodel.SecurityAssociation)
+				if k8sChange.PrevValue == nil {
+					return sp.processNewSecurityAssociationConfig(saNewCfg)
+				}
+				saPrevCfg := k8sChange.NewValue.(*sasemodel.SecurityAssociation)
+				return sp.processUpdateSecurityAssociationConfig(saPrevCfg, saNewCfg)
+			}
+			saDelCfg := k8sChange.PrevValue.(*sasemodel.SecurityAssociation)
+			return sp.processDeletedSecurityAssociationConfig(saDelCfg)
+		case sasemodel.SiteResourceGroupKey:
+			if k8sChange.NewValue != nil {
+				// Get the Site Resource Config Data.
+				srNewCfg := k8sChange.NewValue.(*sasemodel.SiteResourceGroup)
+				if k8sChange.PrevValue == nil {
+					return sp.processNewSiteResourceConfig(srNewCfg)
+				}
+				srPrevCfg := k8sChange.NewValue.(*sasemodel.SiteResourceGroup)
+				return sp.processUpdateSiteResourceConfig(srPrevCfg, srNewCfg)
+			}
+			srDelCfg := k8sChange.PrevValue.(*sasemodel.SiteResourceGroup)
+			return sp.processDeletedSiteResourceConfig(srDelCfg)
+		case sasemodel.IPSecVpnTunnelKey:
+			if k8sChange.NewValue != nil {
+				// Get the IpSec VPN Tunnel Config Data.
+				ipsecNewCfg := k8sChange.NewValue.(*sasemodel.IPSecVpnTunnel)
+				if k8sChange.PrevValue == nil {
+					return sp.processNewIPSecVpnTunnelConfig(ipsecNewCfg)
+				}
+				ipsecPrevCfg := k8sChange.NewValue.(*sasemodel.IPSecVpnTunnel)
+				return sp.processUpdateIPSecVpnTunnelConfig(ipsecPrevCfg, ipsecNewCfg)
+			}
+			ipsecDelCfg := k8sChange.PrevValue.(*sasemodel.IPSecVpnTunnel)
+			return sp.processDeletedIPSecVpnTunnelConfig(ipsecDelCfg)
 		case podmodel.PodKeyword:
 			if k8sChange.NewValue != nil {
 				pod := k8sChange.NewValue.(*podmodel.Pod)
@@ -144,7 +180,7 @@ func (sp *SaseServiceProcessor) Close() error {
 	return nil
 }
 
-//////////////////////////////// Sase Config Processor Routines ////////////////////////
+//////////////////////////////// Sase Policies Processor Routines ////////////////////////
 
 // processNewSaseServiceConfig
 func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
@@ -214,6 +250,68 @@ func (sp *SaseServiceProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.S
 	err = rndr.DeletePolicy(p)
 	return err
 }
+
+//////////////////////////////// Site Resource Group Processor Routines ////////////////////////
+
+// processNewSiteResourceConfig
+func (sp *SaseServiceProcessor) processNewSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
+	sp.Log.Infof("processNewSiteResourceConfig: %v", cfg)
+	return nil
+}
+
+// processUpdateSiteResourceConfig
+func (sp *SaseServiceProcessor) processUpdateSiteResourceConfig(old, new *sasemodel.SiteResourceGroup) error {
+	sp.Log.Infof("processUpdateSiteResourceConfig: old: %v new: %v", old, new)
+	return nil
+}
+
+// processDeletedSiteResourceConfig
+func (sp *SaseServiceProcessor) processDeletedSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
+	sp.Log.Infof("processDeletedSiteResourceConfig: %v", cfg)
+	return nil
+}
+
+//////////////////////////////// Security Association Processor Routines ////////////////////////
+
+// processNewSecurityAssociationConfig
+func (sp *SaseServiceProcessor) processNewSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
+	sp.Log.Infof("processNewSecurityAssociationConfig: %v", cfg)
+	return nil
+}
+
+// processUpdateSecurityAssociationConfig
+func (sp *SaseServiceProcessor) processUpdateSecurityAssociationConfig(old, new *sasemodel.SecurityAssociation) error {
+	sp.Log.Infof("processUpdateSecurityAssociationConfig: old: %v new: %v", old, new)
+	return nil
+}
+
+// processDeletedSecurityAssociationConfig
+func (sp *SaseServiceProcessor) processDeletedSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
+	sp.Log.Infof("processDeletedSecurityAssociationConfig: %v", cfg)
+	return nil
+}
+
+//////////////////////////////// IPSec Vpn Tunnel Processor Routines ////////////////////////
+
+// processNewIPSecVpnTunnelConfig
+func (sp *SaseServiceProcessor) processNewIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
+	sp.Log.Infof("processNewSiteResourceConfig: %v", cfg)
+	return nil
+}
+
+// processUpdateIPSecVpnTunnelConfig
+func (sp *SaseServiceProcessor) processUpdateIPSecVpnTunnelConfig(old, new *sasemodel.IPSecVpnTunnel) error {
+	sp.Log.Infof("processUpdateSiteResourceConfig: old: %v new: %v", old, new)
+	return nil
+}
+
+// processDeletedIPSecVpnTunnelConfig
+func (sp *SaseServiceProcessor) processDeletedIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
+	sp.Log.Infof("processDeletedSiteResourceConfig: %v", cfg)
+	return nil
+}
+
+/////////////////////////// Pod Events ////////////////////////////////////////////
 
 // processNewPod handles the event of adding of a new pod.
 func (sp *SaseServiceProcessor) processNewPod(pod *podmodel.Pod) error {

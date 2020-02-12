@@ -204,11 +204,8 @@ func expandAnyAddr(rule *vpp_acl.ACL_Rule) []*vpp_acl.ACL_Rule {
 // renderACL renders ContivRuleTable into the equivalent ACL configuration.
 func (rndr *Renderer) renderVppACL(name string, rule *FirewallRule, isReflectiveACL bool) *vpp_acl.ACL {
 	const maxPortNum = ^uint16(0)
-	acl := &vpp_acl.ACL{}
-	if isReflectiveACL {
-		acl.Name = name
-	} else {
-		//acl.Name = ACLNamePrefix + table.GetID()
+	acl := &vpp_acl.ACL{
+		Name: name,
 	}
 
 	// VENKAT:: How do we get these interfaces???
