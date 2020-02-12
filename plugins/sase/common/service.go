@@ -46,11 +46,9 @@ const (
 
 // ServiceInfo : ServiceInfo contains all the relevant details of a particular service
 // instance being handled by sase plugin on a particular node.
-// Note that a
 type ServiceInfo struct {
-	Name       PodSaseServiceInfo
-	PodID      podmodel.ID        // CNF Pod on which service is deployed
-	Interfaces []PodInterfaceInfo // PodInterfaces (ingress/egress) for the service context
+	Name PodSaseServiceInfo
+	Pod  *PodInfo // Pod Info on which service is deployed
 }
 
 // GetServiceType : Return Sase Service Type
@@ -73,15 +71,20 @@ func (srv *ServiceInfo) GetServiceType() SaseServiceType {
 	return serviceType
 }
 
-// GetServicePodID : Get CNF PodID where given Service is deployed
-func (srv *ServiceInfo) GetServicePodID(name PodSaseServiceInfo) podmodel.ID {
-	return srv.PodID
+// GetServicePodID : Get CNF PodID where Service is deployed
+func (srv *ServiceInfo) GetServicePodID() podmodel.ID {
+	return srv.Pod.ID
+}
+
+// GetServicePodLabel : Get CNF Pod Label where Service is deployed
+func (srv *ServiceInfo) GetServicePodLabel() string {
+	return srv.Pod.Label
 }
 
 // GetServiceIngressInterface :
-func (srv *ServiceInfo) GetServiceIngressInterface(name PodSaseServiceInfo) []PodInterfaceInfo {
+func (srv *ServiceInfo) GetServiceIngressInterface() []PodInterfaceInfo {
 	var ingressInterfaces []PodInterfaceInfo
-	for _, intf := range srv.Interfaces {
+	for _, intf := range srv.Pod.Interfaces {
 		if intf.IsIngress == true {
 			ingressInterfaces = append(ingressInterfaces, intf)
 		}
@@ -90,9 +93,9 @@ func (srv *ServiceInfo) GetServiceIngressInterface(name PodSaseServiceInfo) []Po
 }
 
 // GetServiceEgressInterface :
-func (srv *ServiceInfo) GetServiceEgressInterface(name PodSaseServiceInfo) []PodInterfaceInfo {
+func (srv *ServiceInfo) GetServiceEgressInterface() []PodInterfaceInfo {
 	var egressInterfaces []PodInterfaceInfo
-	for _, intf := range srv.Interfaces {
+	for _, intf := range srv.Pod.Interfaces {
 		if intf.IsIngress == false {
 			egressInterfaces = append(egressInterfaces, intf)
 		}

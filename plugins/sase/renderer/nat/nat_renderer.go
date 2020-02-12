@@ -70,7 +70,7 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // AddPolicy adds route related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
 	var key string
 	var vppNAT proto.Message
 	rndr.Log.Info("NAT Service: AddPolicy: ")
@@ -86,21 +86,21 @@ func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
 	}
 
 	rndr.Log.Infof("AddPolicy: vppNAT: %v", vppNAT, "type: %d", natRule.Type)
-	return renderer.Commit(rndr.RemoteDB, "eos-rtr", key, vppNAT, renderer.ConfigAdd)
+	return renderer.Commit(rndr.RemoteDB, sp.ServiceInfo.GetServicePodLabel(), key, vppNAT, renderer.ConfigAdd)
 }
 
 // UpdatePolicy updates exiting route related policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing route policy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
 	return nil
 }
 
 // convertSasePolicyToNatRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToNatRule(sp *renderer.SaseServicePolicy) *NATRule {
+func convertSasePolicyToNatRule(sp *renderer.SaseServiceConfig) *NATRule {
 	rule := &NATRule{}
 	return rule
 }

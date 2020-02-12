@@ -42,10 +42,10 @@ type SaseServiceProcessor struct {
 	// Maintain local cache of all the sase service policies that are applied
 	// Housekeeping stuff
 
+	// podInfo DB
+	podsList map[podmodel.ID]*common.PodInfo
 	// Service Info
 	services map[common.PodSaseServiceInfo]*common.ServiceInfo
-	// Pod to Service Mapping
-	podServiceList map[podmodel.ID][]common.PodSaseServiceInfo
 }
 
 // Deps lists dependencies of SFC Processor.
@@ -63,6 +63,8 @@ type Deps struct {
 func (sp *SaseServiceProcessor) Init() error {
 	sp.Log.Debug("Sase Processor Init")
 	sp.renderers = make(map[common.SaseServiceType]renderer.SaseServiceRendererAPI)
+	sp.podsList = make(map[podmodel.ID]*common.PodInfo)
+	sp.services = make(map[common.PodSaseServiceInfo]*common.ServiceInfo)
 	return nil
 }
 
@@ -187,20 +189,20 @@ func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseC
 	sp.Log.Infof("processNewSaseServiceConfig: %v", cfg)
 
 	s, _ := common.ParseSaseServiceName(cfg.SaseServiceName)
-	serviceInfo := sp.services[s]
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("processNewSaseServiceConfig: Service Not Enabled")
+	}
 	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
 	if err != nil {
 		return err
 	}
-	// Get Pod that is running the Sase service. A CNF Pod may be supportingg  multiple
-	// sase services. TBD
-
-	// Get Pod Data which would include the interfaces and other relevant information
-
-	// Get Pod Microservice Label
 
 	// Fill in the relevant information
-	p := &renderer.SaseServicePolicy{}
+	p := &renderer.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Policy:      cfg,
+	}
 	err = rndr.AddPolicy(p)
 	return err
 }
@@ -209,21 +211,24 @@ func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseC
 func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processUpdateSaseServiceConfig: old: %v new: %v", old, new)
 	s, _ := common.ParseSaseServiceName(new.SaseServiceName)
-	serviceInfo := sp.services[s]
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("processUpdateSaseServiceConfig: Service Not Enabled")
+	}
 	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
 	if err != nil {
 		return err
 	}
-	// Get Pod that is running the Sase service. A CNF Pod may be supportingg  multiple
-	// sase services. TBD
-
-	// Get Pod Data which would include the interfaces and other relevant information
-
-	// Get Pod Microservice Label
 
 	// Fill in the relevant information
-	oldP := &renderer.SaseServicePolicy{}
-	newP := &renderer.SaseServicePolicy{}
+	oldP := &renderer.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Policy:      old,
+	}
+	newP := &renderer.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Policy:      new,
+	}
 	err = rndr.UpdatePolicy(oldP, newP)
 	return err
 }
@@ -232,21 +237,20 @@ func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemod
 func (sp *SaseServiceProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processDeletedSaseServiceConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.SaseServiceName)
-	serviceInfo := sp.services[s]
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("processDeletedSaseServiceConfig: Service Not Enabled")
+	}
 	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
 	if err != nil {
 		return err
 	}
 
-	// Get Pod that is running the Sase service. A CNF Pod may be supportingg  multiple
-	// sase services. TBD
-
-	// Get Pod Data which would include the interfaces and other relevant information
-
-	// Get Pod Microservice Label
-
 	// Fill in the relevant information
-	p := &renderer.SaseServicePolicy{}
+	p := &renderer.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Policy:      cfg,
+	}
 	err = rndr.DeletePolicy(p)
 	return err
 }
@@ -335,6 +339,20 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 		return nil
 	}
 
+	// Handle CNF Pod Microservice label annotations
+	_, ok := sp.podsList[podID]
+	if !ok {
+		// New Pod Event
+		// Housekeep Pod Information
+		label := common.GetContivMicroserviceLabel(podData.Annotations)
+		podInfo := &common.PodInfo{
+			ID:    podID,
+			Label: label,
+			//Interfaces: - TBD
+		}
+		sp.podsList[podID] = podInfo
+	}
+
 	// Handle Service Updates
 	if common.HasSaseServicesAnnotation(pod.Annotations) == true {
 		var saseServiceList []common.PodSaseServiceInfo
@@ -347,7 +365,7 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 
 		// Check for updates in the sase services deployed on the pod.
 		// New services added or existing services deleted
-		newServices, deletedServices := getPodUpdateServiceList(saseServiceList, sp.podServiceList[podID])
+		newServices, deletedServices := getPodUpdateServiceList(saseServiceList, sp.podsList[podID].ServiceList)
 		sp.processServiceAddition(podID, newServices)
 		sp.processServiceDeletion(podID, deletedServices)
 	}
@@ -371,7 +389,7 @@ func (sp *SaseServiceProcessor) processDeletedPod(pod *podmodel.Pod) error {
 
 	// Cleanup Service related information on Pod Delete trigger.
 	// Service existence no longer relevant when Pod is deleted
-	sp.processServiceDeletion(podData.ID, sp.podServiceList[podData.ID])
+	sp.processServiceDeletion(podData.ID, sp.podsList[podData.ID].ServiceList)
 	return nil
 }
 
@@ -412,13 +430,18 @@ func (sp *SaseServiceProcessor) processServiceAddition(podID podmodel.ID, addSer
 
 	for _, s := range addService {
 		service := &common.ServiceInfo{
-			Name:  s,
-			PodID: podID,
-			//Interfaces:
+			Name: s,
+			Pod:  sp.podsList[podID],
 		}
 		// Add service info in service cache
 		sp.services[s] = service
+
+		// Add service details to podsList servicelist cache
+		sp.podsList[podID].ServiceList = append(sp.podsList[podID].ServiceList, s)
+
+		// Get service type
 		serviceType := service.GetServiceType()
+
 		// Init Service
 		sp.renderers[serviceType].Init()
 	}
@@ -429,9 +452,19 @@ func (sp *SaseServiceProcessor) processServiceAddition(podID podmodel.ID, addSer
 // Delete Service info from the services DB and invoke any de-init routine for the service if any
 func (sp *SaseServiceProcessor) processServiceDeletion(podID podmodel.ID, delService []common.PodSaseServiceInfo) error {
 	for _, s := range delService {
-		service := sp.services[s].GetServiceType()
+
+		// Get Service Type
+		serviceType := sp.services[s].GetServiceType()
+
 		// De-Init service
-		sp.renderers[service].DeInit()
+		sp.renderers[serviceType].DeInit()
+
+		// Delete service info from Pods service list cache
+		for i := len(sp.podsList[podID].ServiceList) - 1; i >= 0; i-- {
+			if s == sp.podsList[podID].ServiceList[i] {
+				sp.podsList[podID].ServiceList = append(sp.podsList[podID].ServiceList[:i], sp.podsList[podID].ServiceList[i+1:]...)
+			}
+		}
 		// Delete Service from the service cache
 		delete(sp.services, s)
 	}

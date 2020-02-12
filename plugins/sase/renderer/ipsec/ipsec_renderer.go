@@ -51,17 +51,17 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // AddPolicy adds ipsec related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
 	return nil
 }
 
 // UpdatePolicy updates exiting ipsecrelated policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing ipsecpolicy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
 	return nil
 }
 

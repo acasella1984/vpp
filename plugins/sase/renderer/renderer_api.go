@@ -22,26 +22,32 @@ type SaseServiceRendererAPI interface {
 	AfterInit() error
 
 	// AddPolicy
-	AddPolicy(sp *SaseServicePolicy) error
+	AddPolicy(sp *SaseServiceConfig) error
 
 	// UpdatePolicy
-	UpdatePolicy(old, new *SaseServicePolicy) error
+	UpdatePolicy(old, new *SaseServiceConfig) error
 
 	// DeletePolicy
-	DeletePolicy(sp *SaseServicePolicy) error
+	DeletePolicy(sp *SaseServiceConfig) error
 
 	// Resync provides a complete snapshot of all service function chain-related data.
 	// The renderer should resolve any discrepancies between the state of SFC in K8s
 	// and the currently rendered configuration.
 }
 
-// SaseServicePolicy is common abstraction which contains neccessary information that would be
+// SaseServiceConfig is common abstraction which contains neccessary information that would be
 // required by renderer to render the config into dataplane
-type SaseServicePolicy struct {
+type SaseServiceConfig struct {
 	// Service Info
 	ServiceInfo *common.ServiceInfo
 	// Policy Details
 	Policy *sasemodel.SaseConfig
+	// Security Associations
+	SecurityAssociation *sasemodel.SecurityAssociation
+	// Site Resource Group
+	SiteResourceGroup *sasemodel.SiteResourceGroup
+	// IPSecVpnTunnel
+	IPSecVpnTunnel *sasemodel.IPSecVpnTunnel
 }
 
 // Interface : Nat Interface

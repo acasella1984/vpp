@@ -44,7 +44,7 @@ func (h *SaseServicePolicyHandler) CrdName() string {
 // CrdKeyPrefix returns the longest-common prefix under which the instances
 // of the given CRD are reflected into KVDB.
 func (h *SaseServicePolicyHandler) CrdKeyPrefix() (prefix string, underKsrPrefix bool) {
-	return model.Keyword + "/", true
+	return model.SasePolicyKey + "/", true
 }
 
 // IsCrdKeySuffix excludes the KSR-reflected data.

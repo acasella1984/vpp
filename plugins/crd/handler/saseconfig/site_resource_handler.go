@@ -44,7 +44,7 @@ func (h *SiteResourceGroupHandler) CrdName() string {
 // CrdKeyPrefix returns the longest-common prefix under which the instances
 // of the given CRD are reflected into KVDB.
 func (h *SiteResourceGroupHandler) CrdKeyPrefix() (prefix string, underKsrPrefix bool) {
-	return model.Keyword + "/", true
+	return model.SiteResourceGroupKey + "/", true
 }
 
 // IsCrdKeySuffix excludes the KSR-reflected data.

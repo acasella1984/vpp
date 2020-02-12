@@ -72,7 +72,7 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // AddPolicy adds firewall related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
 	rndr.Log.Infof("Firewall Service: AddPolicy: ")
 	// convert Sase Service Policy to native firewall representation
 	fwRule := convertSasePolicyToFirewallRule(sp)
@@ -83,23 +83,23 @@ func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
 }
 
 // UpdatePolicy updates exiting firewall  related policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing firewall  policy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
 	rndr.Log.Infof("Firewall Service: DeletePolicy: ")
 	// convert Sase Service Policy to native firewall representation
 	fwRule := convertSasePolicyToFirewallRule(sp)
 	vppACL := rndr.renderVppACL(sp.Policy.Name, fwRule, true)
-	return renderer.Commit(rndr.RemoteDB, "eos-rtr", vpp_acl.Key(vppACL.Name), vppACL, renderer.ConfigDelete)
+	return renderer.Commit(rndr.RemoteDB, sp.ServiceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, renderer.ConfigDelete)
 }
 
 /////////////////////////// Firewall Rule related routines ////////////////
 
 // ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToFirewallRule(sp *renderer.SaseServicePolicy) *FirewallRule {
+func convertSasePolicyToFirewallRule(sp *renderer.SaseServiceConfig) *FirewallRule {
 
 	// VENKAT: Temp for test
 	_, ipv4SrcNet, _ := net.ParseCIDR("192.0.2.1/24")

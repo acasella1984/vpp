@@ -63,23 +63,23 @@ func (rndr *Renderer) DeInit() error {
 }
 
 // AddPolicy adds route related policies
-func (rndr *Renderer) AddPolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) AddPolicy(sp *renderer.SaseServiceConfig) error {
 	rndr.Log.Infof("Route Service: AddPolicy: ")
 	// convert Sase Service Policy to native Route representation
 	routeRule := convertSasePolicyToRouteRule(sp)
 	rndr.Log.Infof("AddPolicy: routeRule: %v", routeRule)
 	vppRoute := rndr.renderVppRoute(sp.Policy.Name, routeRule)
 	rndr.Log.Infof("AddPolicy: vppRoute: %v", vppRoute)
-	return renderer.Commit(rndr.RemoteDB, "eos-rtr", models.Key(vppRoute), vppRoute, renderer.ConfigAdd)
+	return renderer.Commit(rndr.RemoteDB, sp.ServiceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, renderer.ConfigAdd)
 }
 
 // UpdatePolicy updates exiting route related policies
-func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) UpdatePolicy(old, new *renderer.SaseServiceConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing route policy
-func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServicePolicy) error {
+func (rndr *Renderer) DeletePolicy(sp *renderer.SaseServiceConfig) error {
 	return nil
 }
 
@@ -89,7 +89,7 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToRouteRule(sp *renderer.SaseServicePolicy) *RouteRule {
+func convertSasePolicyToRouteRule(sp *renderer.SaseServiceConfig) *RouteRule {
 	rule := &RouteRule{}
 	return rule
 }

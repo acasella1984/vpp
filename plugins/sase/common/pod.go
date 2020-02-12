@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/contiv/vpp/plugins/ksr/model/pod"
 )
 
 const (
@@ -41,6 +43,14 @@ type PodSaseServiceInfo struct {
 	serviceID       string
 	serviceLocation string
 	serviceType     string
+}
+
+// PodInfo : Relevant Pod Information
+type PodInfo struct {
+	ID          pod.ID
+	Label       string // Microservice Label
+	Interfaces  []PodInterfaceInfo
+	ServiceList []PodSaseServiceInfo
 }
 
 // InterfaceMode : Operating mode of Interface
@@ -69,9 +79,9 @@ type PodInterfaceInfo struct {
 	IsIngress    bool // IsIngress (true) would mean local network facing ingress interface
 }
 
-// getContivMicroserviceLabel returns microservice label defined in pod annotations
+// GetContivMicroserviceLabel returns microservice label defined in pod annotations
 // (or an empty string if it is not defined).
-func getContivMicroserviceLabel(annotations map[string]string) string {
+func GetContivMicroserviceLabel(annotations map[string]string) string {
 	for k, v := range annotations {
 		if strings.HasPrefix(k, contivMicroserviceLabelAnnotation) {
 			return v
