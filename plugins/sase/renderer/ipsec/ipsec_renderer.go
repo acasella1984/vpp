@@ -9,6 +9,7 @@ import (
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
+	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
 	"github.com/ligato/cn-infra/logging"
 	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
@@ -77,6 +78,7 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 }
 
 ////////////////// IPSec VPN Tunnel Config Handlers //////////////////////////////////
+// https://docs.ligato.io/en/latest/plugins/vpp-plugins/#ipsec-plugin
 
 // AddIPSecVpnTunnel adds ipsec vpn tunnel
 func (rndr *Renderer) AddIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
@@ -96,7 +98,37 @@ func (rndr *Renderer) DeleteIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *
 ////////////////// IPSec VPN Tunnel Config Handlers //////////////////////////////////
 
 // AddSecurityAssociation adds new security association
+// VENKAT: Optimize it to avoid intermediate conversion
+// Default Auth and Encryption algorithms initially. To Extend
 func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp *sasemodel.SecurityAssociation) error {
+
+	// Render Inbound and Outbound Security associations
+	vppSaIn := &vpp_ipsec.SecurityAssociation{
+		Index:     config.DefaultInboundSAIndex,
+		Spi:       config.DefaultInboundSPIIndex,
+		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
+		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,
+		IntegKey:  sp.AuthSharedKey,
+		CryptoAlg: vpp_ipsec.CryptoAlg_AES_CBC_128,
+		CryptoKey: sp.EncryptSharedKey,
+	}
+
+	rndr.Log.Infof("AddSecurityAssociation: vppSaInbound: %v", vppSaIn)
+	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Add)
+
+	vppSaOut := &vpp_ipsec.SecurityAssociation{
+		Index:     config.DefaultOutboundSAIndex,
+		Spi:       config.DefaultOutboundSPIIndex,
+		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
+		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,
+		IntegKey:  sp.AuthSharedKey,
+		CryptoAlg: vpp_ipsec.CryptoAlg_AES_CBC_128,
+		CryptoKey: sp.EncryptSharedKey,
+	}
+
+	rndr.Log.Infof("AddSecurityAssociation: vppSaOutbound: %v", vppSaOut)
+	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
+
 	return nil
 }
 
@@ -142,75 +174,15 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 //
 ////////////////////////////////////////////////////////////////////
 
-// CryptoAuth :
-type CryptoAuth int
-
-const (
-	// None :
-	None CryptoAuth = iota
-	// Sha1 :
-	Sha1
-	// Sha25696 :
-	Sha25696
-	// Sha256128 :
-	Sha256128
-	// Sha384192 :
-	Sha384192
-	// Sha512256 :
-	Sha512256
-)
-
-// CryptoEncrypt :
-type CryptoEncrypt int
-
-const (
-	// NoEncrypt :
-	NoEncrypt CryptoEncrypt = iota
-	// AEScbc128 :
-	AEScbc128
-	// AEScbc192 :
-	AEScbc192
-	// AEScbc256 :
-	AEScbc256
-	// AESctr128 :
-	AESctr128
-	// AESctr192 :
-	AESctr192
-	// AESctr256 :
-	AESctr256
-)
-
-// EncapMode :
-type EncapMode int
-
-const (
-	// NoEncap :
-	NoEncap EncapMode = iota
-	// TunnelMode :
-	TunnelMode
-	// TransportMode :
-	TransportMode
-)
-
-// SecurityAction :
-type SecurityAction int
-
-const (
-	// ByPass :
-	ByPass SecurityAction = iota
-	// Discard :
-	Discard
-	// Protect :
-	Protect
-)
-
 // SecurityAssociations :
 type SecurityAssociations struct {
 	Name        string
+	Index       string
+	SpiIndex    uint32
 	Protocol    config.ProtocolType
-	AuthAlgo    CryptoAuth
+	AuthAlgo    config.CryptoAuth
 	AuthKey     string
-	EncryptAlgo CryptoEncrypt
+	EncryptAlgo config.CryptoEncrypt
 	EncryptKey  string
 }
 
@@ -219,7 +191,7 @@ type SecurityPolicyDefinition struct {
 	Name       string
 	InboundSa  SecurityAssociations
 	OutboundSa SecurityAssociations
-	Action     SecurityAction
+	Action     config.SecurityAction
 }
 
 // IPSecTunnelEndPoint :

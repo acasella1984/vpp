@@ -61,10 +61,10 @@ type ProtocolType int
 const (
 	// TCP protocol.
 	TCP ProtocolType = iota
-	// UDP protocol.
-	UDP
 	// ESP Protocol
 	ESP
+	// UDP protocol.
+	UDP
 	// OTHER is some NON-UDP, NON-TCP traffic (used ONLY in unit tests).
 	OTHER
 	// ANY L4 protocol or even pure L3 traffic (port numbers are ignored).
@@ -85,6 +85,83 @@ func (at ProtocolType) String() string {
 	}
 	return "INVALID"
 }
+
+////////////////// Security Parameters /////////////////////
+
+// CryptoAuth :
+type CryptoAuth int
+
+const (
+	// None :
+	None CryptoAuth = iota
+	// Sha1 :
+	Sha1
+	// Sha25696 :
+	Sha25696
+	// Sha256128 :
+	Sha256128
+	// Sha384192 :
+	Sha384192
+	// Sha512256 :
+	Sha512256
+)
+
+// CryptoEncrypt :
+type CryptoEncrypt int
+
+const (
+	// NoEncrypt :
+	NoEncrypt CryptoEncrypt = iota
+	// AEScbc128 :
+	AEScbc128
+	// AEScbc192 :
+	AEScbc192
+	// AEScbc256 :
+	AEScbc256
+	// AESctr128 :
+	AESctr128
+	// AESctr192 :
+	AESctr192
+	// AESctr256 :
+	AESctr256
+)
+
+// EncapMode :
+type EncapMode int
+
+const (
+	// NoEncap :
+	NoEncap EncapMode = iota
+	// TunnelMode :
+	TunnelMode
+	// TransportMode :
+	TransportMode
+)
+
+// SecurityAction :
+type SecurityAction int
+
+const (
+	// ByPass :
+	ByPass SecurityAction = iota
+	// Discard :
+	Discard
+	// Protect :
+	Protect
+)
+
+// Security associations default parameters
+const (
+	DefaultInboundSAIndex      = "10"
+	DefaultOutboundSAIndex     = "20"
+	DefaultInboundSPIIndex     = 1000
+	DefaultOutboundSPIIndex    = 1001
+	DefaultAuthAlgorithm       = Sha1
+	DefaultAuthKey             = "4339314b55523947594d6d3547666b45764e6a58"
+	DefaultEncryptionAlgorithm = AEScbc128
+	DefaultEncryptionKey       = "4a506a794f574265564551694d653768"
+	DefaultProtocol            = ESP
+)
 
 // DefaultNatConfig returns configuration for service plugin with default values.
 func DefaultNatConfig() *SaseServiceConfig {
