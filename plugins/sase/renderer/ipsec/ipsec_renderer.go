@@ -82,6 +82,25 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 
 // AddIPSecVpnTunnel adds ipsec vpn tunnel
 func (rndr *Renderer) AddIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+	vppIPSecTunnel := &vpp_interfaces.IPSecLink{
+		LocalIp:   sp.TunnelSourceIp,
+		RemoteIp:  sp.TunnelDestinationIp,
+		LocalSpi:  config.DefaultOutboundSPIIndex,
+		RemoteSpi: config.DefaultInboundSPIIndex,
+	}
+
+	vppIPSecInterface := &vpp_interfaces.Interface{
+		Name:        sp.TunnelName,
+		Type:        vpp_interfaces.Interface_IPSEC_TUNNEL,
+		Enabled:     true,
+		IpAddresses: []string{sp.TunnelSourceIp},
+		Link: &vpp_interfaces.Interface_Ipsec{
+			Ipsec: vppIPSecTunnel,
+		},
+	}
+
+	rndr.Log.Infof("IPSecVpnTunnel: vppIPSecInterface: %v", vppIPSecInterface)
+	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Add)
 	return nil
 }
 
