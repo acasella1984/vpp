@@ -21,8 +21,8 @@ message SaseConfig {
     // Name of the SaseConfig
     string name = 1;
 
-    // Sase Service Name
-    string sase_service_name = 2;
+    // Sase Service Instance Name
+    string service_instance_name = 2;
 
     // Sase Rule Direction
     enum Direction {
@@ -58,9 +58,10 @@ message SaseConfig {
     enum Action {
         DENY = 0;
         PERMIT = 1;
-        NAT = 2;
-        FORWARD = 3;
-        SECURE = 4;
+        SNAT = 2;
+        DNAT = 3;
+        FORWARD = 4;
+        SECURE = 5;
     }
     // Sase Rule action
     Action action = 5;

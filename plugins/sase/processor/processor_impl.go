@@ -202,7 +202,7 @@ func (sp *SaseServiceProcessor) Close() error {
 func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processNewSaseServiceConfig: %v", cfg)
 
-	s, _ := common.ParseSaseServiceName(cfg.SaseServiceName)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
 	if !ok {
 		return errors.New("processNewSaseServiceConfig: Service Not Enabled")
@@ -224,7 +224,7 @@ func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseC
 // processUpdateSaseServiceConfig
 func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processUpdateSaseServiceConfig: old: %v new: %v", old, new)
-	s, _ := common.ParseSaseServiceName(new.SaseServiceName)
+	s, _ := common.ParseSaseServiceName(new.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
 	if !ok {
 		return errors.New("processUpdateSaseServiceConfig: Service Not Enabled")
@@ -250,7 +250,7 @@ func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemod
 // processDeletedSaseServiceConfig
 func (sp *SaseServiceProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processDeletedSaseServiceConfig: %v", cfg)
-	s, _ := common.ParseSaseServiceName(cfg.SaseServiceName)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
 	if !ok {
 		return errors.New("processDeletedSaseServiceConfig: Service Not Enabled")
@@ -296,7 +296,23 @@ func (sp *SaseServiceProcessor) processDeletedSiteResourceConfig(cfg *sasemodel.
 // processNewSecurityAssociationConfig
 func (sp *SaseServiceProcessor) processNewSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
 	sp.Log.Infof("processNewSecurityAssociationConfig: %v", cfg)
-	return nil
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("processNewSecurityAssociationConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.AddServiceConfig(p)
+	return err
 }
 
 // processUpdateSecurityAssociationConfig
@@ -307,16 +323,49 @@ func (sp *SaseServiceProcessor) processUpdateSecurityAssociationConfig(old, new 
 
 // processDeletedSecurityAssociationConfig
 func (sp *SaseServiceProcessor) processDeletedSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
+
 	sp.Log.Infof("processDeletedSecurityAssociationConfig: %v", cfg)
-	return nil
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("processDeletedSecurityAssociationConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.DeleteServiceConfig(p)
+	return err
 }
 
 //////////////////////////////// IPSec Vpn Tunnel Processor Routines ////////////////////////
 
 // processNewIPSecVpnTunnelConfig
 func (sp *SaseServiceProcessor) processNewIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
-	sp.Log.Infof("processNewSiteResourceConfig: %v", cfg)
-	return nil
+	sp.Log.Infof("processNewIPSecVpnTunnelConfig: %v", cfg)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("processNewIPSecVpnTunnelConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.AddServiceConfig(p)
+	return err
 }
 
 // processUpdateIPSecVpnTunnelConfig
@@ -328,7 +377,23 @@ func (sp *SaseServiceProcessor) processUpdateIPSecVpnTunnelConfig(old, new *sase
 // processDeletedIPSecVpnTunnelConfig
 func (sp *SaseServiceProcessor) processDeletedIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
 	sp.Log.Infof("processDeletedSiteResourceConfig: %v", cfg)
-	return nil
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("processDeletedIPSecVpnTunnelConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.DeleteServiceConfig(p)
+	return err
 }
 
 /////////////////////////// Pod Events ////////////////////////////////////////////

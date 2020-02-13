@@ -20,14 +20,16 @@ package model;
 message SecurityAssociation {
     // Security Association Name
     string name = 1;
+    // Sase Service Instance Name
+    string service_instance_name = 2;
     // Authentication algorithm
-    string auth_algorithm = 2;
+    string auth_algorithm = 3;
     // Authentication Shared Secret key
-    string auth_shared_key = 3;
+    string auth_shared_key = 4;
     // Encryption Algorithm
-    string encrypt_algorithm = 4;
+    string encrypt_algorithm = 5;
     // Encryption Shared Key
-    string encrypt_shared_key = 5;
+    string encrypt_shared_key = 6;
     // Mode Tunnel or Transport Mode
-    string mode = 6;
+    string mode = 7;
 }

@@ -223,8 +223,8 @@ type SaseServicePolicy struct {
 
 // SaseServicePolicySpec is the spec for Sase Service Policy resource
 type SaseServicePolicySpec struct {
-	// Sase Service Name
-	Service string `json:"service"`
+	// Sase Service Instance Name
+	ServiceInstanceName string `json:"service"`
 	// List of Policy Rules.
 	Config []SasePolicyRule `json:"config"`
 }
@@ -275,8 +275,6 @@ type SiteResourceGroup struct {
 
 // SiteResourceGroupSpec is the spec for a SiteResourceGroup
 type SiteResourceGroupSpec struct {
-	// SiteName
-	SiteName string `json:"sitename"`
 	// Local Networks
 	LocalNetworks []NetworkInfo `json:"localnetworks"`
 	PublicIP      []NetworkInfo `json:"publicip"`
@@ -317,7 +315,8 @@ type SaseSecurityAssociation struct {
 // SaseSecurityAssociationSpec is the spec for a SaseSecurityAssociation
 // Auth and Encrypt algos can be changed to enum - TBD
 type SaseSecurityAssociationSpec struct {
-	Name string `json:"name"`
+	// Sase Service Instance Name
+	ServiceInstanceName string `json:"service"`
 	// Authentication algorith and key
 	AuthAlgo string `json:"authalgo"`
 	AuthKey  string `json:"authkey"`
@@ -354,6 +353,8 @@ type IPSecVpnTunnel struct {
 // IPSecVpnTunnelSpec is the spec for a IPSecVpnTunnel
 // Multi-Point tunnels support is available to avoid scale issues. Note
 type IPSecVpnTunnelSpec struct {
+	// Sase Service Instance Name
+	ServiceInstanceName string `json:"service"`
 	// Tunnel Destination IP
 	DestinationIP string `json:"destinationip"`
 	// Tunnel Source IP

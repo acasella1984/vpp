@@ -69,11 +69,35 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
 
 // UpdateServiceConfig :
 func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) error {
+	// Check for service config type
+	switch new.Config.(type) {
+	case *sasemodel.SaseConfig:
+		rndr.UpdatePolicy(new.ServiceInfo, old.Config.(*sasemodel.SaseConfig),
+			new.Config.(*sasemodel.SaseConfig))
+	case *sasemodel.IPSecVpnTunnel:
+		rndr.UpdateIPSecVpnTunnel(new.ServiceInfo, new.Config.(*sasemodel.IPSecVpnTunnel),
+			old.Config.(*sasemodel.IPSecVpnTunnel))
+	case *sasemodel.SecurityAssociation:
+		rndr.UpdateSecurityAssociation(new.ServiceInfo, new.Config.(*sasemodel.SecurityAssociation),
+			old.Config.(*sasemodel.SecurityAssociation))
+	default:
+	}
 	return nil
 }
 
 // DeleteServiceConfig :
 func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
+	// Check for service config type
+	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		rndr.DeletePolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	case *sasemodel.IPSecVpnTunnel:
+		rndr.DeleteIPSecVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
+	case *sasemodel.SecurityAssociation:
+		rndr.DeleteSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation))
+	default:
+	}
+
 	return nil
 }
 
@@ -99,7 +123,7 @@ func (rndr *Renderer) AddIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *sas
 		},
 	}
 
-	rndr.Log.Infof("IPSecVpnTunnel: vppIPSecInterface: %v", vppIPSecInterface)
+	rndr.Log.Infof("AddIPSecVpnTunnel: vppIPSecInterface: %v", vppIPSecInterface)
 	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Add)
 	return nil
 }
@@ -111,6 +135,13 @@ func (rndr *Renderer) UpdateIPSecVpnTunnel(serviceInfo *common.ServiceInfo, old,
 
 // DeleteIPSecVpnTunnel deletes an existing ipsec vpn tunnel
 func (rndr *Renderer) DeleteIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+
+	vppIPSecInterface := &vpp_interfaces.Interface{
+		Name: sp.TunnelName,
+	}
+
+	rndr.Log.Infof("DeleteIPSecVpnTunnel: vppIPSecInterface: %v", vppIPSecInterface)
+	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Delete)
 	return nil
 }
 
@@ -158,6 +189,22 @@ func (rndr *Renderer) UpdateSecurityAssociation(serviceInfo *common.ServiceInfo,
 
 // DeleteSecurityAssociation deletes an existing Security Association
 func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo, sp *sasemodel.SecurityAssociation) error {
+
+	// Render Inbound and Outbound Security associations
+	vppSaIn := &vpp_ipsec.SecurityAssociation{
+		Index: config.DefaultInboundSAIndex,
+	}
+
+	rndr.Log.Infof("AddSecurityAssociation: vppSaInbound: %v", vppSaIn)
+	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Delete)
+
+	vppSaOut := &vpp_ipsec.SecurityAssociation{
+		Index: config.DefaultOutboundSAIndex,
+	}
+
+	rndr.Log.Infof("DeleteSecurityAssociation: vppSaOutbound: %v", vppSaOut)
+	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Delete)
+
 	return nil
 }
 
