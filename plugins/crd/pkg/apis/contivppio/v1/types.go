@@ -205,8 +205,8 @@ type CustomConfigurationList struct {
 	Items            []CustomConfiguration `json:"items"`
 }
 
-// SaseServicePolicy defines service policy definitioons to be applied for
-// for trafic handles by a Sase Service.
+// SaseServicePolicy define Policy abstraction at a single cluster level
+// that is running one or many sase services and service instances
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -222,15 +222,14 @@ type SaseServicePolicy struct {
 }
 
 // SaseServicePolicySpec is the spec for Sase Service Policy resource
+// Policy abstraction at a single cluster level
 type SaseServicePolicySpec struct {
-	// Sase Service Instance Name
-	ServiceInstanceName string `json:"service"`
-	// List of Policy Rules.
+	// List of Individual Policy Rules
 	Config []SasePolicyRule `json:"config"`
 }
 
-// SasePolicyMatch specifies match conditions for a policy to be applied
-type SasePolicyMatch struct {
+// SasePolicyRuleMatch specifies match conditions for a policy to be applied
+type SasePolicyRuleMatch struct {
 	Protocol        string `json:"protocol"`
 	ProtocolPort    uint32 `json:"protocolport"`
 	SourceCIDR      string `json:"sourcecidr"`
@@ -238,16 +237,19 @@ type SasePolicyMatch struct {
 	Port            string `json:"port"`
 }
 
-// SasePolicyAction specifies action to be taken when a policy match happens
-type SasePolicyAction struct {
+// SasePolicyRuleAction specifies action to be taken when a policy match happens
+type SasePolicyRuleAction struct {
 	Action string `json:"action"`
 }
 
-// SasePolicyRule is the specification for a sase service configuration item
+// SasePolicyRule is for a specific sase service instance
 type SasePolicyRule struct {
-	Direction string           `json:"direction"`
-	Match     SasePolicyMatch  `json:"match"`
-	Action    SasePolicyAction `json:"action"`
+	// Policy Rule Name
+	Name                string               `json:"name"`
+	ServiceInstanceName string               `json:"serviceinstancename"`
+	Direction           string               `json:"direction"`
+	Match               SasePolicyRuleMatch  `json:"match"`
+	Action              SasePolicyRuleAction `json:"action"`
 }
 
 // SaseServicePolicyList is a list of SasePolicy

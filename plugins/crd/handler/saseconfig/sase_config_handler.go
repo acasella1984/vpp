@@ -55,38 +55,26 @@ func (h *SaseServicePolicyHandler) IsCrdKeySuffix(keySuffix string) bool {
 // CrdObjectToKVData converts the K8s representation of SrConfiguration into the
 // corresponding configuration for vpp-agent(s) running in the destination microservice(s).
 func (h *SaseServicePolicyHandler) CrdObjectToKVData(obj interface{}) (data []kvdbreflector.KVData, err error) {
-	saseConfig, ok := obj.(*v1.SaseServicePolicy)
-	fmt.Println("CrdObjectToKVData: ", saseConfig)
+	sasePolicy, ok := obj.(*v1.SaseServicePolicy)
+	fmt.Println("CrdObjectToKVData: ", sasePolicy)
 	if !ok {
 		return nil, errors.New("failed to cast into SaseConfiguration struct")
 	}
-	data = []kvdbreflector.KVData{
-		{
-			ProtoMsg:  h.saseConfigCrdToProto(saseConfig),
-			KeySuffix: saseConfig.GetName(),
-		},
-	}
-	fmt.Println("CrdObjectToKVData: proto data", data)
-	return
+	return saseServicePolicyCrdToProto(sasePolicy)
 }
 
-// saseConfigCrdToProto:: Convert sase crd config to protobuf
-// VENKAT: TBD.  currently hardcoded the values for testing
-func (h *SaseServicePolicyHandler) saseConfigCrdToProto(crd *v1.SaseServicePolicy) *model.SaseConfig {
+// saseServicePolicyCrdToProto:: Convert sase policy crd to protobuf KV
+func saseServicePolicyCrdToProto(crd *v1.SaseServicePolicy) (data []kvdbreflector.KVData, err error) {
 
-	// Convert config recieved in crd to protobuf
-	scPb := &model.SaseConfig{
-		Name: crd.GetName(),
-		//SaseServiceName: // TBD: Modify CRD
-		Direction: model.SaseConfig_Egress,
-		Match: &model.SaseConfig_Match{
-			Proto: model.SaseConfig_Match_UDP,
-		},
-		Action: model.SaseConfig_PERMIT,
+	for _, policyRule := range crd.Spec.Config {
+		// Convert config recieved in crd to protobuf
+		// VENKAT: Verify if Policy Name or Policy Rule name for KeySuffix
+		scPb := convertSasePolicyRuleToProto(policyRule)
+		data = append(data, kvdbreflector.KVData{
+			ProtoMsg:  scPb,
+			KeySuffix: crd.GetName()})
 	}
-
-	fmt.Println("saseConfigCrdToProto ", scPb)
-	return scPb
+	return data, nil
 }
 
 // IsExclusiveKVDB returns false - there can be multiple writers of the agent configuration in the database.
@@ -113,3 +101,97 @@ func (h *SaseServicePolicyHandler) PublishCrdStatus(obj interface{}, opRetval er
 
 // Validation generates OpenAPIV3 validator for SaseServicePolicy CRD
 // VENKAT:: TBD
+
+///////////////// Helper routines for converting CRD attributes to Protobuf attributes /////////////
+const (
+	// Policy Rule Direction
+	egress  = "Egress"
+	ingress = "Ingress"
+
+	// Policy Rule Action
+	deny    = "Deny"
+	permit  = "Permit"
+	snat    = "Snat"
+	dnat    = "Dnat"
+	forward = "Forward"
+	secure  = "Secure"
+
+	// Protocol
+	tcp = "TCP"
+	udp = "UDP"
+)
+
+func getPbPolicyDirection(dir string) model.SaseConfig_Direction {
+
+	if dir == egress {
+		return model.SaseConfig_Egress
+	}
+
+	// Default Ingress
+	return model.SaseConfig_Ingress
+}
+
+func getPbProto(proto string) model.SaseConfig_Match_Proto {
+
+	var protoPb model.SaseConfig_Match_Proto
+
+	switch proto {
+	case tcp:
+		protoPb = model.SaseConfig_Match_TCP
+	case udp:
+		protoPb = model.SaseConfig_Match_UDP
+	default:
+		protoPb = model.SaseConfig_Match_NONE
+	}
+	return protoPb
+}
+
+func convertSasePolicyRuleMatchToProto(match v1.SasePolicyRuleMatch) *model.SaseConfig_Match {
+
+	// Policy Match Rule in ProtoBuf
+	matchPb := &model.SaseConfig_Match{
+		InterfaceName: match.Port,
+		SourceIp:      match.SourceCIDR,
+		DestinationIp: match.DestinationCIDR,
+		Protocol:      getPbProto(match.Protocol),
+		Port:          match.ProtocolPort,
+	}
+	return matchPb
+}
+
+// VENKAT: Note SNAT and DNAT distinction can be made based on Rule direction. ??
+func convertSasePolicyRuleActionToProto(action v1.SasePolicyRuleAction) model.SaseConfig_Action {
+
+	var actPb model.SaseConfig_Action
+
+	switch action.Action {
+	case deny:
+		actPb = model.SaseConfig_DENY
+	case permit:
+		actPb = model.SaseConfig_PERMIT
+	case snat:
+		actPb = model.SaseConfig_SNAT
+	case dnat:
+		actPb = model.SaseConfig_DNAT
+	case forward:
+		actPb = model.SaseConfig_FORWARD
+	case secure:
+		actPb = model.SaseConfig_SECURE
+	}
+	return actPb
+}
+
+// convertSasePolicyRuleToProto
+func convertSasePolicyRuleToProto(rule v1.SasePolicyRule) *model.SaseConfig {
+
+	// Convert config recieved in crd to protobuf
+	rulePb := &model.SaseConfig{
+		Name:                rule.Name,
+		ServiceInstanceName: rule.ServiceInstanceName,
+		Direction:           getPbPolicyDirection(rule.Direction),
+		Match:               convertSasePolicyRuleMatchToProto(rule.Match),
+		Action:              convertSasePolicyRuleActionToProto(rule.Action),
+	}
+
+	return rulePb
+}
