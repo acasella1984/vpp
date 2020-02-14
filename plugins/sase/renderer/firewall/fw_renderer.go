@@ -17,6 +17,7 @@
 package firewallservice
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -98,10 +99,21 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 // AddPolicy adds firewall related policies
 func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	rndr.Log.Infof("Firewall Service: AddPolicy: ")
+
 	// convert Sase Service Policy to native firewall representation
-	fwRule := convertSasePolicyToFirewallRule(sp)
+	fwRule, err := convertSasePolicyToFirewallRule(sp)
+	if err != nil {
+		return err
+	}
+
 	rndr.Log.Infof("AddPolicy: fwRule: %v", fwRule)
-	vppACL := rndr.renderVppACL(sp.Name, fwRule, true)
+
+	// Render ACL Rules
+	vppACL := rndr.renderVppACLRule(sp.Name, fwRule)
+
+	// Render ACL Ingress/Egress Interfaces
+	vppACL.Interfaces = rndr.renderVppACLInterfaces(serviceInfo.Pod, sp.Direction)
+
 	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL)
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
 }
@@ -113,52 +125,43 @@ func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sa
 
 // DeletePolicy deletes an existing firewall  policy
 func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+
 	rndr.Log.Infof("Firewall Service: DeletePolicy: ")
 	// convert Sase Service Policy to native firewall representation
-	fwRule := convertSasePolicyToFirewallRule(sp)
-	vppACL := rndr.renderVppACL(sp.Name, fwRule, true)
+	fwRule, err := convertSasePolicyToFirewallRule(sp)
+	if err != nil {
+		return err
+	}
+
+	vppACL := rndr.renderVppACLRule(sp.Name, fwRule)
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Delete)
 }
 
 /////////////////////////// Firewall Policies related routines ////////////////
 
 // ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToFirewallRule(sp *sasemodel.SaseConfig) *FirewallRule {
+func convertSasePolicyToFirewallRule(sp *sasemodel.SaseConfig) (*FirewallRule, error) {
 
-	// VENKAT: Temp for test
-	_, ipv4SrcNet, _ := net.ParseCIDR("192.0.2.1/24")
-	_, ipv4DstNet, _ := net.ParseCIDR("100.0.2.1/24")
+	// Get Source and Destination Networks
+	_, ipv4SrcNet, _ := net.ParseCIDR(sp.Match.SourceIp)
+	_, ipv4DstNet, _ := net.ParseCIDR(sp.Match.DestinationIp)
 
+	// Check for supported actions for firewall service
+	if sp.Action != sasemodel.SaseConfig_PERMIT ||
+		sp.Action != sasemodel.SaseConfig_DENY {
+		return nil, errors.New("Error: Invalid Firewall Action")
+	}
+
+	// Firewall rule in native form that can be consumed by renderer
 	rule := &FirewallRule{
-		Action:      ActionDeny,
-		Protocol:    config.TCP,
+		Action:      sp.Action,
+		Protocol:    sp.Match.Protocol,
 		SrcNetwork:  ipv4SrcNet,
 		DestNetwork: ipv4DstNet,
-		SrcPort:     1004,
-		DestPort:    8080,
+		//SrcPort:     1004,
+		DestPort: uint16(sp.Match.Port),
 	}
-	return rule
-}
-
-// ActionType is either DENY or PERMIT.
-type ActionType int
-
-const (
-	// ActionDeny tells the policy engine to block the matching traffic.
-	ActionDeny ActionType = iota
-	// ActionPermit tells the policy engine to block the matching traffic.
-	ActionPermit
-)
-
-// String converts ActionType into a human-readable string.
-func (at ActionType) String() string {
-	switch at {
-	case ActionDeny:
-		return "DENY"
-	case ActionPermit:
-		return "PERMIT"
-	}
-	return "INVALID"
+	return rule, nil
 }
 
 const (
@@ -177,14 +180,14 @@ const (
 // FirewallRule is an n-tuple with the most basic policy rule
 type FirewallRule struct {
 	// Action to perform when traffic matches.
-	Action ActionType
+	Action sasemodel.SaseConfig_Action
 
 	// L3
 	SrcNetwork  *net.IPNet // empty = match all
 	DestNetwork *net.IPNet // empty = match all
 
 	// L4
-	Protocol config.ProtocolType
+	Protocol sasemodel.SaseConfig_Match_Proto
 	SrcPort  uint16 // 0 = match all
 	DestPort uint16 // 0 = match all
 }
@@ -225,23 +228,41 @@ func expandAnyAddr(rule *vpp_acl.ACL_Rule) []*vpp_acl.ACL_Rule {
 
 }
 
+// Render Interfaces for ACL Rules depending on Direction specified in the Policy rule
+func (rndr *Renderer) renderVppACLInterfaces(pod *common.PodInfo, dir sasemodel.SaseConfig_Direction) *vpp_acl.ACL_Interfaces {
+
+	aclInterfaces := &vpp_acl.ACL_Interfaces{}
+
+	// Traffic from external entity into the service which firewall is protecting
+	if dir == sasemodel.SaseConfig_Ingress {
+		for _, intf := range pod.Interfaces {
+			if intf.IsIngress == false {
+				aclInterfaces.Ingress = append(aclInterfaces.Ingress, intf.InternalName)
+			}
+		}
+	} else {
+		// Traffic from internal entity going out. Prevent access to internal entity
+		for _, intf := range pod.Interfaces {
+			if intf.IsIngress == true {
+				aclInterfaces.Egress = append(aclInterfaces.Ingress, intf.InternalName)
+			}
+		}
+	}
+	return aclInterfaces
+}
+
 // renderACL renders ContivRuleTable into the equivalent ACL configuration.
-func (rndr *Renderer) renderVppACL(name string, rule *FirewallRule, isReflectiveACL bool) *vpp_acl.ACL {
+func (rndr *Renderer) renderVppACLRule(name string, rule *FirewallRule) *vpp_acl.ACL {
 	const maxPortNum = ^uint16(0)
 	acl := &vpp_acl.ACL{
 		Name: name,
 	}
 
-	// VENKAT:: How do we get these interfaces???
-	// TBD
-	//acl.Interfaces = art.renderInterfaces(table.Pods, isReflectiveACL)
-
 	// VPP ACL Plugin Rule
+	// VENKAT: Note Reflective ACL? Use case
 	aclRule := &vpp_acl.ACL_Rule{}
-	if rule.Action == ActionDeny {
+	if rule.Action == sasemodel.SaseConfig_DENY {
 		aclRule.Action = vpp_acl.ACL_Rule_DENY
-	} else if isReflectiveACL {
-		aclRule.Action = vpp_acl.ACL_Rule_REFLECT
 	} else {
 		aclRule.Action = vpp_acl.ACL_Rule_PERMIT
 	}
@@ -256,7 +277,7 @@ func (rndr *Renderer) renderVppACL(name string, rule *FirewallRule, isReflective
 	}
 
 	// Protocol TCP
-	if rule.Protocol == config.TCP {
+	if rule.Protocol == sasemodel.SaseConfig_Match_TCP {
 		aclRule.IpRule.Tcp = &vpp_acl.ACL_Rule_IpRule_Tcp{}
 		aclRule.IpRule.Tcp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
 		aclRule.IpRule.Tcp.SourcePortRange.LowerPort = uint32(rule.SrcPort)
@@ -275,7 +296,7 @@ func (rndr *Renderer) renderVppACL(name string, rule *FirewallRule, isReflective
 	}
 
 	// Protocol UDP
-	if rule.Protocol == config.UDP {
+	if rule.Protocol == sasemodel.SaseConfig_Match_UDP {
 		aclRule.IpRule.Udp = &vpp_acl.ACL_Rule_IpRule_Udp{}
 		aclRule.IpRule.Udp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
 		aclRule.IpRule.Udp.SourcePortRange.LowerPort = uint32(rule.SrcPort)

@@ -98,7 +98,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 	var vppNAT proto.Message
 	rndr.Log.Info("NAT Service: AddPolicy: ")
 	// convert Sase Service Policy to native NAT representation
-	natRule := convertSasePolicyToNatRule(sp)
+	natRule := convertSasePolicyToNatRule(serviceInfo.Pod, sp)
 	rndr.Log.Infof("AddPolicy: NatRule: %v", natRule)
 	if natRule.Type == SourceNAT {
 		vppNAT = rndr.renderVppSNAT(natRule)
@@ -119,12 +119,55 @@ func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sa
 
 // DeletePolicy deletes an existing route policy
 func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+	var key string
+	var vppNAT proto.Message
+	rndr.Log.Info("NAT Service: DeletePolicy: ")
+	// convert Sase Service Policy to native NAT representation
+	natRule := convertSasePolicyToNatRule(serviceInfo.Pod, sp)
+	rndr.Log.Infof("DeletePolicy: NatRule: %v", natRule)
+	if natRule.Type == SourceNAT {
+		vppNAT = rndr.renderVppSNAT(natRule)
+		key = vpp_nat.GlobalNAT44Key()
+	} else if natRule.Type == DestinationNAT {
+		vppNAT = rndr.renderVppDNAT(sp.Name, natRule)
+		key = vpp_nat.DNAT44Key(natRule.DNat.Key)
+	}
+
+	rndr.Log.Infof("DeletePolicy: vppNAT: %v", vppNAT, "type: %d", natRule.Type)
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), key, vppNAT, config.Delete)
 	return nil
 }
 
 // convertSasePolicyToNatRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToNatRule(sp *sasemodel.SaseConfig) *NATRule {
+func convertSasePolicyToNatRule(pod *common.PodInfo, sp *sasemodel.SaseConfig) *NATRule {
+
+	// Convert Sase Policy into native SNAT or DNAT rule
 	rule := &NATRule{}
+	// SNAT
+	if sp.GetAction() == sasemodel.SaseConfig_SNAT {
+		snatRule := &SNATConfig{}
+		for _, intf := range pod.Interfaces {
+			if intf.IsIngress == true {
+				// Inside Interface
+				snatRule.LocalInterfaces = append(snatRule.LocalInterfaces,
+					config.Interface{
+						Name: intf.InternalName})
+				snatRule.LocalSubnetList = append(snatRule.LocalSubnetList,
+					config.Subnets{
+						Subnet: intf.IPAddress})
+			} else {
+				// Outside Interface
+				snatRule.ExternalInterface = append(snatRule.ExternalInterface,
+					config.Interface{
+						Name: intf.InternalName})
+				snatRule.ExternalIP = append(snatRule.ExternalIP,
+					config.Subnets{
+						Subnet: intf.IPAddress})
+			}
+		}
+	} else {
+		// DNAT: TBD
+	}
 	return rule
 }
 
@@ -145,8 +188,8 @@ const (
 // NATRule :
 type NATRule struct {
 	Type NatType
-	SNat SNATConfig
-	DNat DNATConfig
+	SNat *SNATConfig
+	DNat *DNATConfig
 }
 
 // SNATConfig : SNAT allows inside hosts with private IP Addresses
@@ -188,7 +231,7 @@ type DNATConfig struct {
 // renderVppSNAT :: Renders VPP Global Nat Config
 func (rndr *Renderer) renderVppSNAT(natRule *NATRule) *vpp_nat.Nat44Global {
 	globalNat := &vpp_nat.Nat44Global{
-		Forwarding: true,
+		Forwarding: true, // By Default forwarding enabled. VENKAT: Note
 		VirtualReassembly: &vpp_nat.VirtualReassembly{
 			Timeout:       10,
 			DropFragments: true,
@@ -242,4 +285,15 @@ func getSNATAddress(address config.Subnets) *vpp_nat.Nat44Global_Address {
 		//TwiceNat:
 	}
 	return vppAddress
+}
+
+func getNatType(t sasemodel.SaseConfig_Action) NatType {
+
+	// DNAT
+	if t == sasemodel.SaseConfig_DNAT {
+		return DestinationNAT
+	}
+
+	// SNAT
+	return SourceNAT
 }
