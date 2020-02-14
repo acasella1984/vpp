@@ -26,6 +26,7 @@ import (
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/ipam"
+	"github.com/contiv/vpp/plugins/ipam/ipalloc"
 	"github.com/contiv/vpp/plugins/ipnet"
 	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
 	"github.com/contiv/vpp/plugins/nodesync"
@@ -176,6 +177,13 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			}
 			pod := k8sChange.PrevValue.(*podmodel.Pod)
 			return sp.processDeletedPod(pod)
+		case ipalloc.Keyword:
+			// Event received when IP addresses are assigned to Pod Custom Ifs because of
+			// customnetwork config
+			if k8sChange.NewValue != nil {
+				alloc := k8sChange.NewValue.(*ipalloc.CustomIPAllocation)
+				return sp.processCustomIfIPAlloc(alloc)
+			}
 		default:
 		}
 	}
@@ -429,9 +437,22 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 		podInfo := &common.PodInfo{
 			ID:    podID,
 			Label: label,
-			//Interfaces: - TBD
 		}
 		sp.podsList[podID] = podInfo
+	}
+
+	// Handle CNF Pod interface updates
+	if common.HasContivCustomIfs(pod.Annotations) == true {
+		var podInterfaceList []common.PodInterfaceInfo
+		podCustomIfs := common.GetContivCustomIfs(pod.Annotations)
+		for _, customIf := range podCustomIfs {
+			customIfInfo, _ := common.ParseCustomIfInfo(customIf)
+			sp.Log.Infof("New / Updated pod: customIfInfo %v", customIfInfo)
+			podInterfaceList = append(podInterfaceList, customIfInfo)
+		}
+
+		sp.podsList[podID].UpdateInterfaceList(podInterfaceList)
+
 	}
 
 	// Handle Service Updates
@@ -450,8 +471,6 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 		sp.processServiceAddition(podID, newServices)
 		sp.processServiceDeletion(podID, deletedServices)
 	}
-
-	// Handle CNF Pod interface updates
 
 	return nil
 }
@@ -518,7 +537,7 @@ func (sp *SaseServiceProcessor) processServiceAddition(podID podmodel.ID, addSer
 		sp.services[s] = service
 
 		// Add service details to podsList servicelist cache
-		sp.podsList[podID].ServiceList = append(sp.podsList[podID].ServiceList, s)
+		sp.podsList[podID].AddSaseServiceInfo(s)
 
 		// Get service type
 		serviceType := service.GetServiceType()
@@ -532,6 +551,7 @@ func (sp *SaseServiceProcessor) processServiceAddition(podID podmodel.ID, addSer
 // processUpdatedPodCustomIfs handles the event of updating pod custom interfaces.
 // Delete Service info from the services DB and invoke any de-init routine for the service if any
 func (sp *SaseServiceProcessor) processServiceDeletion(podID podmodel.ID, delService []common.PodSaseServiceInfo) error {
+
 	for _, s := range delService {
 
 		// Get Service Type
@@ -541,15 +561,31 @@ func (sp *SaseServiceProcessor) processServiceDeletion(podID podmodel.ID, delSer
 		sp.renderers[serviceType].DeInit()
 
 		// Delete service info from Pods service list cache
-		for i := len(sp.podsList[podID].ServiceList) - 1; i >= 0; i-- {
-			if s == sp.podsList[podID].ServiceList[i] {
-				sp.podsList[podID].ServiceList = append(sp.podsList[podID].ServiceList[:i], sp.podsList[podID].ServiceList[i+1:]...)
-			}
-		}
+		sp.podsList[podID].DeleteSaseServiceInfo(s)
+
 		// Delete Service from the service cache
 		delete(sp.services, s)
 	}
 
+	return nil
+}
+
+// processCustomIPAlloc : Handle IP address assignments for Pod Custom Interfaces
+// that have references to customnetwork config
+func (sp *SaseServiceProcessor) processCustomIfIPAlloc(alloc *ipalloc.CustomIPAllocation) error {
+	sp.Log.WithFields(logging.Fields{
+		"alloc": alloc,
+	}).Debug("SaseServiceProcessor - processCustomIfIPAlloc()")
+
+	// Update Pod Interface Cache
+	podID := podmodel.ID{
+		Name:      alloc.PodName,
+		Namespace: alloc.PodNamespace}
+
+	// Update IP addresses for the Pod Interfaces
+	for _, customIf := range alloc.CustomInterfaces {
+		sp.podsList[podID].UpdateInterfaceIP(customIf.Name, customIf.IpAddress)
+	}
 	return nil
 }
 

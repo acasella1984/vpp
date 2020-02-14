@@ -151,7 +151,8 @@ func convertSasePolicyToNatRule(pod *common.PodInfo, sp *sasemodel.SaseConfig) *
 				// Inside Interface
 				snatRule.LocalInterfaces = append(snatRule.LocalInterfaces,
 					config.Interface{
-						Name: intf.InternalName})
+						Name:    intf.InternalName,
+						IsLocal: true})
 				snatRule.LocalSubnetList = append(snatRule.LocalSubnetList,
 					config.Subnets{
 						Subnet: intf.IPAddress})
@@ -159,7 +160,8 @@ func convertSasePolicyToNatRule(pod *common.PodInfo, sp *sasemodel.SaseConfig) *
 				// Outside Interface
 				snatRule.ExternalInterface = append(snatRule.ExternalInterface,
 					config.Interface{
-						Name: intf.InternalName})
+						Name:    intf.InternalName,
+						IsLocal: false})
 				snatRule.ExternalIP = append(snatRule.ExternalIP,
 					config.Subnets{
 						Subnet: intf.IPAddress})

@@ -74,6 +74,7 @@ type IPAM struct {
 	/********** maps to convert between Pod and the assigned IP **********/
 	// pool of assigned POD IP addresses
 	assignedPodIPs map[string]*podIPAllocation
+	// VENKAT:: Pod customIfs to IP association here
 	// pod -> allocated IP address
 	podToIP map[podmodel.ID]*podIPInfo
 	// remote pod IP info
@@ -863,6 +864,8 @@ func (i *IPAM) AllocatePodCustomIfIP(podID podmodel.ID, ifName, network string,
 			customIfIPs: map[string]net.IP{},
 		}
 	}
+
+	// VENKAT: This is where customIf to Ip address association is done and cached
 	i.podToIP[podID].customIfIPs[customIfID(ifName, network)] = ip
 	i.logAssignedPodIPPool()
 
@@ -1050,6 +1053,7 @@ func (i *IPAM) GetExternalInterfaceIP(vppInterface string, nodeID uint32) *net.I
 // GetPodCustomIfIP returns the allocated custom interface pod IP, together with the mask.
 // Searches for both local and remote pods
 // Returns nil if the pod does not have allocated custom interface IP address.
+// VENKAT: This is where we can get IP assigned for a given Pod Custom IF
 func (i *IPAM) GetPodCustomIfIP(podID podmodel.ID, ifName, network string) *net.IPNet {
 	i.mutex.Lock()
 	defer i.mutex.Unlock()

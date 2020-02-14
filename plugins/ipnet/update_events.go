@@ -33,6 +33,7 @@ import (
 //   - POD k8s state changes
 //   - NodeUpdate for other nodes
 //   - Shutdown event
+// VENKAT: This is where handling of Pod Create/Update/Delete done. IMPORTANT
 func (n *IPNet) Update(event controller.Event, txn controller.UpdateOperations) (change string, err error) {
 
 	// add pod from CNI

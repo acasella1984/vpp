@@ -30,12 +30,12 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/ligato/cn-infra/db/keyval"
 	"github.com/ligato/cn-infra/servicelabel"
-	"github.com/ligato/vpp-agent/api/models/linux/interfaces"
-	"github.com/ligato/vpp-agent/api/models/linux/l3"
-	"github.com/ligato/vpp-agent/api/models/linux/namespace"
+	linux_interfaces "github.com/ligato/vpp-agent/api/models/linux/interfaces"
+	linux_l3 "github.com/ligato/vpp-agent/api/models/linux/l3"
+	linux_namespace "github.com/ligato/vpp-agent/api/models/linux/namespace"
 	"github.com/ligato/vpp-agent/api/models/netalloc"
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	"github.com/ligato/vpp-agent/api/models/vpp/l3"
+	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
+	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 	"github.com/ligato/vpp-agent/pkg/models"
 )
 
@@ -174,6 +174,7 @@ func (n *IPNet) podConnectivityConfig(pod *podmanager.LocalPod) (config controll
 
 // podInterfaceName returns logical names of interfaces on both sides
 // of the interconnection between VPP and the given Pod.
+// VENKAT:: This is how we get base VPP and Microservice Side Interface details. IMPORTANT
 func (n *IPNet) podInterfaceName(pod *podmanager.LocalPod, customIfName, customIfType string) (vppIfName, podIfName, msIfName string) {
 	if customIfType == memifIfType {
 		vppIfName = n.podVPPSideMemifName(pod, customIfName)
@@ -207,6 +208,7 @@ func (n *IPNet) podCustomInterfaceHostName(pod *podmanager.LocalPod, ifName stri
 // If no custom interfaces are requested, returns empty config.
 // - config contains config to be added/deleted
 // - updateConfig contains config to be updated (by any operation)
+// VENKAT:: This is where customIfs and customnetwork configs are handled. IMPORTANT
 func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEventType) (config, updateConfig controller.KeyValuePairs) {
 	var (
 		memifID   uint32
@@ -358,6 +360,7 @@ func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEve
 	}
 
 	// in case of non-empty microservice config, put the config into ETCD
+	// VENKAT: This is where configs to remote VPP is posted. Post into ETCD with microservice label
 	if len(microserviceConfig) > 0 {
 		n.Log.Debugf("Adding pod-end interface config for microservice %s into ETCD", serviceLabel)
 		broker := n.RemoteDB.NewBrokerWithAtomic(servicelabel.GetDifferentAgentPrefix(serviceLabel))
@@ -839,6 +842,8 @@ func (n *IPNet) podVPPMemif(pod *podmanager.LocalPod, podIP *net.IPNet, ifName, 
 			InterfaceWithIp: n.podGwLoopbackInterfaceName(ifNw),
 		}
 	}
+
+	// VENKAT: Change the Rx Mode here Polling for testing
 	if interfaceRxModeType(interfaceCfg.InterfaceRxMode) != vpp_interfaces.Interface_RxMode_DEFAULT {
 		memif.RxModes = []*vpp_interfaces.Interface_RxMode{
 			{
