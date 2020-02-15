@@ -29,59 +29,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// SaseSecurityAssociationInformer provides access to a shared informer and lister for
-// SaseSecurityAssociations.
-type SaseSecurityAssociationInformer interface {
+// SecurityAssociationInformer provides access to a shared informer and lister for
+// SecurityAssociations.
+type SecurityAssociationInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.SaseSecurityAssociationLister
+	Lister() v1.SecurityAssociationLister
 }
 
-type saseSecurityAssociationInformer struct {
+type securityAssociationInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewSaseSecurityAssociationInformer constructs a new informer for SaseSecurityAssociation type.
+// NewSecurityAssociationInformer constructs a new informer for SecurityAssociation type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewSaseSecurityAssociationInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredSaseSecurityAssociationInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewSecurityAssociationInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredSecurityAssociationInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredSaseSecurityAssociationInformer constructs a new informer for SaseSecurityAssociation type.
+// NewFilteredSecurityAssociationInformer constructs a new informer for SecurityAssociation type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredSaseSecurityAssociationInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredSecurityAssociationInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ContivppV1().SaseSecurityAssociations(namespace).List(options)
+				return client.ContivppV1().SecurityAssociations(namespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ContivppV1().SaseSecurityAssociations(namespace).Watch(options)
+				return client.ContivppV1().SecurityAssociations(namespace).Watch(options)
 			},
 		},
-		&contivppiov1.SaseSecurityAssociation{},
+		&contivppiov1.SecurityAssociation{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *saseSecurityAssociationInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredSaseSecurityAssociationInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *securityAssociationInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredSecurityAssociationInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *saseSecurityAssociationInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&contivppiov1.SaseSecurityAssociation{}, f.defaultInformer)
+func (f *securityAssociationInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&contivppiov1.SecurityAssociation{}, f.defaultInformer)
 }
 
-func (f *saseSecurityAssociationInformer) Lister() v1.SaseSecurityAssociationLister {
-	return v1.NewSaseSecurityAssociationLister(f.Informer().GetIndexer())
+func (f *securityAssociationInformer) Lister() v1.SecurityAssociationLister {
+	return v1.NewSecurityAssociationLister(f.Informer().GetIndexer())
 }

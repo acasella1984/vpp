@@ -42,12 +42,12 @@ func (c *FakeContivppV1) IPSecVpnTunnels(namespace string) v1.IPSecVpnTunnelInte
 	return &FakeIPSecVpnTunnels{c, namespace}
 }
 
-func (c *FakeContivppV1) SaseSecurityAssociations(namespace string) v1.SaseSecurityAssociationInterface {
-	return &FakeSaseSecurityAssociations{c, namespace}
-}
-
 func (c *FakeContivppV1) SaseServicePolicies(namespace string) v1.SaseServicePolicyInterface {
 	return &FakeSaseServicePolicies{c, namespace}
+}
+
+func (c *FakeContivppV1) SecurityAssociations(namespace string) v1.SecurityAssociationInterface {
+	return &FakeSecurityAssociations{c, namespace}
 }
 
 func (c *FakeContivppV1) ServiceFunctionChains(namespace string) v1.ServiceFunctionChainInterface {

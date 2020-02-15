@@ -30,10 +30,10 @@ type Interface interface {
 	ExternalInterfaces() ExternalInterfaceInformer
 	// IPSecVpnTunnels returns a IPSecVpnTunnelInformer.
 	IPSecVpnTunnels() IPSecVpnTunnelInformer
-	// SaseSecurityAssociations returns a SaseSecurityAssociationInformer.
-	SaseSecurityAssociations() SaseSecurityAssociationInformer
 	// SaseServicePolicies returns a SaseServicePolicyInformer.
 	SaseServicePolicies() SaseServicePolicyInformer
+	// SecurityAssociations returns a SecurityAssociationInformer.
+	SecurityAssociations() SecurityAssociationInformer
 	// ServiceFunctionChains returns a ServiceFunctionChainInformer.
 	ServiceFunctionChains() ServiceFunctionChainInformer
 	// SiteResourceGroups returns a SiteResourceGroupInformer.
@@ -71,14 +71,14 @@ func (v *version) IPSecVpnTunnels() IPSecVpnTunnelInformer {
 	return &iPSecVpnTunnelInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// SaseSecurityAssociations returns a SaseSecurityAssociationInformer.
-func (v *version) SaseSecurityAssociations() SaseSecurityAssociationInformer {
-	return &saseSecurityAssociationInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // SaseServicePolicies returns a SaseServicePolicyInformer.
 func (v *version) SaseServicePolicies() SaseServicePolicyInformer {
 	return &saseServicePolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// SecurityAssociations returns a SecurityAssociationInformer.
+func (v *version) SecurityAssociations() SecurityAssociationInformer {
+	return &securityAssociationInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ServiceFunctionChains returns a ServiceFunctionChainInformer.

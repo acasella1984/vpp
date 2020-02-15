@@ -61,10 +61,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().ExternalInterfaces().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("ipsecvpntunnels"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().IPSecVpnTunnels().Informer()}, nil
-	case v1.SchemeGroupVersion.WithResource("sasesecurityassociations"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SaseSecurityAssociations().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("saseservicepolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SaseServicePolicies().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("securityassociations"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SecurityAssociations().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("servicefunctionchains"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().ServiceFunctionChains().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("siteresourcegroups"):

@@ -221,13 +221,6 @@ type SaseServicePolicy struct {
 	Status meta_v1.Status `json:"status,omitempty"`
 }
 
-// SaseServicePolicySpec is the spec for Sase Service Policy resource
-// Policy abstraction at a single cluster level
-type SaseServicePolicySpec struct {
-	// List of Individual Policy Rules
-	Config []SasePolicyRule `json:"config"`
-}
-
 // SasePolicyRuleMatch specifies match conditions for a policy to be applied
 type SasePolicyRuleMatch struct {
 	Protocol        string `json:"protocol"`
@@ -242,8 +235,8 @@ type SasePolicyRuleAction struct {
 	Action string `json:"action"`
 }
 
-// SasePolicyRule is for a specific sase service instance
-type SasePolicyRule struct {
+// SaseServicePolicySpec is for a specific sase service instance
+type SaseServicePolicySpec struct {
 	// Policy Rule Name
 	Name                string               `json:"name"`
 	ServiceInstanceName string               `json:"serviceinstancename"`
@@ -298,25 +291,25 @@ type SiteResourceGroupList struct {
 	Items            []SiteResourceGroup `json:"items"`
 }
 
-// SaseSecurityAssociation defines security attributes (algorithms and security keys) between
+// SecurityAssociation defines security attributes (algorithms and security keys) between
 // networks for secure communication
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type SaseSecurityAssociation struct {
+type SecurityAssociation struct {
 	// TypeMeta is the metadata for the resource, like kind and apiversion
 	meta_v1.TypeMeta `json:",inline"`
 	// ObjectMeta contains the metadata for the particular object
 	meta_v1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec is the specification for the SaseSecurityAssociation
-	Spec SaseSecurityAssociationSpec `json:"spec"`
+	Spec SecurityAssociationSpec `json:"spec"`
 	// Status informs about the status of the resource.
 	Status meta_v1.Status `json:"status,omitempty"`
 }
 
-// SaseSecurityAssociationSpec is the spec for a SaseSecurityAssociation
+// SecurityAssociationSpec is the spec for a SaseSecurityAssociation
 // Auth and Encrypt algos can be changed to enum - TBD
-type SaseSecurityAssociationSpec struct {
+type SecurityAssociationSpec struct {
 	// Sase Service Instance Name
 	ServiceInstanceName string `json:"service"`
 	// Authentication algorith and key
@@ -329,12 +322,12 @@ type SaseSecurityAssociationSpec struct {
 	Mode string `json:"mode"`
 }
 
-// SaseSecurityAssociationList is a list of SaseSecurityAssociations
+// SecurityAssociationList is a list of SecurityAssociations
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type SaseSecurityAssociationList struct {
+type SecurityAssociationList struct {
 	meta_v1.TypeMeta `json:",inline"`
 	meta_v1.ListMeta `json:"metadata"`
-	Items            []SaseSecurityAssociation `json:"items"`
+	Items            []SecurityAssociation `json:"items"`
 }
 
 // IPSecVpnTunnel defines IPSec VPN Tunnel attributes for secure site-site communication

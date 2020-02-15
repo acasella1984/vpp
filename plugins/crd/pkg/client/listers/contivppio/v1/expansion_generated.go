@@ -48,14 +48,6 @@ type IPSecVpnTunnelListerExpansion interface{}
 // IPSecVpnTunnelNamespaceLister.
 type IPSecVpnTunnelNamespaceListerExpansion interface{}
 
-// SaseSecurityAssociationListerExpansion allows custom methods to be added to
-// SaseSecurityAssociationLister.
-type SaseSecurityAssociationListerExpansion interface{}
-
-// SaseSecurityAssociationNamespaceListerExpansion allows custom methods to be added to
-// SaseSecurityAssociationNamespaceLister.
-type SaseSecurityAssociationNamespaceListerExpansion interface{}
-
 // SaseServicePolicyListerExpansion allows custom methods to be added to
 // SaseServicePolicyLister.
 type SaseServicePolicyListerExpansion interface{}
@@ -63,6 +55,14 @@ type SaseServicePolicyListerExpansion interface{}
 // SaseServicePolicyNamespaceListerExpansion allows custom methods to be added to
 // SaseServicePolicyNamespaceLister.
 type SaseServicePolicyNamespaceListerExpansion interface{}
+
+// SecurityAssociationListerExpansion allows custom methods to be added to
+// SecurityAssociationLister.
+type SecurityAssociationListerExpansion interface{}
+
+// SecurityAssociationNamespaceListerExpansion allows custom methods to be added to
+// SecurityAssociationNamespaceLister.
+type SecurityAssociationNamespaceListerExpansion interface{}
 
 // ServiceFunctionChainListerExpansion allows custom methods to be added to
 // ServiceFunctionChainLister.

@@ -55,7 +55,7 @@ func (h *SecurityAssociationsHandler) IsCrdKeySuffix(keySuffix string) bool {
 // CrdObjectToKVData converts the K8s representation of SrConfiguration into the
 // corresponding configuration for vpp-agent(s) running in the destination microservice(s).
 func (h *SecurityAssociationsHandler) CrdObjectToKVData(obj interface{}) (data []kvdbreflector.KVData, err error) {
-	config, ok := obj.(*v1.SaseSecurityAssociation)
+	config, ok := obj.(*v1.SecurityAssociation)
 	fmt.Println("CrdObjectToKVData: ", config)
 	if !ok {
 		return nil, errors.New("failed to cast into SecurityAssociation struct")
@@ -71,7 +71,7 @@ func (h *SecurityAssociationsHandler) CrdObjectToKVData(obj interface{}) (data [
 }
 
 // saseConfigCrdToProto:: Convert sase crd config to protobuf
-func (h *SecurityAssociationsHandler) siteResourceGroupCrdToProto(crd *v1.SaseSecurityAssociation) *model.SecurityAssociation {
+func (h *SecurityAssociationsHandler) siteResourceGroupCrdToProto(crd *v1.SecurityAssociation) *model.SecurityAssociation {
 	ssapb := &model.SecurityAssociation{
 		Name:             crd.GetName(),
 		AuthAlgorithm:    crd.Spec.AuthAlgo,
@@ -90,9 +90,9 @@ func (h *SecurityAssociationsHandler) IsExclusiveKVDB() bool {
 
 // PublishCrdStatus updates the resource Status information.
 func (h *SecurityAssociationsHandler) PublishCrdStatus(obj interface{}, opRetval error) error {
-	config, ok := obj.(*v1.SaseSecurityAssociation)
+	config, ok := obj.(*v1.SecurityAssociation)
 	if !ok {
-		return errors.New("failed to cast into SaseSecurityAssociation struct")
+		return errors.New("failed to cast into SecurityAssociation struct")
 	}
 	config = config.DeepCopy()
 	if opRetval == nil {
@@ -101,7 +101,7 @@ func (h *SecurityAssociationsHandler) PublishCrdStatus(obj interface{}, opRetval
 		config.Status.Status = v1.StatusFailure
 		config.Status.Message = opRetval.Error()
 	}
-	_, err := h.CrdClient.ContivppV1().SaseSecurityAssociations(config.Namespace).Update(config)
+	_, err := h.CrdClient.ContivppV1().SecurityAssociations(config.Namespace).Update(config)
 	return err
 }
 

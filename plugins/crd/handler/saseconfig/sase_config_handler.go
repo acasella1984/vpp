@@ -60,9 +60,18 @@ func (h *SaseServicePolicyHandler) CrdObjectToKVData(obj interface{}) (data []kv
 	if !ok {
 		return nil, errors.New("failed to cast into SaseConfiguration struct")
 	}
-	return saseServicePolicyCrdToProto(sasePolicy)
+
+	data = []kvdbreflector.KVData{
+		{
+			ProtoMsg:  convertSasePolicyRuleToProto(sasePolicy.Spec),
+			KeySuffix: sasePolicy.GetName(),
+		},
+	}
+	fmt.Println("CrdObjectToKVData: proto data", data)
+	return
 }
 
+/*
 // saseServicePolicyCrdToProto:: Convert sase policy crd to protobuf KV
 func saseServicePolicyCrdToProto(crd *v1.SaseServicePolicy) (data []kvdbreflector.KVData, err error) {
 
@@ -75,7 +84,7 @@ func saseServicePolicyCrdToProto(crd *v1.SaseServicePolicy) (data []kvdbreflecto
 			KeySuffix: crd.GetName()})
 	}
 	return data, nil
-}
+} */
 
 // IsExclusiveKVDB returns false - there can be multiple writers of the agent configuration in the database.
 func (h *SaseServicePolicyHandler) IsExclusiveKVDB() bool {
@@ -182,7 +191,7 @@ func convertSasePolicyRuleActionToProto(action v1.SasePolicyRuleAction) model.Sa
 }
 
 // convertSasePolicyRuleToProto
-func convertSasePolicyRuleToProto(rule v1.SasePolicyRule) *model.SaseConfig {
+func convertSasePolicyRuleToProto(rule v1.SaseServicePolicySpec) *model.SaseConfig {
 
 	// Convert config recieved in crd to protobuf
 	rulePb := &model.SaseConfig{

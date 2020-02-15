@@ -89,19 +89,19 @@ type Plugin struct {
 	pendingResync  datasync.ResyncEvent
 	pendingChanges []datasync.ChangeEvent
 
-	telemetryController               *controller.CrdController
-	nodeConfigController              *controller.CrdController
-	customNetworkController           *controller.CrdController
-	externalInterfaceController       *controller.CrdController
-	serviceFunctionChainController    *controller.CrdController
-	customConfigController            *controller.CrdController
-	saseServiceController             *controller.CrdController
-	siteResourceGroupController       *controller.CrdController
-	saseSecurityAssociationController *controller.CrdController
-	ipsecVPNTunnelController          *controller.CrdController
-	cache                             *cache.ContivTelemetryCache
-	processor                         api.ContivTelemetryProcessor
-	verbose                           bool
+	telemetryController            *controller.CrdController
+	nodeConfigController           *controller.CrdController
+	customNetworkController        *controller.CrdController
+	externalInterfaceController    *controller.CrdController
+	serviceFunctionChainController *controller.CrdController
+	customConfigController         *controller.CrdController
+	saseServiceController          *controller.CrdController
+	siteResourceGroupController    *controller.CrdController
+	securityAssociationController  *controller.CrdController
+	ipsecVPNTunnelController       *controller.CrdController
+	cache                          *cache.ContivTelemetryCache
+	processor                      api.ContivTelemetryProcessor
+	verbose                        bool
 
 	crdClient     *crdClientSet.Clientset
 	apiclientset  *apiextcs.Clientset
@@ -378,20 +378,20 @@ func (p *Plugin) initializeCRDs() error {
 		},
 	}
 
-	// SaseSecurityAssociations :
-	saseSecurityAssociationInformer := p.sharedFactory.Contivpp().V1().SaseSecurityAssociations().Informer()
+	// SecurityAssociations :
+	securityAssociationInformer := p.sharedFactory.Contivpp().V1().SecurityAssociations().Informer()
 	securityAssociationsLog := p.Log.NewLogger("securityAssociationsHandler")
-	p.saseSecurityAssociationController = &controller.CrdController{
+	p.securityAssociationController = &controller.CrdController{
 		Deps: controller.Deps{
-			Log:       p.Log.NewLogger("saseSecurityAssociationController"),
+			Log:       p.Log.NewLogger("securityAssociationController"),
 			APIClient: p.apiclientset,
-			Informer:  saseSecurityAssociationInformer,
+			Informer:  securityAssociationInformer,
 			EventHandler: &kvdbreflector.KvdbReflector{
 				Deps: kvdbreflector.Deps{
 					Log:          securityAssociationsLog,
 					ServiceLabel: p.ServiceLabel,
 					Publish:      p.Etcd.RawAccess(),
-					Informer:     saseSecurityAssociationInformer,
+					Informer:     securityAssociationInformer,
 					Handler: &saseconfiguration.SecurityAssociationsHandler{
 						Log:       securityAssociationsLog,
 						CrdClient: p.crdClient,
@@ -400,7 +400,7 @@ func (p *Plugin) initializeCRDs() error {
 			},
 		},
 		Spec: controller.CrdSpec{
-			TypeName: reflect.TypeOf(v1.SaseSecurityAssociation{}).Name(),
+			TypeName: reflect.TypeOf(v1.SecurityAssociation{}).Name(),
 			Group:    contivppio.GroupName,
 			Version:  "v1",
 			Plural:   "securityassociations",
@@ -445,7 +445,7 @@ func (p *Plugin) initializeCRDs() error {
 	p.customConfigController.Init()
 	p.saseServiceController.Init()
 	p.siteResourceGroupController.Init()
-	p.saseSecurityAssociationController.Init()
+	p.securityAssociationController.Init()
 	p.ipsecVPNTunnelController.Init()
 
 	if p.verbose {
@@ -455,6 +455,9 @@ func (p *Plugin) initializeCRDs() error {
 		p.serviceFunctionChainController.Log.SetLevel(logging.DebugLevel)
 		p.customConfigController.Log.SetLevel(logging.DebugLevel)
 		p.saseServiceController.Log.SetLevel(logging.DebugLevel)
+		p.siteResourceGroupController.Log.SetLevel(logging.DebugLevel)
+		p.securityAssociationController.Log.SetLevel(logging.DebugLevel)
+		p.ipsecVPNTunnelController.Log.SetLevel(logging.DebugLevel)
 		customConfigLog.SetLevel(logging.DebugLevel)
 	}
 
@@ -579,6 +582,9 @@ func (p *Plugin) onEtcdConnect() error {
 		go p.serviceFunctionChainController.Run(p.ctx.Done())
 		go p.customConfigController.Run(p.ctx.Done())
 		go p.saseServiceController.Run(p.ctx.Done())
+		go p.siteResourceGroupController.Run(p.ctx.Done())
+		go p.securityAssociationController.Run(p.ctx.Done())
+		go p.ipsecVPNTunnelController.Run(p.ctx.Done())
 	}()
 	return nil
 }

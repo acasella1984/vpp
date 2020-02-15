@@ -57,8 +57,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&SaseServicePolicyList{},
 		&SiteResourceGroup{},
 		&SiteResourceGroupList{},
-		&SaseSecurityAssociation{},
-		&SaseSecurityAssociationList{},
+		&SecurityAssociation{},
+		&SecurityAssociationList{},
 		&IPSecVpnTunnel{},
 		&IPSecVpnTunnelList{},
 	)

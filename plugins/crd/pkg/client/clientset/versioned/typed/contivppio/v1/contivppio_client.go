@@ -28,8 +28,8 @@ type ContivppV1Interface interface {
 	CustomNetworksGetter
 	ExternalInterfacesGetter
 	IPSecVpnTunnelsGetter
-	SaseSecurityAssociationsGetter
 	SaseServicePoliciesGetter
+	SecurityAssociationsGetter
 	ServiceFunctionChainsGetter
 	SiteResourceGroupsGetter
 }
@@ -55,12 +55,12 @@ func (c *ContivppV1Client) IPSecVpnTunnels(namespace string) IPSecVpnTunnelInter
 	return newIPSecVpnTunnels(c, namespace)
 }
 
-func (c *ContivppV1Client) SaseSecurityAssociations(namespace string) SaseSecurityAssociationInterface {
-	return newSaseSecurityAssociations(c, namespace)
-}
-
 func (c *ContivppV1Client) SaseServicePolicies(namespace string) SaseServicePolicyInterface {
 	return newSaseServicePolicies(c, namespace)
+}
+
+func (c *ContivppV1Client) SecurityAssociations(namespace string) SecurityAssociationInterface {
+	return newSecurityAssociations(c, namespace)
 }
 
 func (c *ContivppV1Client) ServiceFunctionChains(namespace string) ServiceFunctionChainInterface {

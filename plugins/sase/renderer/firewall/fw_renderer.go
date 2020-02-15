@@ -80,7 +80,7 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
 	// Check for service config type
 	switch sp.Config.(type) {
 	case *sasemodel.SaseConfig:
-		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+		return rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
 	default:
 	}
 	return nil
@@ -93,6 +93,12 @@ func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) er
 
 // DeleteServiceConfig :
 func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
+	// Check for service config type
+	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		return rndr.DeletePolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	default:
+	}
 	return nil
 }
 
@@ -147,7 +153,7 @@ func convertSasePolicyToFirewallRule(sp *sasemodel.SaseConfig) (*FirewallRule, e
 	_, ipv4DstNet, _ := net.ParseCIDR(sp.Match.DestinationIp)
 
 	// Check for supported actions for firewall service
-	if sp.Action != sasemodel.SaseConfig_PERMIT ||
+	if sp.Action != sasemodel.SaseConfig_PERMIT &&
 		sp.Action != sasemodel.SaseConfig_DENY {
 		return nil, errors.New("Error: Invalid Firewall Action")
 	}
