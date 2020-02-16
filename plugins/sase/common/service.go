@@ -16,10 +16,6 @@
 
 package common
 
-import (
-	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
-)
-
 // SaseServiceType : Service Type
 type SaseServiceType int
 
@@ -48,7 +44,7 @@ const (
 // instance being handled by sase plugin on a particular node.
 type ServiceInfo struct {
 	Name PodSaseServiceInfo
-	Pod  *PodInfo // Pod Info on which service is deployed
+	Pod  *PodInfo
 }
 
 // GetServiceType : Return Sase Service Type
@@ -71,34 +67,17 @@ func (srv *ServiceInfo) GetServiceType() SaseServiceType {
 	return serviceType
 }
 
-// GetServicePodID : Get CNF PodID where Service is deployed
-func (srv *ServiceInfo) GetServicePodID() podmodel.ID {
-	return srv.Pod.ID
-}
-
 // GetServicePodLabel : Get CNF Pod Label where Service is deployed
 func (srv *ServiceInfo) GetServicePodLabel() string {
-	return srv.Pod.Label
+	return srv.Pod.GetPodLabel()
 }
 
 // GetServiceIngressInterface :
 func (srv *ServiceInfo) GetServiceIngressInterface() []PodInterfaceInfo {
-	var ingressInterfaces []PodInterfaceInfo
-	for _, intf := range srv.Pod.Interfaces {
-		if intf.IsIngress == true {
-			ingressInterfaces = append(ingressInterfaces, intf)
-		}
-	}
-	return ingressInterfaces
+	return srv.Pod.GetPodIngressInterface()
 }
 
 // GetServiceEgressInterface :
 func (srv *ServiceInfo) GetServiceEgressInterface() []PodInterfaceInfo {
-	var egressInterfaces []PodInterfaceInfo
-	for _, intf := range srv.Pod.Interfaces {
-		if intf.IsIngress == false {
-			egressInterfaces = append(egressInterfaces, intf)
-		}
-	}
-	return egressInterfaces
+	return srv.Pod.GetPodEgressInterface()
 }

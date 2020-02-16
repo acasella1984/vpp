@@ -28,6 +28,7 @@ import (
 	"github.com/contiv/vpp/plugins/ipam"
 	"github.com/contiv/vpp/plugins/ipam/ipalloc"
 	"github.com/contiv/vpp/plugins/ipnet"
+	"github.com/contiv/vpp/plugins/ksr/model/pod"
 	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/podmanager"
@@ -406,6 +407,47 @@ func (sp *SaseServiceProcessor) processDeletedIPSecVpnTunnelConfig(cfg *sasemode
 
 /////////////////////////// Pod Events ////////////////////////////////////////////
 
+// GetPodInfo : Get PodInfo for given pidId
+func (sp *SaseServiceProcessor) GetPodInfo(podID pod.ID) (*common.PodInfo, error) {
+
+	info, ok := sp.podsList[podID]
+	if !ok {
+		return nil, errors.New("GetPodInfo: Pod Info Not Found")
+	}
+
+	return info, nil
+
+}
+
+// AddPodInfo : Add PodInfo to podlist for given podID
+func (sp *SaseServiceProcessor) AddPodInfo(podID pod.ID, podInfo *common.PodInfo) error {
+
+	_, ok := sp.podsList[podID]
+	if !ok {
+		// PodInfo Not present in the podlist
+		// Add
+		sp.podsList[podID] = podInfo
+		sp.Log.Debugf("AddPodInfo: Added PodInfo to the podList %v", podInfo)
+	}
+
+	return nil
+}
+
+// DeletePodInfo : Delete PodInfo from podlist for given podID
+func (sp *SaseServiceProcessor) DeletePodInfo(podID pod.ID) error {
+
+	info, ok := sp.podsList[podID]
+	if !ok {
+		sp.Log.Errorf("DeletePodInfo: PodInfo Not Found PodId ", podID)
+		// VENKAT: Return Error here. TBD
+	}
+
+	sp.Log.Debugf("DeletePodInfo: Deleted PodInfo from the podList %v", info)
+	// Delete PodInfo from the PodList
+	delete(sp.podsList, podID)
+	return nil
+}
+
 // processNewPod handles the event of adding of a new pod.
 func (sp *SaseServiceProcessor) processNewPod(pod *podmodel.Pod) error {
 	return sp.processUpdatedPod(pod)
@@ -422,23 +464,21 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 
 	sp.Log.Infof("New / Updated pod: %v", pod)
 
+	// Get podID
 	podID := podmodel.GetID(pod)
-	podData := sp.PodManager.GetPods()[podID]
-	if podData == nil {
-		return nil
-	}
 
 	// Handle CNF Pod Microservice label annotations
 	_, ok := sp.podsList[podID]
 	if !ok {
 		// New Pod Event
 		// Housekeep Pod Information
-		label := common.GetContivMicroserviceLabel(podData.Annotations)
+		label := common.GetContivMicroserviceLabel(pod.Annotations)
 		podInfo := &common.PodInfo{
 			ID:    podID,
 			Label: label,
 		}
-		sp.podsList[podID] = podInfo
+		// Add PodInfo to the podlist
+		sp.AddPodInfo(podID, podInfo)
 	}
 
 	// Handle CNF Pod interface updates
@@ -468,9 +508,13 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 		// Check for updates in the sase services deployed on the pod.
 		// New services added or existing services deleted
 		newServices, deletedServices := getPodUpdateServiceList(saseServiceList, sp.podsList[podID].ServiceList)
+		sp.Log.Info("New / Updated pod: newServices: ", newServices, "deletedServices: ", deletedServices)
 		sp.processServiceAddition(podID, newServices)
 		sp.processServiceDeletion(podID, deletedServices)
 	}
+
+	sp.Log.Infof("processUpdatedPod: PodList %v", sp.podsList[podID])
+	sp.Log.Infof(" processUpdatedPod: Service List %v", sp.services)
 
 	return nil
 }
@@ -478,18 +522,25 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 // processDeletedPod handles the event of deletion of a pod.
 func (sp *SaseServiceProcessor) processDeletedPod(pod *podmodel.Pod) error {
 
-	// construct pod info from k8s data (already deleted in PodManager)
-	podData := &podmanager.Pod{
-		ID:          podmodel.GetID(pod),
-		IPAddress:   pod.IpAddress,
-		Labels:      pod.Labels,
-		Annotations: pod.Annotations,
-	}
-	sp.Log.Debugf("Delete pod: %v", podData)
+	sp.Log.Debugf("Delete pod: %v", pod)
+	podID := podmodel.GetID(pod)
 
 	// Cleanup Service related information on Pod Delete trigger.
 	// Service existence no longer relevant when Pod is deleted
-	sp.processServiceDeletion(podData.ID, sp.podsList[podData.ID].ServiceList)
+	podInfo, err := sp.GetPodInfo(podID)
+	if err != nil {
+		sp.Log.Errorf("processDeletedPod: Pod Not Found: ", podID)
+		// VENKAT:: To return error here. TBD
+		return nil
+	}
+	sp.Log.Info("processDeletedPod: deletedServices: ", podInfo.ServiceList)
+	err = sp.processServiceDeletion(podID, podInfo.ServiceList)
+	if err != nil {
+		sp.Log.Errorf("processServiceDeletion: error returned", err)
+	}
+
+	// Delete PodInfo from the Podlist
+	sp.DeletePodInfo(podID)
 	return nil
 }
 
@@ -524,24 +575,50 @@ func (sp *SaseServiceProcessor) podMatchesSelector(pod *podmanager.Pod, podSelec
 	return true
 }
 
+////////////////////////////// Service Related Handler Routines /////////////////////////
+
+// GetServiceInfo : Get ServiceInfo for given service type
+func (sp *SaseServiceProcessor) GetServiceInfo(svcInfo common.PodSaseServiceInfo) (*common.ServiceInfo, error) {
+
+	info, ok := sp.services[svcInfo]
+	if !ok {
+		return nil, errors.New("GetServiceInfo: Service Info Not Found")
+	}
+
+	return info, nil
+
+}
+
 // processServiceAddition handles the event of adding new services on a given pod
 // Add Service info in the services DB and invoke any init routine for the service if any
 func (sp *SaseServiceProcessor) processServiceAddition(podID podmodel.ID, addService []common.PodSaseServiceInfo) error {
 
 	for _, s := range addService {
+		sp.Log.Info("processServiceAddition: ", s)
 		service := &common.ServiceInfo{
 			Name: s,
-			Pod:  sp.podsList[podID],
 		}
+
+		podInfo, err := sp.GetPodInfo(podID)
+		if err != nil {
+			return errors.New("processServiceAddition: CNF Pod Not found")
+		}
+
+		sp.Log.Info("processServiceAddition: Add PodInfo to Service")
+		service.Pod = podInfo
+
+		sp.Log.Info("processServiceAddition: Add Service to Services Map")
 		// Add service info in service cache
 		sp.services[s] = service
 
+		sp.Log.Info("processServiceAddition: Add Service to Pod Service List", s)
 		// Add service details to podsList servicelist cache
 		sp.podsList[podID].AddSaseServiceInfo(s)
 
 		// Get service type
 		serviceType := service.GetServiceType()
 
+		sp.Log.Info("processServiceAddition: Render ", service.Name, "service Init")
 		// Init Service
 		sp.renderers[serviceType].Init()
 	}
@@ -554,17 +631,24 @@ func (sp *SaseServiceProcessor) processServiceDeletion(podID podmodel.ID, delSer
 
 	for _, s := range delService {
 
-		// Get Service Type
-		serviceType := sp.services[s].GetServiceType()
+		sp.Log.Info("processServiceDeletion: ", s)
 
-		// De-Init service
-		sp.renderers[serviceType].DeInit()
+		if _, ok := sp.services[s]; ok {
+			// Get Service Type
+			serviceType := sp.services[s].GetServiceType()
 
+			sp.Log.Info("processServiceDeletion: Render ", sp.services[s].Name, "service DeInit")
+			// De-Init service
+			sp.renderers[serviceType].DeInit()
+
+			sp.Log.Info("processServiceDeletion: Delete Service from services list")
+			// Delete Service from the service cache
+			delete(sp.services, s)
+		}
+
+		sp.Log.Info("processServiceDeletion: Delete Service from PodInfo")
 		// Delete service info from Pods service list cache
 		sp.podsList[podID].DeleteSaseServiceInfo(s)
-
-		// Delete Service from the service cache
-		delete(sp.services, s)
 	}
 
 	return nil

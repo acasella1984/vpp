@@ -79,6 +79,33 @@ type PodInterfaceInfo struct {
 	IsIngress    bool // IsIngress (true) would mean local network facing ingress interface
 }
 
+// GetPodLabel : Return CNF Pod Microservice Label
+func (p *PodInfo) GetPodLabel() string {
+	return p.Label
+}
+
+// GetPodIngressInterface :
+func (p *PodInfo) GetPodIngressInterface() []PodInterfaceInfo {
+	var ingressInterfaces []PodInterfaceInfo
+	for _, intf := range p.Interfaces {
+		if intf.IsIngress == true {
+			ingressInterfaces = append(ingressInterfaces, intf)
+		}
+	}
+	return ingressInterfaces
+}
+
+// GetPodEgressInterface :
+func (p *PodInfo) GetPodEgressInterface() []PodInterfaceInfo {
+	var egressInterfaces []PodInterfaceInfo
+	for _, intf := range p.Interfaces {
+		if intf.IsIngress == false {
+			egressInterfaces = append(egressInterfaces, intf)
+		}
+	}
+	return egressInterfaces
+}
+
 // UpdateInterfaceList :
 func (p *PodInfo) UpdateInterfaceList(newList []PodInterfaceInfo) {
 	interfaceMap := make(map[PodInterfaceInfo]bool, len(p.Interfaces))

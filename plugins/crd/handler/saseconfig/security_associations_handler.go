@@ -62,7 +62,7 @@ func (h *SecurityAssociationsHandler) CrdObjectToKVData(obj interface{}) (data [
 	}
 	data = []kvdbreflector.KVData{
 		{
-			ProtoMsg:  h.siteResourceGroupCrdToProto(config),
+			ProtoMsg:  h.securityAssociationCrdToProto(config),
 			KeySuffix: config.GetName(),
 		},
 	}
@@ -71,14 +71,15 @@ func (h *SecurityAssociationsHandler) CrdObjectToKVData(obj interface{}) (data [
 }
 
 // saseConfigCrdToProto:: Convert sase crd config to protobuf
-func (h *SecurityAssociationsHandler) siteResourceGroupCrdToProto(crd *v1.SecurityAssociation) *model.SecurityAssociation {
+func (h *SecurityAssociationsHandler) securityAssociationCrdToProto(crd *v1.SecurityAssociation) *model.SecurityAssociation {
 	ssapb := &model.SecurityAssociation{
-		Name:             crd.GetName(),
-		AuthAlgorithm:    crd.Spec.AuthAlgo,
-		AuthSharedKey:    crd.Spec.AuthKey,
-		EncryptAlgorithm: crd.Spec.EncryptAlgo,
-		EncryptSharedKey: crd.Spec.EncryptKey,
-		Mode:             crd.Spec.Mode,
+		Name:                crd.GetName(),
+		ServiceInstanceName: crd.Spec.ServiceInstanceName,
+		AuthAlgorithm:       crd.Spec.AuthAlgo,
+		AuthSharedKey:       crd.Spec.AuthKey,
+		EncryptAlgorithm:    crd.Spec.EncryptAlgo,
+		EncryptSharedKey:    crd.Spec.EncryptKey,
+		Mode:                crd.Spec.Mode,
 	}
 	return ssapb
 }

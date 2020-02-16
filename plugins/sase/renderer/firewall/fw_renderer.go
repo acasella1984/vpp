@@ -104,7 +104,7 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 
 // AddPolicy adds firewall related policies
 func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
-	rndr.Log.Infof("Firewall Service: AddPolicy: ")
+	rndr.Log.Infof("Firewall Service: AddPolicy: ServiceInfo %v", serviceInfo, "Policy: %v", sp)
 
 	// convert Sase Service Policy to native firewall representation
 	fwRule, err := convertSasePolicyToFirewallRule(sp)
@@ -120,7 +120,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 	// Render ACL Ingress/Egress Interfaces
 	vppACL.Interfaces = rndr.renderVppACLInterfaces(serviceInfo.Pod, sp.Direction)
 
-	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL)
+	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
 }
 
@@ -132,7 +132,7 @@ func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sa
 // DeletePolicy deletes an existing firewall  policy
 func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 
-	rndr.Log.Infof("Firewall Service: DeletePolicy: ")
+	rndr.Log.Infof("Firewall Service: DeletePolicy: ServiceInfo %v", serviceInfo, "Policy: %v", sp)
 	// convert Sase Service Policy to native firewall representation
 	fwRule, err := convertSasePolicyToFirewallRule(sp)
 	if err != nil {
@@ -140,6 +140,7 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 	}
 
 	vppACL := rndr.renderVppACLRule(sp.Name, fwRule)
+	rndr.Log.Infof("DeletePolicy: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Delete)
 }
 

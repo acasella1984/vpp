@@ -74,6 +74,7 @@ func (h *IPSecVpnTunnelHandler) CrdObjectToKVData(obj interface{}) (data []kvdbr
 func (h *IPSecVpnTunnelHandler) convertIPSecVpnTunnelCrdToProto(crd *v1.IPSecVpnTunnel) *model.IPSecVpnTunnel {
 	ipsecpb := &model.IPSecVpnTunnel{
 		TunnelName:          crd.GetName(),
+		ServiceInstanceName: crd.Spec.ServiceInstanceName,
 		TunnelDestinationIp: crd.Spec.DestinationIP,
 		TunnelSourceIp:      crd.Spec.SourceIP,
 		SecurityAssociation: crd.Spec.SecurityAssociation,
