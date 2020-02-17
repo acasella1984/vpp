@@ -172,12 +172,12 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			if k8sChange.NewValue != nil {
 				pod := k8sChange.NewValue.(*podmodel.Pod)
 				if k8sChange.PrevValue == nil {
-					return sp.processNewPod(pod)
+					return sp.ProcessNewPod(pod)
 				}
-				return sp.processUpdatedPod(pod)
+				return sp.ProcessUpdatedPod(pod)
 			}
 			pod := k8sChange.PrevValue.(*podmodel.Pod)
-			return sp.processDeletedPod(pod)
+			return sp.ProcessDeletedPod(pod)
 		case ipalloc.Keyword:
 			// Event received when IP addresses are assigned to Pod Custom Ifs because of
 			// customnetwork config
@@ -448,15 +448,15 @@ func (sp *SaseServiceProcessor) DeletePodInfo(podID pod.ID) error {
 	return nil
 }
 
-// processNewPod handles the event of adding of a new pod.
-func (sp *SaseServiceProcessor) processNewPod(pod *podmodel.Pod) error {
-	return sp.processUpdatedPod(pod)
+// ProcessNewPod handles the event of adding of a new pod.
+func (sp *SaseServiceProcessor) ProcessNewPod(pod *podmodel.Pod) error {
+	return sp.ProcessUpdatedPod(pod)
 }
 
-// processUpdatedPod handles the event of updating runtime state of a pod.
+// ProcessUpdatedPod handles the event of updating runtime state of a pod.
 // Service Add/Delete intent can be sent via Pod annotations and actions
 // corresponding to Service Addition, Deletion to be taken.
-func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
+func (sp *SaseServiceProcessor) ProcessUpdatedPod(pod *podmodel.Pod) error {
 	// ignore pods without IP (not yet scheduled)
 	if pod.IpAddress == "" {
 		return nil
@@ -519,8 +519,8 @@ func (sp *SaseServiceProcessor) processUpdatedPod(pod *podmodel.Pod) error {
 	return nil
 }
 
-// processDeletedPod handles the event of deletion of a pod.
-func (sp *SaseServiceProcessor) processDeletedPod(pod *podmodel.Pod) error {
+// ProcessDeletedPod handles the event of deletion of a pod.
+func (sp *SaseServiceProcessor) ProcessDeletedPod(pod *podmodel.Pod) error {
 
 	sp.Log.Debugf("Delete pod: %v", pod)
 	podID := podmodel.GetID(pod)
