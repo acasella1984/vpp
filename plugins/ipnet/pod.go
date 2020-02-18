@@ -843,7 +843,9 @@ func (n *IPNet) podVPPMemif(pod *podmanager.LocalPod, podIP *net.IPNet, ifName, 
 		}
 	}
 
-	// VENKAT: Change the Rx Mode here Polling for testing
+	// VENKAT: Change the Rx Mode here Polling for testing. Doesn't take effect.
+	// To Investigate
+	//interfaceCfg.InterfaceRxMode = "adaptive"
 	if interfaceRxModeType(interfaceCfg.InterfaceRxMode) != vpp_interfaces.Interface_RxMode_DEFAULT {
 		memif.RxModes = []*vpp_interfaces.Interface_RxMode{
 			{

@@ -22,6 +22,7 @@ import (
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	"github.com/contiv/vpp/plugins/idalloc"
 	"github.com/contiv/vpp/plugins/ipam"
+	"github.com/contiv/vpp/plugins/ipam/ipalloc"
 	"github.com/contiv/vpp/plugins/ipnet"
 	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
 	"github.com/contiv/vpp/plugins/nodesync"
@@ -234,12 +235,18 @@ func (p *Plugin) HandlesEvent(event controller.Event) bool {
 			return true
 		case podmodel.PodKeyword:
 			return true
+		case ipalloc.Keyword:
+			return true
 		default:
 			// unhandled Kubernetes state change
 			return false
 		}
 	}
-	// unhandled event
+
+	// Add handling of internal events from other contiv plugins
+	// eg. custom interface updates
+	//     ipam updates
+
 	return false
 }
 
