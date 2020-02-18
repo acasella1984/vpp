@@ -51,6 +51,7 @@ type Deps struct {
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
 	Stats            statscollector.API /* used for exporting the statistics */
 	RemoteDB         nodesync.KVDBWithAtomic
+	MockTest         bool
 }
 
 // Init initializes the renderer.
@@ -96,19 +97,25 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	var key string
 	var vppNAT proto.Message
-	rndr.Log.Info("NAT Service: AddPolicy: ")
 	// convert Sase Service Policy to native NAT representation
 	natRule := convertSasePolicyToNatRule(serviceInfo.Pod, sp)
-	rndr.Log.Infof("AddPolicy: NatRule: %v", natRule)
 	if natRule.Type == SourceNAT {
+		rndr.Log.Infof("AddPolicy: SNAT NatRule: %v", natRule.SNat)
 		vppNAT = rndr.renderVppSNAT(natRule)
 		key = vpp_nat.GlobalNAT44Key()
 	} else if natRule.Type == DestinationNAT {
+		rndr.Log.Infof("AddPolicy: DNAT NatRule: %v", natRule.DNat)
 		vppNAT = rndr.renderVppDNAT(sp.Name, natRule)
 		key = vpp_nat.DNAT44Key(natRule.DNat.Key)
 	}
 
 	rndr.Log.Infof("AddPolicy: vppNAT: %v", vppNAT, "type: %d", natRule.Type)
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), key, vppNAT, config.Add)
+	}
+
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), key, vppNAT, config.Add)
 }
 
@@ -134,8 +141,11 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 	}
 
 	rndr.Log.Infof("DeletePolicy: vppNAT: %v", vppNAT, "type: %d", natRule.Type)
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), key, vppNAT, config.Delete)
+	}
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), key, vppNAT, config.Delete)
-	return nil
 }
 
 // convertSasePolicyToNatRule: convert SaseServicePolicy to firewall policy
@@ -167,6 +177,9 @@ func convertSasePolicyToNatRule(pod *common.PodInfo, sp *sasemodel.SaseConfig) *
 						Subnet: intf.IPAddress})
 			}
 		}
+		// Assign SNAT rule to NATRule
+		rule.Type = SourceNAT
+		rule.SNat = snatRule
 	} else {
 		// DNAT: TBD
 	}

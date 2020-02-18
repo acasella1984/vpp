@@ -54,6 +54,7 @@ type Deps struct {
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
 	Stats            statscollector.API /* used for exporting the statistics */
 	RemoteDB         nodesync.KVDBWithAtomic
+	MockTest         bool
 }
 
 // Init initializes the renderer.
@@ -121,7 +122,14 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 	vppACL.Interfaces = rndr.renderVppACLInterfaces(serviceInfo.Pod, sp.Direction)
 
 	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
+	}
+
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
+
 }
 
 // UpdatePolicy updates exiting firewall  related policies
@@ -141,6 +149,12 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 
 	vppACL := rndr.renderVppACLRule(sp.Name, fwRule)
 	rndr.Log.Infof("DeletePolicy: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Delete)
+	}
+
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Delete)
 }
 

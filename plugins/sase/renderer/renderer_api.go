@@ -1,6 +1,8 @@
 package renderer
 
 import (
+	"fmt"
+
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/gogo/protobuf/proto"
@@ -53,4 +55,11 @@ func Commit(remotedb nodesync.KVDBWithAtomic, serviceLabel string, key string, v
 		_, err = broker.Delete(key)
 	}
 	return err
+}
+
+// MockCommit : Used for Testing
+func MockCommit(serviceLabel string, key string, value proto.Message, eventType config.EventType) error {
+
+	fmt.Println("ServiceLabel: ", serviceLabel, "key: ", key, "Value: ", value, "eventType: ", eventType)
+	return nil
 }

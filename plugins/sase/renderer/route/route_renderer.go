@@ -49,6 +49,7 @@ type Deps struct {
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
 	Stats            statscollector.API /* used for exporting the statistics */
 	RemoteDB         nodesync.KVDBWithAtomic
+	MockTest         bool
 }
 
 // Init initializes the renderer.

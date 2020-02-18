@@ -125,49 +125,49 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 				// Get the Sase Model Config Data.
 				saseNewCfg := k8sChange.NewValue.(*sasemodel.SaseConfig)
 				if k8sChange.PrevValue == nil {
-					return sp.processNewSaseServiceConfig(saseNewCfg)
+					return sp.ProcessNewSaseServiceConfig(saseNewCfg)
 				}
 				sasePrevCfg := k8sChange.NewValue.(*sasemodel.SaseConfig)
-				return sp.processUpdateSaseServiceConfig(sasePrevCfg, saseNewCfg)
+				return sp.ProcessUpdateSaseServiceConfig(sasePrevCfg, saseNewCfg)
 			}
 			saseDelCfg := k8sChange.PrevValue.(*sasemodel.SaseConfig)
-			return sp.processDeletedSaseServiceConfig(saseDelCfg)
+			return sp.ProcessDeletedSaseServiceConfig(saseDelCfg)
 		case sasemodel.SecurityAssociationKey:
 			if k8sChange.NewValue != nil {
 				// Get the Security Association Config Data.
 				saNewCfg := k8sChange.NewValue.(*sasemodel.SecurityAssociation)
 				if k8sChange.PrevValue == nil {
-					return sp.processNewSecurityAssociationConfig(saNewCfg)
+					return sp.ProcessNewSecurityAssociationConfig(saNewCfg)
 				}
 				saPrevCfg := k8sChange.NewValue.(*sasemodel.SecurityAssociation)
-				return sp.processUpdateSecurityAssociationConfig(saPrevCfg, saNewCfg)
+				return sp.ProcessUpdateSecurityAssociationConfig(saPrevCfg, saNewCfg)
 			}
 			saDelCfg := k8sChange.PrevValue.(*sasemodel.SecurityAssociation)
-			return sp.processDeletedSecurityAssociationConfig(saDelCfg)
+			return sp.ProcessDeletedSecurityAssociationConfig(saDelCfg)
 		case sasemodel.SiteResourceGroupKey:
 			if k8sChange.NewValue != nil {
 				// Get the Site Resource Config Data.
 				srNewCfg := k8sChange.NewValue.(*sasemodel.SiteResourceGroup)
 				if k8sChange.PrevValue == nil {
-					return sp.processNewSiteResourceConfig(srNewCfg)
+					return sp.ProcessNewSiteResourceConfig(srNewCfg)
 				}
 				srPrevCfg := k8sChange.NewValue.(*sasemodel.SiteResourceGroup)
-				return sp.processUpdateSiteResourceConfig(srPrevCfg, srNewCfg)
+				return sp.ProcessUpdateSiteResourceConfig(srPrevCfg, srNewCfg)
 			}
 			srDelCfg := k8sChange.PrevValue.(*sasemodel.SiteResourceGroup)
-			return sp.processDeletedSiteResourceConfig(srDelCfg)
+			return sp.ProcessDeletedSiteResourceConfig(srDelCfg)
 		case sasemodel.IPSecVpnTunnelKey:
 			if k8sChange.NewValue != nil {
 				// Get the IpSec VPN Tunnel Config Data.
 				ipsecNewCfg := k8sChange.NewValue.(*sasemodel.IPSecVpnTunnel)
 				if k8sChange.PrevValue == nil {
-					return sp.processNewIPSecVpnTunnelConfig(ipsecNewCfg)
+					return sp.ProcessNewIPSecVpnTunnelConfig(ipsecNewCfg)
 				}
 				ipsecPrevCfg := k8sChange.NewValue.(*sasemodel.IPSecVpnTunnel)
-				return sp.processUpdateIPSecVpnTunnelConfig(ipsecPrevCfg, ipsecNewCfg)
+				return sp.ProcessUpdateIPSecVpnTunnelConfig(ipsecPrevCfg, ipsecNewCfg)
 			}
 			ipsecDelCfg := k8sChange.PrevValue.(*sasemodel.IPSecVpnTunnel)
-			return sp.processDeletedIPSecVpnTunnelConfig(ipsecDelCfg)
+			return sp.ProcessDeletedIPSecVpnTunnelConfig(ipsecDelCfg)
 		case podmodel.PodKeyword:
 			if k8sChange.NewValue != nil {
 				pod := k8sChange.NewValue.(*podmodel.Pod)
@@ -183,7 +183,7 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			// customnetwork config
 			if k8sChange.NewValue != nil {
 				alloc := k8sChange.NewValue.(*ipalloc.CustomIPAllocation)
-				return sp.processCustomIfIPAlloc(alloc)
+				return sp.ProcessCustomIfIPAlloc(alloc)
 			}
 		default:
 		}
@@ -207,8 +207,8 @@ func (sp *SaseServiceProcessor) Close() error {
 
 //////////////////////////////// Sase Policies Processor Routines ////////////////////////
 
-// processNewSaseServiceConfig
-func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
+// ProcessNewSaseServiceConfig :
+func (sp *SaseServiceProcessor) ProcessNewSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processNewSaseServiceConfig: %v", cfg)
 
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
@@ -230,8 +230,8 @@ func (sp *SaseServiceProcessor) processNewSaseServiceConfig(cfg *sasemodel.SaseC
 	return err
 }
 
-// processUpdateSaseServiceConfig
-func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemodel.SaseConfig) error {
+// ProcessUpdateSaseServiceConfig :
+func (sp *SaseServiceProcessor) ProcessUpdateSaseServiceConfig(old, new *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processUpdateSaseServiceConfig: old: %v new: %v", old, new)
 	s, _ := common.ParseSaseServiceName(new.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
@@ -256,8 +256,8 @@ func (sp *SaseServiceProcessor) processUpdateSaseServiceConfig(old, new *sasemod
 	return err
 }
 
-// processDeletedSaseServiceConfig
-func (sp *SaseServiceProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
+// ProcessDeletedSaseServiceConfig :
+func (sp *SaseServiceProcessor) ProcessDeletedSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
 	sp.Log.Infof("processDeletedSaseServiceConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
@@ -280,30 +280,30 @@ func (sp *SaseServiceProcessor) processDeletedSaseServiceConfig(cfg *sasemodel.S
 
 //////////////////////////////// Site Resource Group Processor Routines ////////////////////////
 
-// processNewSiteResourceConfig
+// ProcessNewSiteResourceConfig :
 // Site Resource Group consists of local and public networks and any other relevant resource information
 // within a site.
-func (sp *SaseServiceProcessor) processNewSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
+func (sp *SaseServiceProcessor) ProcessNewSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
 	sp.Log.Infof("processNewSiteResourceConfig: %v", cfg)
 	return nil
 }
 
-// processUpdateSiteResourceConfig
-func (sp *SaseServiceProcessor) processUpdateSiteResourceConfig(old, new *sasemodel.SiteResourceGroup) error {
+// ProcessUpdateSiteResourceConfig :
+func (sp *SaseServiceProcessor) ProcessUpdateSiteResourceConfig(old, new *sasemodel.SiteResourceGroup) error {
 	sp.Log.Infof("processUpdateSiteResourceConfig: old: %v new: %v", old, new)
 	return nil
 }
 
-// processDeletedSiteResourceConfig
-func (sp *SaseServiceProcessor) processDeletedSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
+// ProcessDeletedSiteResourceConfig :
+func (sp *SaseServiceProcessor) ProcessDeletedSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
 	sp.Log.Infof("processDeletedSiteResourceConfig: %v", cfg)
 	return nil
 }
 
 //////////////////////////////// Security Association Processor Routines ////////////////////////
 
-// processNewSecurityAssociationConfig
-func (sp *SaseServiceProcessor) processNewSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
+// ProcessNewSecurityAssociationConfig :
+func (sp *SaseServiceProcessor) ProcessNewSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
 	sp.Log.Infof("processNewSecurityAssociationConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
@@ -324,14 +324,14 @@ func (sp *SaseServiceProcessor) processNewSecurityAssociationConfig(cfg *sasemod
 	return err
 }
 
-// processUpdateSecurityAssociationConfig
-func (sp *SaseServiceProcessor) processUpdateSecurityAssociationConfig(old, new *sasemodel.SecurityAssociation) error {
+// ProcessUpdateSecurityAssociationConfig :
+func (sp *SaseServiceProcessor) ProcessUpdateSecurityAssociationConfig(old, new *sasemodel.SecurityAssociation) error {
 	sp.Log.Infof("processUpdateSecurityAssociationConfig: old: %v new: %v", old, new)
 	return nil
 }
 
-// processDeletedSecurityAssociationConfig
-func (sp *SaseServiceProcessor) processDeletedSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
+// ProcessDeletedSecurityAssociationConfig :
+func (sp *SaseServiceProcessor) ProcessDeletedSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
 
 	sp.Log.Infof("processDeletedSecurityAssociationConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
@@ -355,8 +355,8 @@ func (sp *SaseServiceProcessor) processDeletedSecurityAssociationConfig(cfg *sas
 
 //////////////////////////////// IPSec Vpn Tunnel Processor Routines ////////////////////////
 
-// processNewIPSecVpnTunnelConfig
-func (sp *SaseServiceProcessor) processNewIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
+// ProcessNewIPSecVpnTunnelConfig :
+func (sp *SaseServiceProcessor) ProcessNewIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
 	sp.Log.Infof("processNewIPSecVpnTunnelConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
@@ -377,15 +377,15 @@ func (sp *SaseServiceProcessor) processNewIPSecVpnTunnelConfig(cfg *sasemodel.IP
 	return err
 }
 
-// processUpdateIPSecVpnTunnelConfig
-func (sp *SaseServiceProcessor) processUpdateIPSecVpnTunnelConfig(old, new *sasemodel.IPSecVpnTunnel) error {
-	sp.Log.Infof("processUpdateSiteResourceConfig: old: %v new: %v", old, new)
+// ProcessUpdateIPSecVpnTunnelConfig :
+func (sp *SaseServiceProcessor) ProcessUpdateIPSecVpnTunnelConfig(old, new *sasemodel.IPSecVpnTunnel) error {
+	sp.Log.Infof("ProcessUpdateIPSecVpnTunnelConfig: old: %v new: %v", old, new)
 	return nil
 }
 
-// processDeletedIPSecVpnTunnelConfig
-func (sp *SaseServiceProcessor) processDeletedIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
-	sp.Log.Infof("processDeletedSiteResourceConfig: %v", cfg)
+// ProcessDeletedIPSecVpnTunnelConfig :
+func (sp *SaseServiceProcessor) ProcessDeletedIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
+	sp.Log.Infof("ProcessDeletedIPSecVpnTunnelConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
 	if !ok {
@@ -654,22 +654,29 @@ func (sp *SaseServiceProcessor) processServiceDeletion(podID podmodel.ID, delSer
 	return nil
 }
 
-// processCustomIPAlloc : Handle IP address assignments for Pod Custom Interfaces
+// ProcessCustomIfIPAlloc Handle IP address assignments for Pod Custom Interfaces
 // that have references to customnetwork config
-func (sp *SaseServiceProcessor) processCustomIfIPAlloc(alloc *ipalloc.CustomIPAllocation) error {
+func (sp *SaseServiceProcessor) ProcessCustomIfIPAlloc(alloc *ipalloc.CustomIPAllocation) error {
 	sp.Log.WithFields(logging.Fields{
 		"alloc": alloc,
-	}).Debug("SaseServiceProcessor - processCustomIfIPAlloc()")
+	}).Debug("ProcessCustomIfIPAlloc()")
 
 	// Update Pod Interface Cache
 	podID := podmodel.ID{
 		Name:      alloc.PodName,
 		Namespace: alloc.PodNamespace}
 
+	podInfo, ok := sp.podsList[podID]
+	if !ok {
+		return errors.New("ProcessCustomIfIPAlloc: Pod not found in the podList")
+	}
+
 	// Update IP addresses for the Pod Interfaces
 	for _, customIf := range alloc.CustomInterfaces {
-		sp.podsList[podID].UpdateInterfaceIP(customIf.Name, customIf.IpAddress)
+		podInfo.UpdateInterfaceIP(customIf.Name, customIf.IpAddress)
 	}
+
+	sp.Log.Infof("ProcessCustomIfIPAlloc: Updated Interface IP %v", sp.podsList[podID])
 	return nil
 }
 

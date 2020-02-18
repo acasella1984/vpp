@@ -32,6 +32,7 @@ type Deps struct {
 	ResyncTxnFactory func() (txn controller.ResyncOperations)
 	Stats            statscollector.API /* used for exporting the statistics */
 	RemoteDB         nodesync.KVDBWithAtomic
+	MockTest         bool
 }
 
 // Init initializes the renderer.
@@ -124,8 +125,13 @@ func (rndr *Renderer) AddIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *sas
 	}
 
 	rndr.Log.Infof("AddIPSecVpnTunnel: vppIPSecInterface: %v", vppIPSecInterface)
-	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Add)
-	return nil
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Add)
+	}
+
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Add)
 }
 
 // UpdateIPSecVpnTunnel updates exiting ipsec vpn tunnel
@@ -141,8 +147,14 @@ func (rndr *Renderer) DeleteIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *
 	}
 
 	rndr.Log.Infof("DeleteIPSecVpnTunnel: vppIPSecInterface: %v", vppIPSecInterface)
-	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Delete)
-	return nil
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Delete)
+	}
+
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPSecInterface.Name), vppIPSecInterface, config.Delete)
+
 }
 
 ////////////////// IPSec VPN Tunnel Config Handlers //////////////////////////////////
@@ -164,6 +176,11 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	}
 
 	rndr.Log.Infof("AddSecurityAssociation: vppSaInbound: %v", vppSaIn)
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Add)
+	}
+
 	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Add)
 
 	vppSaOut := &vpp_ipsec.SecurityAssociation{
@@ -177,6 +194,10 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	}
 
 	rndr.Log.Infof("AddSecurityAssociation: vppSaOutbound: %v", vppSaOut)
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
+	}
 	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
 
 	return nil
@@ -195,7 +216,11 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 		Index: config.DefaultInboundSAIndex,
 	}
 
-	rndr.Log.Infof("AddSecurityAssociation: vppSaInbound: %v", vppSaIn)
+	rndr.Log.Infof("DeleteSecurityAssociation: vppSaInbound: %v", vppSaIn)
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Delete)
+	}
 	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Delete)
 
 	vppSaOut := &vpp_ipsec.SecurityAssociation{
@@ -203,6 +228,10 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 	}
 
 	rndr.Log.Infof("DeleteSecurityAssociation: vppSaOutbound: %v", vppSaOut)
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Delete)
+	}
 	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Delete)
 
 	return nil
