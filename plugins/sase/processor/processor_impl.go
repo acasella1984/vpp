@@ -91,12 +91,12 @@ func (sp *SaseServiceProcessor) BaseVppPodServiceInit() error {
 	sp.Log.Debug("BaseVppServiceInit")
 
 	// Init Base VPP vswitch Pod
-	podID := podmodel.ID{Name: "vpp-vswitch",
+	podID := podmodel.ID{Name: common.GetBaseServiceLabel(),
 		Namespace: "default"}
 
 	podInfo := &common.PodInfo{
 		ID:    podID,
-		Label: "vpp-vswitch",
+		Label: common.GetBaseServiceLabel(),
 	}
 
 	// Add Pod Info for the base vpp-vswitch

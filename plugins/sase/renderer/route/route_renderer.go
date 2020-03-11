@@ -17,6 +17,8 @@
 package routeservice
 
 import (
+	"fmt"
+
 	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
 
 	"github.com/contiv/vpp/plugins/contivconf"
@@ -137,11 +139,19 @@ func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *sasem
 		OutgoingInterface: sp.EgressInterface,
 	}
 
-	// Test Purpose
+	// Mock Commit for Test Purpose
 	if rndr.MockTest {
 		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Add)
 	}
 
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Service Route %s", models.Key(vppRoute)))
+		txn.Put(models.Key(vppRoute), vppRoute)
+		return nil
+	}
+
+	// Commit is for the Remote VPP CNF
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Add)
 }
 

@@ -43,6 +43,10 @@ const (
 	ipsecVpn = "ipsecvpn"
 )
 
+const (
+	baseServiceLabel = "vpp-vswitch"
+)
+
 // ServiceInfo : ServiceInfo contains all the relevant details of a particular service
 // instance being handled by sase plugin on a particular node.
 type ServiceInfo struct {
@@ -64,6 +68,11 @@ func GetBaseVppServices() []PodSaseServiceInfo {
 			serviceType:     nat}}
 
 	return addService
+}
+
+// GetBaseServiceLabel :
+func GetBaseServiceLabel() string {
+	return baseServiceLabel
 }
 
 // GetServiceType : Return Sase Service Type
