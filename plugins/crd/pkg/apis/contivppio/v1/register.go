@@ -61,6 +61,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&SecurityAssociationList{},
 		&IPSecVpnTunnel{},
 		&IPSecVpnTunnelList{},
+		&ServiceRoute{},
+		&ServiceRouteList{},
 	)
 
 	// register the type in the scheme

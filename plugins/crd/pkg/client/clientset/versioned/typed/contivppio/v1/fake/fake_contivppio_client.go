@@ -54,6 +54,10 @@ func (c *FakeContivppV1) ServiceFunctionChains(namespace string) v1.ServiceFunct
 	return &FakeServiceFunctionChains{c, namespace}
 }
 
+func (c *FakeContivppV1) ServiceRoutes(namespace string) v1.ServiceRouteInterface {
+	return &FakeServiceRoutes{c, namespace}
+}
+
 func (c *FakeContivppV1) SiteResourceGroups(namespace string) v1.SiteResourceGroupInterface {
 	return &FakeSiteResourceGroups{c, namespace}
 }

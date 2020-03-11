@@ -25,6 +25,8 @@ const (
 	SecurityAssociationKey = "securityassociation"
 	// IPSecVpnTunnelKey :
 	IPSecVpnTunnelKey = "ipsecvpntunnel"
+	// ServiceRouteKey :
+	ServiceRouteKey = "serviceroute"
 )
 
 // KeyPrefixSasePolicy return prefix for Sase Policy
@@ -45,4 +47,9 @@ func KeyPrefixSecurityAssociation() string {
 // KeyPrefixIPSecVpnTunnel return prefix for IPSecVpnTunnel
 func KeyPrefixIPSecVpnTunnel() string {
 	return ksrkey.KsrK8sPrefix + "/" + IPSecVpnTunnelKey + "/"
+}
+
+// KeyPrefixServiceRoute return prefix for ServiceRoute
+func KeyPrefixServiceRoute() string {
+	return ksrkey.KsrK8sPrefix + "/" + ServiceRouteKey + "/"
 }

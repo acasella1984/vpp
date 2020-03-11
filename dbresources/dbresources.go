@@ -139,5 +139,10 @@ func GetDBResources() []*DBResource {
 			ProtoMessageName: proto.MessageName((*sasemodel.SecurityAssociation)(nil)),
 			KeyPrefix:        sasemodel.KeyPrefixSecurityAssociation(),
 		},
+		{
+			Keyword:          sasemodel.ServiceRouteKey,
+			ProtoMessageName: proto.MessageName((*sasemodel.ServiceRoute)(nil)),
+			KeyPrefix:        sasemodel.KeyPrefixServiceRoute(),
+		},
 	}
 }

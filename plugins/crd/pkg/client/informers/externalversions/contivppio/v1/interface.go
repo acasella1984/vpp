@@ -36,6 +36,8 @@ type Interface interface {
 	SecurityAssociations() SecurityAssociationInformer
 	// ServiceFunctionChains returns a ServiceFunctionChainInformer.
 	ServiceFunctionChains() ServiceFunctionChainInformer
+	// ServiceRoutes returns a ServiceRouteInformer.
+	ServiceRoutes() ServiceRouteInformer
 	// SiteResourceGroups returns a SiteResourceGroupInformer.
 	SiteResourceGroups() SiteResourceGroupInformer
 }
@@ -84,6 +86,11 @@ func (v *version) SecurityAssociations() SecurityAssociationInformer {
 // ServiceFunctionChains returns a ServiceFunctionChainInformer.
 func (v *version) ServiceFunctionChains() ServiceFunctionChainInformer {
 	return &serviceFunctionChainInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// ServiceRoutes returns a ServiceRouteInformer.
+func (v *version) ServiceRoutes() ServiceRouteInformer {
+	return &serviceRouteInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // SiteResourceGroups returns a SiteResourceGroupInformer.

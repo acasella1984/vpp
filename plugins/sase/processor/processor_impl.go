@@ -110,6 +110,7 @@ func (sp *SaseServiceProcessor) GetRenderer(name common.SaseServiceType) (render
 }
 
 // AfterInit does nothing for the SFC processor.
+// VENKAT
 func (sp *SaseServiceProcessor) AfterInit() error {
 	return nil
 }
@@ -168,6 +169,18 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			}
 			ipsecDelCfg := k8sChange.PrevValue.(*sasemodel.IPSecVpnTunnel)
 			return sp.ProcessDeletedIPSecVpnTunnelConfig(ipsecDelCfg)
+		case sasemodel.ServiceRouteKey:
+			if k8sChange.NewValue != nil {
+				// Get the Service Route Config Data.
+				serviceRouteNewCfg := k8sChange.NewValue.(*sasemodel.ServiceRoute)
+				if k8sChange.PrevValue == nil {
+					return sp.ProcessNewServiceRouteConfig(serviceRouteNewCfg)
+				}
+				serviceRoutePrevCfg := k8sChange.NewValue.(*sasemodel.ServiceRoute)
+				return sp.ProcessUpdateServiceRouteConfig(serviceRoutePrevCfg, serviceRouteNewCfg)
+			}
+			serviceRouteDelCfg := k8sChange.PrevValue.(*sasemodel.ServiceRoute)
+			return sp.ProcessDeletedServiceRouteConfig(serviceRouteDelCfg)
 		case podmodel.PodKeyword:
 			if k8sChange.NewValue != nil {
 				pod := k8sChange.NewValue.(*podmodel.Pod)
@@ -390,6 +403,58 @@ func (sp *SaseServiceProcessor) ProcessDeletedIPSecVpnTunnelConfig(cfg *sasemode
 	serviceInfo, ok := sp.services[s]
 	if !ok {
 		return errors.New("processDeletedIPSecVpnTunnelConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.DeleteServiceConfig(p)
+	return err
+}
+
+//////////////////////////////// Service Route Processor Routines ////////////////////////
+
+// ProcessNewServiceRouteConfig :
+func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.ServiceRoute) error {
+	sp.Log.Infof("ProcessNewServiceRouteConfig: %v", cfg)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessNewServiceRouteConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.AddServiceConfig(p)
+	return err
+}
+
+// ProcessUpdateServiceRouteConfig :
+func (sp *SaseServiceProcessor) ProcessUpdateServiceRouteConfig(old, new *sasemodel.ServiceRoute) error {
+	sp.Log.Infof("ProcessUpdateServiceRouteConfig: old: %v new: %v", old, new)
+	return nil
+}
+
+// ProcessDeletedServiceRouteConfig :
+func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.ServiceRoute) error {
+	sp.Log.Infof("ProcessDeletedServiceRouteConfig: %v", cfg)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessDeletedServiceRouteConfig: Service Not Enabled")
 	}
 	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
 	if err != nil {

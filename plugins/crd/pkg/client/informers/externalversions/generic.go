@@ -67,6 +67,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SecurityAssociations().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("servicefunctionchains"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().ServiceFunctionChains().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("serviceroutes"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().ServiceRoutes().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("siteresourcegroups"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Contivpp().V1().SiteResourceGroups().Informer()}, nil
 

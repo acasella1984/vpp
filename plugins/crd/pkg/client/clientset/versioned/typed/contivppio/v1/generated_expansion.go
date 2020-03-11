@@ -30,4 +30,6 @@ type SecurityAssociationExpansion interface{}
 
 type ServiceFunctionChainExpansion interface{}
 
+type ServiceRouteExpansion interface{}
+
 type SiteResourceGroupExpansion interface{}

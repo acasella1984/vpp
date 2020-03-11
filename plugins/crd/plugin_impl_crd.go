@@ -99,6 +99,7 @@ type Plugin struct {
 	siteResourceGroupController    *controller.CrdController
 	securityAssociationController  *controller.CrdController
 	ipsecVPNTunnelController       *controller.CrdController
+	serviceRouteController         *controller.CrdController
 	cache                          *cache.ContivTelemetryCache
 	processor                      api.ContivTelemetryProcessor
 	verbose                        bool
@@ -438,6 +439,36 @@ func (p *Plugin) initializeCRDs() error {
 		},
 	}
 
+	// ServiceRoute :
+	serviceRouteInformer := p.sharedFactory.Contivpp().V1().ServiceRoutes().Informer()
+	serviceRouteLog := p.Log.NewLogger("serviceRouteHandler")
+	p.serviceRouteController = &controller.CrdController{
+		Deps: controller.Deps{
+			Log:       p.Log.NewLogger("serviceRouteController"),
+			APIClient: p.apiclientset,
+			Informer:  serviceRouteInformer,
+			EventHandler: &kvdbreflector.KvdbReflector{
+				Deps: kvdbreflector.Deps{
+					Log:          serviceRouteLog,
+					ServiceLabel: p.ServiceLabel,
+					Publish:      p.Etcd.RawAccess(),
+					Informer:     serviceRouteInformer,
+					Handler: &saseconfiguration.ServiceRouteHandler{
+						Log:       serviceRouteLog,
+						CrdClient: p.crdClient,
+					},
+				},
+			},
+		},
+		Spec: controller.CrdSpec{
+			TypeName: reflect.TypeOf(v1.ServiceRoute{}).Name(),
+			Group:    contivppio.GroupName,
+			Version:  "v1",
+			Plural:   "serviceroutes",
+			//Validation: saseconfiguration.Validation(),
+		},
+	}
+
 	p.nodeConfigController.Init()
 	p.customNetworkController.Init()
 	p.externalInterfaceController.Init()
@@ -447,6 +478,7 @@ func (p *Plugin) initializeCRDs() error {
 	p.siteResourceGroupController.Init()
 	p.securityAssociationController.Init()
 	p.ipsecVPNTunnelController.Init()
+	p.serviceRouteController.Init()
 
 	if p.verbose {
 		p.customNetworkController.Log.SetLevel(logging.DebugLevel)
@@ -458,6 +490,7 @@ func (p *Plugin) initializeCRDs() error {
 		p.siteResourceGroupController.Log.SetLevel(logging.DebugLevel)
 		p.securityAssociationController.Log.SetLevel(logging.DebugLevel)
 		p.ipsecVPNTunnelController.Log.SetLevel(logging.DebugLevel)
+		p.serviceRouteController.Log.SetLevel(logging.DebugLevel)
 		customConfigLog.SetLevel(logging.DebugLevel)
 	}
 

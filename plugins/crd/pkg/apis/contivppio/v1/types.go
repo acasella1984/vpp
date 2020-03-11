@@ -365,3 +365,42 @@ type IPSecVpnTunnelList struct {
 	meta_v1.ListMeta `json:"metadata"`
 	Items            []IPSecVpnTunnel `json:"items"`
 }
+
+// ServiceRoute defines Routes attributes required for forwarding
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type ServiceRoute struct {
+	// TypeMeta is the metadata for the resource, like kind and apiversion
+	meta_v1.TypeMeta `json:",inline"`
+	// ObjectMeta contains the metadata for the particular object
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	// Spec is the specification for the ServiceRoute
+	Spec ServiceRouteSpec `json:"spec"`
+	// Status informs about the status of the resource.
+	Status meta_v1.Status `json:"status,omitempty"`
+}
+
+// ServiceRouteSpec is the spec for a ServiceRoute
+type ServiceRouteSpec struct {
+	// Sase Service Instance Name
+	ServiceInstanceName string `json:"service"`
+	// Route Type
+	RouteType string `json:"routetype"`
+	// Destination Network
+	DestinationNetwork string `json:"destinationnetwork"`
+	// Gateway could be an IP or a Service Name
+	Gateway string `json:"gateway"`
+	// Vrf Name
+	VrfName string `json:"vrfname"`
+	// Egress Interface
+	EgressInterface string `json:"egressinterface"`
+}
+
+// ServiceRouteList is a list of ServiceRoute
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type ServiceRouteList struct {
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata"`
+	Items            []ServiceRoute `json:"items"`
+}

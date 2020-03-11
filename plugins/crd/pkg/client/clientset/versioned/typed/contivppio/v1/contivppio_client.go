@@ -31,6 +31,7 @@ type ContivppV1Interface interface {
 	SaseServicePoliciesGetter
 	SecurityAssociationsGetter
 	ServiceFunctionChainsGetter
+	ServiceRoutesGetter
 	SiteResourceGroupsGetter
 }
 
@@ -65,6 +66,10 @@ func (c *ContivppV1Client) SecurityAssociations(namespace string) SecurityAssoci
 
 func (c *ContivppV1Client) ServiceFunctionChains(namespace string) ServiceFunctionChainInterface {
 	return newServiceFunctionChains(c, namespace)
+}
+
+func (c *ContivppV1Client) ServiceRoutes(namespace string) ServiceRouteInterface {
+	return newServiceRoutes(c, namespace)
 }
 
 func (c *ContivppV1Client) SiteResourceGroups(namespace string) SiteResourceGroupInterface {

@@ -72,6 +72,14 @@ type ServiceFunctionChainListerExpansion interface{}
 // ServiceFunctionChainNamespaceLister.
 type ServiceFunctionChainNamespaceListerExpansion interface{}
 
+// ServiceRouteListerExpansion allows custom methods to be added to
+// ServiceRouteLister.
+type ServiceRouteListerExpansion interface{}
+
+// ServiceRouteNamespaceListerExpansion allows custom methods to be added to
+// ServiceRouteNamespaceLister.
+type ServiceRouteNamespaceListerExpansion interface{}
+
 // SiteResourceGroupListerExpansion allows custom methods to be added to
 // SiteResourceGroupLister.
 type SiteResourceGroupListerExpansion interface{}
