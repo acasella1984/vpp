@@ -22,10 +22,12 @@ message ServiceRoute {
     string service_instance_name = 1;
     // Destination Network
     string destination_network = 2;
-    // Gateway
+    // Gateway IP Address
     string gateway_address = 3;
-    // vrf name
-    string vrf_name = 4;
+    // Gateway service ID
+    string gateway_service_id = 4;
+    // Gateway network. Identifies VRF
+    string gateway_network = 5;
     // egress interface
-    string egress_interface = 5;
+    string egress_interface = 6;
 }

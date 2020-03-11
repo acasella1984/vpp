@@ -79,6 +79,7 @@ type PodInterfaceInfo struct {
 	InternalName string // Represented in datapath if different
 	Type         string
 	Mode         InterfaceMode
+	Network      string // Represents CustomNetwork ~ VRF
 	IPAddress    string
 	MacAddress   string
 	IsIngress    bool // IsIngress (true) would mean local network facing ingress interface

@@ -389,10 +389,12 @@ type ServiceRouteSpec struct {
 	RouteType string `json:"routetype"`
 	// Destination Network
 	DestinationNetwork string `json:"destinationnetwork"`
-	// Gateway could be an IP or a Service Name
-	Gateway string `json:"gateway"`
-	// Vrf Name
-	VrfName string `json:"vrfname"`
+	// Gateway
+	GatewayIPAddress string `json:"gatewayip"`
+	// Gateway Service Name
+	GatewayServiceID string `json:"gatewayserviceID"`
+	// Gateway Network. This is the custom network name
+	GatewayNetwork string `json:"gatewaynetwork"`
 	// Egress Interface
 	EgressInterface string `json:"egressinterface"`
 }
