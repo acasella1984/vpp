@@ -206,6 +206,9 @@ func (p *Plugin) Init() error {
 	p.registerIPSecServiceRenderer()
 	p.registerRouteServiceRenderer()
 
+	// Register Base VPP Switch and Services
+	p.processor.BaseVppPodServiceInit()
+
 	return nil
 }
 

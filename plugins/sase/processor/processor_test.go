@@ -64,6 +64,9 @@ func initTest() *processor.SaseServiceProcessor {
 	sSP.RegisterRenderer(common.ServiceTypeIPSecVpn, ipsecR)
 	sSP.RegisterRenderer(common.ServiceTypeRouting, routeR)
 
+	// Register Base VPP vswitch pod and services
+	sSP.BaseVppPodServiceInit()
+
 	return sSP
 
 }
@@ -104,7 +107,7 @@ func getNewPod() *podmodel.Pod {
 	// custom ifs
 	pod.Annotations["contivpp.io/custom-if"] = "memif1/memif, memif2/memif"
 	// services
-	pod.Annotations["contivpp.io/sase-service"] = "1/sjc/ipsecvpn, 1/sjc/firewall, 1/sjc/nat"
+	pod.Annotations["contivpp.io/sase-service"] = "1/sjc/ipsecvpn, 1/sjc/firewall, 1/sjc/nat, 1/sjc/routing"
 	// microservice label
 	pod.Annotations["contivpp.io/microservice-label"] = "vpp-cnf-all"
 
@@ -443,4 +446,60 @@ func TestProcessorIPSecVpnTunnel(t *testing.T) {
 
 	// Test Deleting IPSec VPN Tunnel
 	Expect(sSP.ProcessDeletedIPSecVpnTunnelConfig(getConfigIPSecVpnTunnel())).To(BeNil())
+}
+
+// Service Route Config Test
+func getConfigServiceRouteForBase() *sasemodel.ServiceRoute {
+
+	// Service Route
+	routeCfg := &sasemodel.ServiceRoute{
+		ServiceInstanceName: "0/local/routing",
+		DestinationNetwork:  "11.11.11.11/24",
+		GatewayAddress:      "1.1.1.1",
+		VrfName:             "default",
+		EgressInterface:     "memif1",
+	}
+
+	return routeCfg
+}
+
+// Service Route Config Test
+func getConfigServiceRouteForNonBase() *sasemodel.ServiceRoute {
+
+	// Service Route
+	routeCfg := &sasemodel.ServiceRoute{
+		ServiceInstanceName: "1/sjc/routing",
+		DestinationNetwork:  "12.12.12.12/24",
+		GatewayAddress:      "1.1.1.1",
+		VrfName:             "default",
+		EgressInterface:     "memif1",
+	}
+
+	return routeCfg
+}
+
+func TestProcessorServiceRoute(t *testing.T) {
+
+	RegisterTestingT(t)
+	sSP := initTest()
+	Expect(sSP).NotTo(BeNil())
+
+	// Base VPP Routing Config
+
+	// Service Route Config Test
+	Expect(sSP.ProcessNewServiceRouteConfig(getConfigServiceRouteForBase())).To(BeNil())
+
+	// Test Deleting Service Route
+	Expect(sSP.ProcessDeletedServiceRouteConfig(getConfigServiceRouteForBase())).To(BeNil())
+
+	// Non Base VPP Routing Config
+	// Add New Pod with ipsec vpn service
+	Expect(sSP.ProcessNewPod(getNewPod())).To(BeNil())
+
+	// Service Route Config Test
+	Expect(sSP.ProcessNewServiceRouteConfig(getConfigServiceRouteForNonBase())).To(BeNil())
+
+	// Test Deleting Service Route
+	Expect(sSP.ProcessDeletedServiceRouteConfig(getConfigServiceRouteForNonBase())).To(BeNil())
+
 }

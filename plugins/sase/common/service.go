@@ -33,10 +33,13 @@ const (
 )
 
 const (
-	// Sase Services type
+	// Firewall :
 	firewall = "firewall"
-	nat      = "nat"
-	routing  = "routing"
+	// Nat :
+	nat = "nat"
+	// Routing :
+	routing = "routing"
+	// IpsecVpn :
 	ipsecVpn = "ipsecvpn"
 )
 
@@ -45,6 +48,22 @@ const (
 type ServiceInfo struct {
 	Name PodSaseServiceInfo
 	Pod  *PodInfo
+}
+
+// GetBaseVppServices :
+func GetBaseVppServices() []PodSaseServiceInfo {
+	// Enable Services on the base vpp vswitch pod
+	addService := []PodSaseServiceInfo{{serviceID: baseServiceID,
+		serviceLocation: baseServiceLocation,
+		serviceType:     routing},
+		{serviceID: baseServiceID,
+			serviceLocation: baseServiceLocation,
+			serviceType:     firewall},
+		{serviceID: baseServiceID,
+			serviceLocation: baseServiceLocation,
+			serviceType:     nat}}
+
+	return addService
 }
 
 // GetServiceType : Return Sase Service Type

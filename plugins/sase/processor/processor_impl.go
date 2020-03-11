@@ -84,6 +84,29 @@ func (sp *SaseServiceProcessor) Init() error {
 	return nil
 }
 
+// BaseVppPodServiceInit : Enabled services on the base vpp vswitch
+// This can be later moved to Config Option via CRD (service enable/disable)
+// VENKAT: TBD
+func (sp *SaseServiceProcessor) BaseVppPodServiceInit() error {
+	sp.Log.Debug("BaseVppServiceInit")
+
+	// Init Base VPP vswitch Pod
+	podID := podmodel.ID{Name: "vpp-vswitch",
+		Namespace: "default"}
+
+	podInfo := &common.PodInfo{
+		ID:    podID,
+		Label: "vpp-vswitch",
+	}
+
+	// Add Pod Info for the base vpp-vswitch
+	sp.AddPodInfo(podID, podInfo)
+
+	addService := common.GetBaseVppServices()
+	sp.processServiceAddition(podID, addService)
+	return nil
+}
+
 // reset (re)initializes all internal maps.
 func (sp *SaseServiceProcessor) reset() {
 }

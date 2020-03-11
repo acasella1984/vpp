@@ -71,6 +71,9 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
 	switch sp.Config.(type) {
 	case *sasemodel.SaseConfig:
 		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	case *sasemodel.ServiceRoute:
+		rndr.AddServiceRoute(sp.ServiceInfo, sp.Config.(*sasemodel.ServiceRoute))
+
 	default:
 	}
 	return nil
@@ -118,6 +121,28 @@ func (rndr *Renderer) AfterInit() error {
 func convertSasePolicyToRouteRule(sp *sasemodel.SaseConfig) *RouteRule {
 	rule := &RouteRule{}
 	return rule
+}
+
+////////////////// Route Config Renderer Routines ////////////////////
+
+// AddServiceRoute adds route entries
+func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *sasemodel.ServiceRoute) error {
+	rndr.Log.Infof("Route Service: AddServiceRoute: ")
+
+	vppRoute := &vpp_l3.Route{
+		Type:              vpp_l3.Route_INTRA_VRF,
+		VrfId:             0,
+		DstNetwork:        sp.DestinationNetwork,
+		NextHopAddr:       sp.GatewayAddress,
+		OutgoingInterface: sp.EgressInterface,
+	}
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Add)
+	}
+
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Add)
 }
 
 // RouteType :

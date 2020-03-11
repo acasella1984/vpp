@@ -35,6 +35,11 @@ const (
 	memifIfType = "memif"
 	tapIfType   = "tap"
 	vethIfType  = "veth"
+
+	// BaseServiceID : Base VPP vswitch related constants
+	baseServiceID = "0"
+	// BaseServiceLocation :
+	baseServiceLocation = "local"
 )
 
 // PodSaseServiceInfo holds information about a Sase Service Instance deployed on a Pod
