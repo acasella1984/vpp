@@ -20,14 +20,16 @@ package model;
 message ServiceRoute {
     // Sase Service Instance Name
     string service_instance_name = 1;
+    // Route network scope
+    string route_network_scope = 2;
     // Destination Network
-    string destination_network = 2;
+    string destination_network = 3;
     // Gateway IP Address
-    string gateway_address = 3;
+    string gateway_address = 4;
     // Gateway service ID
-    string gateway_service_id = 4;
+    string gateway_service_id = 5;
     // Gateway network. Identifies VRF
-    string gateway_network = 5;
+    string gateway_network_scope = 6;
     // egress interface
-    string egress_interface = 6;
+    string egress_interface = 7;
 }

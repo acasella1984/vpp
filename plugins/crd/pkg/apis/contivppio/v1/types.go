@@ -385,6 +385,8 @@ type ServiceRoute struct {
 type ServiceRouteSpec struct {
 	// Sase Service Instance Name
 	ServiceInstanceName string `json:"service"`
+	// Route Scope
+	RouteScope string `json:"routescope"`
 	// Route Type
 	RouteType string `json:"routetype"`
 	// Destination Network

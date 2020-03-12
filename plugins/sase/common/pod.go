@@ -17,6 +17,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -40,6 +41,12 @@ const (
 	baseServiceID = "0"
 	// BaseServiceLocation :
 	baseServiceLocation = "local"
+
+	// Main VRF
+	globalVrf = "globalVrf"
+
+	// Pod Default VRF
+	podVrf = "defaultPodVrf"
 )
 
 // PodSaseServiceInfo holds information about a Sase Service Instance deployed on a Pod
@@ -79,10 +86,29 @@ type PodInterfaceInfo struct {
 	InternalName string // Represented in datapath if different
 	Type         string
 	Mode         InterfaceMode
-	Network      string // Represents CustomNetwork ~ VRF
+	Network      string // Represents CustomNetwork
+	VrfID        uint32 // Get this info from CustomNetwork
 	IPAddress    string
 	MacAddress   string
 	IsIngress    bool // IsIngress (true) would mean local network facing ingress interface
+}
+
+// IsGlobalVrf :
+func IsGlobalVrf(network string) bool {
+	if network == globalVrf {
+		return true
+	}
+
+	return false
+}
+
+// IsDefaultPodVrf :
+func IsDefaultPodVrf(network string) bool {
+	if network == podVrf {
+		return true
+	}
+
+	return false
 }
 
 // GetPodLabel : Return CNF Pod Microservice Label
@@ -110,6 +136,18 @@ func (p *PodInfo) GetPodEgressInterface() []PodInterfaceInfo {
 		}
 	}
 	return egressInterfaces
+}
+
+// GetPodInterfaceInfoInCustomNet :
+func (p *PodInfo) GetPodInterfaceInfoInCustomNet(network string) (PodInterfaceInfo, error) {
+	var intfInfo PodInterfaceInfo
+	for _, intf := range p.Interfaces {
+		if intf.Network == network {
+			return intf, nil
+		}
+
+	}
+	return intfInfo, errors.New("GetPodInterfaceInfoFromIP: Interface with IP not found")
 }
 
 // UpdateInterfaceList :
@@ -163,13 +201,14 @@ func (p *PodInfo) UpdateInterface(intf PodInterfaceInfo) error {
 // UpdateInterfaceIP :
 // IP addresses update events are recieved when customnetwork config are applied to Pod custom
 // interfaces
-func (p *PodInfo) UpdateInterfaceIP(name string, ipAddr string) error {
+func (p *PodInfo) UpdateInterfaceIP(name string, ipAddr string, network string) error {
 
 	for key, intfVal := range p.Interfaces {
 		if name == intfVal.InternalName {
 			// Interface exists in the list
 			// update the ip address
 			p.Interfaces[key].IPAddress = ipAddr
+			p.Interfaces[key].Network = network
 			return nil
 		}
 	}

@@ -32,6 +32,7 @@ type SaseServiceConfig struct {
 // Twice Nat Enabled (true)
 type Interface struct {
 	Name     string
+	VrfID    uint32
 	IsLocal  bool
 	TwiceNat bool
 }

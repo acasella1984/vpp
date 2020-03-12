@@ -74,10 +74,11 @@ func (h *ServiceRouteHandler) CrdObjectToKVData(obj interface{}) (data []kvdbref
 func (h *ServiceRouteHandler) serviceRouteCrdToProto(crd *v1.ServiceRoute) *model.ServiceRoute {
 	srpb := &model.ServiceRoute{
 		ServiceInstanceName: crd.Spec.ServiceInstanceName,
+		RouteNetworkScope:   crd.Spec.RouteScope,
 		DestinationNetwork:  crd.Spec.DestinationNetwork,
 		GatewayAddress:      crd.Spec.GatewayIPAddress,
 		GatewayServiceId:    crd.Spec.GatewayServiceID,
-		GatewayNetwork:      crd.Spec.GatewayNetwork,
+		GatewayNetworkScope: crd.Spec.GatewayNetwork,
 		EgressInterface:     crd.Spec.EgressInterface,
 	}
 

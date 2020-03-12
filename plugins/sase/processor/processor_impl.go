@@ -447,23 +447,92 @@ func (sp *SaseServiceProcessor) ProcessDeletedIPSecVpnTunnelConfig(cfg *sasemode
 // ProcessNewServiceRouteConfig :
 func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.ServiceRoute) error {
 	sp.Log.Infof("ProcessNewServiceRouteConfig: %v", cfg)
+
+	var routeVrf uint32
+	var egrIntf string
+	var egrVrfID uint32
+	var gatewayIP string
+	var routeType routeservice.RouteType
+
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
 	if !ok {
 		return errors.New("ProcessNewServiceRouteConfig: Service Not Enabled")
 	}
+
+	// Routing is not tied to any service.
 	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
 	if err != nil {
 		return err
 	}
 
+	// Get Gateway service info
+	g, err := common.ParseSaseServiceName(cfg.GatewayServiceId)
+	gatewayService, ok := sp.services[g]
+	if !ok {
+		return errors.New("ProcessNewServiceRouteConfig: Service Not Enabled")
+	}
+
+	// Get VRF information where route needs to be installed
+	if common.IsGlobalVrf(cfg.RouteNetworkScope) == true {
+		routeVrf = sp.ContivConf.GetRoutingConfig().MainVRFID
+	} else {
+		routeVrf, _ = sp.IPNet.GetOrAllocateVrfID(cfg.RouteNetworkScope)
+	}
+
+	sp.Log.Infof("ProcessNewServiceRouteConfig: vrf for the route installation", routeVrf)
+
+	// Case 1: Route to be added in base vswitch destined towards a remote VPP CNF
+	// Case 2: Route being added within base vswitch destined to external networks
+	// Case 3: What about route to DDI apps - TBD
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		if gatewayService.GetServicePodLabel() != common.GetBaseServiceLabel() {
+			// Case 1:
+			// Get Egress Interface information to reach Remote Service
+			// Get Gateway Interface Info
+			intfInfo, err := gatewayService.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+			if err != nil {
+				return err
+			}
+
+			// gateway IP
+			gatewayIP = intfInfo.IPAddress
+			// Get Egress Interface Name
+			egrIntf, _, _ = sp.IPNet.GetPodCustomIfNames(gatewayService.Pod.ID.Namespace,
+				gatewayService.Pod.ID.Name, intfInfo.Name)
+			egrVrfID = intfInfo.VrfID
+
+		} else {
+			// Case 2 or Case 3
+		}
+
+	} else {
+		// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
+		intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+		if err != nil {
+			return err
+		}
+		// gateway IP
+		gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
+		// Get Egress Interface Name
+		egrIntf = intfInfo.Name
+		egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
+	}
+
+	// Route Type. Route Installation Vrf and egress interface Vrf if different, then InterVrf
+	routeType = routeservice.IntraVrf
+	if routeVrf != egrVrfID {
+		routeType = routeservice.InterVrf
+	}
+
 	routeInfo := &routeservice.RouteRule{
-		Type:        routeservice.InterVrf, // VENKAT: How do we get this info? Via Config?? - TBD
-		VrfID:       0,
+		Type:        routeType,
+		VrfID:       routeVrf,
 		DestNetwork: cfg.DestinationNetwork,
-		NextHop:     cfg.GatewayAddress,
+		NextHop:     gatewayIP,
 		EgressIntf: &config.Interface{
-			Name: cfg.EgressInterface},
+			Name:  egrIntf,
+			VrfID: egrVrfID},
 	}
 
 	// Fill in the relevant information
@@ -771,7 +840,7 @@ func (sp *SaseServiceProcessor) ProcessCustomIfIPAlloc(alloc *ipalloc.CustomIPAl
 
 	// Update IP addresses for the Pod Interfaces
 	for _, customIf := range alloc.CustomInterfaces {
-		podInfo.UpdateInterfaceIP(customIf.Name, customIf.IpAddress)
+		podInfo.UpdateInterfaceIP(customIf.Name, customIf.IpAddress, customIf.Network)
 	}
 
 	sp.Log.Infof("ProcessCustomIfIPAlloc: Updated Interface IP %v", sp.podsList[podID])

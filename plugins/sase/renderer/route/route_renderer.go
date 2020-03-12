@@ -136,6 +136,7 @@ func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *Route
 		DstNetwork:        sp.DestNetwork,
 		NextHopAddr:       sp.NextHop,
 		OutgoingInterface: sp.EgressIntf.Name,
+		ViaVrfId:          sp.EgressIntf.VrfID,
 	}
 
 	// Mock Commit for Test Purpose

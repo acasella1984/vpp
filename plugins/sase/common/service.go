@@ -55,6 +55,9 @@ type ServiceInfo struct {
 }
 
 // GetBaseVppServices :
+// VENKAT: Currently baseServiceLocation is local.
+// To be determined via config or events to reflect current node
+// NodeName can be used here
 func GetBaseVppServices() []PodSaseServiceInfo {
 	// Enable Services on the base vpp vswitch pod
 	addService := []PodSaseServiceInfo{{serviceID: baseServiceID,
