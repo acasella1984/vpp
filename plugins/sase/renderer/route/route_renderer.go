@@ -73,9 +73,8 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
 	switch sp.Config.(type) {
 	case *sasemodel.SaseConfig:
 		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
-	case *sasemodel.ServiceRoute:
-		rndr.AddServiceRoute(sp.ServiceInfo, sp.Config.(*sasemodel.ServiceRoute))
-
+	case *RouteRule:
+		rndr.AddServiceRoute(sp.ServiceInfo, sp.Config.(*RouteRule))
 	default:
 	}
 	return nil
@@ -128,15 +127,15 @@ func convertSasePolicyToRouteRule(sp *sasemodel.SaseConfig) *RouteRule {
 ////////////////// Route Config Renderer Routines ////////////////////
 
 // AddServiceRoute adds route entries
-func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *sasemodel.ServiceRoute) error {
+func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *RouteRule) error {
 	rndr.Log.Infof("Route Service: AddServiceRoute: ")
 
 	vppRoute := &vpp_l3.Route{
-		Type:              vpp_l3.Route_INTRA_VRF,
-		VrfId:             0,
-		DstNetwork:        sp.DestinationNetwork,
-		NextHopAddr:       sp.GatewayAddress,
-		OutgoingInterface: sp.EgressInterface,
+		Type:              getVPPRouteType(sp.Type),
+		VrfId:             sp.VrfID,
+		DstNetwork:        sp.DestNetwork,
+		NextHopAddr:       sp.NextHop,
+		OutgoingInterface: sp.EgressIntf.Name,
 	}
 
 	// Mock Commit for Test Purpose
@@ -176,6 +175,21 @@ type RouteRule struct {
 	DestNetwork string
 	NextHop     string
 	EgressIntf  *config.Interface
+}
+
+func getVPPRouteType(r RouteType) vpp_l3.Route_RouteType {
+
+	var rt vpp_l3.Route_RouteType
+
+	switch r {
+	case IntraVrf:
+		rt = vpp_l3.Route_INTRA_VRF
+	case InterVrf:
+		rt = vpp_l3.Route_INTER_VRF
+	case Drop:
+		rt = vpp_l3.Route_DROP
+	}
+	return rt
 }
 
 // renderVppSNAT :: Renders VPP DNAT Config

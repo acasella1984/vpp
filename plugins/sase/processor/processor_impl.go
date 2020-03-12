@@ -35,6 +35,7 @@ import (
 	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
+	routeservice "github.com/contiv/vpp/plugins/sase/renderer/route"
 )
 
 // SaseServiceProcessor implements SaseProcessorAPI.
@@ -456,10 +457,19 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 		return err
 	}
 
+	routeInfo := &routeservice.RouteRule{
+		Type:        routeservice.InterVrf, // VENKAT: How do we get this info? Via Config?? - TBD
+		VrfID:       0,
+		DestNetwork: cfg.DestinationNetwork,
+		NextHop:     cfg.GatewayAddress,
+		EgressIntf: &config.Interface{
+			Name: cfg.EgressInterface},
+	}
+
 	// Fill in the relevant information
 	p := &config.SaseServiceConfig{
 		ServiceInfo: serviceInfo,
-		Config:      cfg,
+		Config:      routeInfo,
 	}
 	err = rndr.AddServiceConfig(p)
 	return err
