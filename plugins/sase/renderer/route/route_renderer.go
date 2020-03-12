@@ -87,6 +87,14 @@ func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) er
 
 // DeleteServiceConfig :
 func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
+	// Check for service config type
+	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		rndr.DeletePolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	case *RouteRule:
+		rndr.DeleteServiceRoute(sp.ServiceInfo, sp.Config.(*RouteRule))
+	default:
+	}
 	return nil
 }
 
@@ -104,12 +112,12 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 }
 
 // UpdatePolicy updates exiting route related policies
-func (rndr *Renderer) UpdatePolicy(old, new *config.SaseServiceConfig) error {
+func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseConfig) error {
 	return nil
 }
 
 // DeletePolicy deletes an existing route policy
-func (rndr *Renderer) DeletePolicy(sp *config.SaseServiceConfig) error {
+func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	return nil
 }
 
@@ -146,13 +154,50 @@ func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *Route
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Infof("Route Service: AddServiceRoute: Post txn to local vpp agent",
+			"Key: ", models.Key(vppRoute), "Value: %v", vppRoute)
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Service Route %s", models.Key(vppRoute)))
 		txn.Put(models.Key(vppRoute), vppRoute)
 		return nil
 	}
 
+	rndr.Log.Infof("Route Service: AddServiceRoute: Post txn to remote CNF VPP Agent",
+		"Key: ", models.Key(vppRoute), "Value: %v", vppRoute)
 	// Commit is for the Remote VPP CNF
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Add)
+}
+
+// DeleteServiceRoute deletes route entries
+func (rndr *Renderer) DeleteServiceRoute(serviceInfo *common.ServiceInfo, sp *RouteRule) error {
+	rndr.Log.Infof("Route Service: DeleteServiceRoute: ")
+
+	vppRoute := &vpp_l3.Route{
+		Type:              getVPPRouteType(sp.Type),
+		VrfId:             sp.VrfID,
+		DstNetwork:        sp.DestNetwork,
+		NextHopAddr:       sp.NextHop,
+		OutgoingInterface: sp.EgressIntf.Name,
+		ViaVrfId:          sp.EgressIntf.VrfID,
+	}
+
+	// Mock Commit for Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Add)
+	}
+
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Infof("Route Service: DeleteServiceRoute: Post txn to local vpp agent",
+			"Key: ", models.Key(vppRoute), "Value: %v", vppRoute)
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Service Route %s", models.Key(vppRoute)))
+		txn.Delete(models.Key(vppRoute))
+		return nil
+	}
+
+	// Commit is for the Remote VPP CNF
+	rndr.Log.Infof("Route Service: DeleteServiceRoute: Post txn to remote CNF VPP Agent",
+		"Key: ", models.Key(vppRoute), "Value: %v", vppRoute)
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), models.Key(vppRoute), vppRoute, config.Delete)
 }
 
 // RouteType :

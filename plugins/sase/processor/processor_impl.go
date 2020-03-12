@@ -555,22 +555,103 @@ func (sp *SaseServiceProcessor) ProcessUpdateServiceRouteConfig(old, new *sasemo
 }
 
 // ProcessDeletedServiceRouteConfig :
+// VENKAT:: Can be merge Add/Del/Update as most of the code can be re-used. TBD
 func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.ServiceRoute) error {
 	sp.Log.Infof("ProcessDeletedServiceRouteConfig: %v", cfg)
+	var routeVrf uint32
+	var egrIntf string
+	var egrVrfID uint32
+	var gatewayIP string
+	var routeType routeservice.RouteType
+
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
 	if !ok {
 		return errors.New("ProcessDeletedServiceRouteConfig: Service Not Enabled")
 	}
+
 	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
 	if err != nil {
 		return err
 	}
 
+	// Get Gateway service info
+	g, err := common.ParseSaseServiceName(cfg.GatewayServiceId)
+	gatewayService, ok := sp.services[g]
+	if !ok {
+		return errors.New("ProcessDeletedServiceRouteConfig: Service Not Enabled")
+	}
+
+	// Get VRF information where route needs to be installed
+	if common.IsGlobalVrf(cfg.RouteNetworkScope) == true {
+		routeVrf = sp.ContivConf.GetRoutingConfig().MainVRFID
+	} else {
+		routeVrf, _ = sp.IPNet.GetOrAllocateVrfID(cfg.RouteNetworkScope)
+	}
+
+	sp.Log.Info("ProcessDeletedServiceRouteConfig: vrf for the route installation", routeVrf)
+
+	// Case 1: Route to be added in base vswitch destined towards a remote VPP CNF
+	// Case 2: Route being added within base vswitch destined to external networks
+	// Case 3: What about route to DDI apps - TBD
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		if gatewayService.GetServicePodLabel() != common.GetBaseServiceLabel() {
+			sp.Log.Info("ProcessDeletedServiceRouteConfig: Route added in base vpp towards VPP CNF", serviceInfo, gatewayService)
+			// Case 1:
+			// Get Egress Interface information to reach Remote Service
+			// Get Gateway Interface Info
+			intfInfo, err := gatewayService.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+			if err != nil {
+				return err
+			}
+
+			// gateway IP
+			gatewayIP = intfInfo.IPAddress
+			// Get Egress Interface Name
+			egrIntf, _, _ = sp.IPNet.GetPodCustomIfNames(gatewayService.Pod.ID.Namespace,
+				gatewayService.Pod.ID.Name, intfInfo.Name)
+			egrVrfID = intfInfo.VrfID
+		} else {
+			// Case 2 or Case 3
+		}
+
+	} else {
+		// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
+		intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+		if err != nil {
+			return err
+		}
+		// gateway IP
+		gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
+		// Get Egress Interface Name
+		egrIntf = intfInfo.Name
+		egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
+	}
+
+	// Route Type. Route Installation Vrf and egress interface Vrf if different, then InterVrf
+	routeType = routeservice.IntraVrf
+	if routeVrf != egrVrfID {
+		routeType = routeservice.InterVrf
+	}
+
+	sp.Log.Info("ProcessDeletedServiceRouteConfig: gatewayIp: ", gatewayIP, "egrIntf: ", egrIntf, "egrVrfID: ", egrVrfID)
+
+	routeInfo := &routeservice.RouteRule{
+		Type:        routeType,
+		VrfID:       routeVrf,
+		DestNetwork: cfg.DestinationNetwork,
+		NextHop:     gatewayIP,
+		EgressIntf: &config.Interface{
+			Name:  egrIntf,
+			VrfID: egrVrfID},
+	}
+
+	sp.Log.Infof("ProcessDeletedServiceRouteConfig: RouteInfo: %v", routeInfo)
+
 	// Fill in the relevant information
 	p := &config.SaseServiceConfig{
 		ServiceInfo: serviceInfo,
-		Config:      cfg,
+		Config:      routeInfo,
 	}
 	err = rndr.DeleteServiceConfig(p)
 	return err
