@@ -480,13 +480,14 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 		routeVrf, _ = sp.IPNet.GetOrAllocateVrfID(cfg.RouteNetworkScope)
 	}
 
-	sp.Log.Infof("ProcessNewServiceRouteConfig: vrf for the route installation", routeVrf)
+	sp.Log.Info("ProcessNewServiceRouteConfig: vrf for the route installation", routeVrf)
 
 	// Case 1: Route to be added in base vswitch destined towards a remote VPP CNF
 	// Case 2: Route being added within base vswitch destined to external networks
 	// Case 3: What about route to DDI apps - TBD
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		if gatewayService.GetServicePodLabel() != common.GetBaseServiceLabel() {
+			sp.Log.Info("ProcessNewServiceRouteConfig: Route added in base vpp towards VPP CNF", serviceInfo, gatewayService)
 			// Case 1:
 			// Get Egress Interface information to reach Remote Service
 			// Get Gateway Interface Info
@@ -501,7 +502,6 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 			egrIntf, _, _ = sp.IPNet.GetPodCustomIfNames(gatewayService.Pod.ID.Namespace,
 				gatewayService.Pod.ID.Name, intfInfo.Name)
 			egrVrfID = intfInfo.VrfID
-
 		} else {
 			// Case 2 or Case 3
 		}
@@ -525,6 +525,8 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 		routeType = routeservice.InterVrf
 	}
 
+	sp.Log.Info("ProcessNewServiceRouteConfig: gatewayIp: ", gatewayIP, "egrIntf: ", egrIntf, "egrVrfID: ", egrVrfID)
+
 	routeInfo := &routeservice.RouteRule{
 		Type:        routeType,
 		VrfID:       routeVrf,
@@ -534,6 +536,8 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 			Name:  egrIntf,
 			VrfID: egrVrfID},
 	}
+
+	sp.Log.Infof("ProcessNewServiceRouteConfig: RouteInfo: %v", routeInfo)
 
 	// Fill in the relevant information
 	p := &config.SaseServiceConfig{

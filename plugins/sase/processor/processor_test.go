@@ -469,9 +469,10 @@ func getConfigServiceRouteForNonBase() *sasemodel.ServiceRoute {
 	// Service Route
 	routeCfg := &sasemodel.ServiceRoute{
 		ServiceInstanceName: "1/sjc/routing",
+		RouteNetworkScope:   "global",
 		DestinationNetwork:  "12.12.12.12/24",
 		GatewayAddress:      "1.1.1.1",
-		VrfName:             "default",
+		VrfName:             "customIf",
 		EgressInterface:     "memif1",
 	}
 

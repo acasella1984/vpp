@@ -618,6 +618,7 @@ func (p *Plugin) onEtcdConnect() error {
 		go p.siteResourceGroupController.Run(p.ctx.Done())
 		go p.securityAssociationController.Run(p.ctx.Done())
 		go p.ipsecVPNTunnelController.Run(p.ctx.Done())
+		go p.serviceRouteController.Run(p.ctx.Done())
 	}()
 	return nil
 }
