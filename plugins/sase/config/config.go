@@ -27,6 +27,11 @@ type SaseServiceConfig struct {
 	Config interface{}
 }
 
+const (
+	// NotRequired : Constant to indicate interface not required
+	NotRequired = "notRequired"
+)
+
 // Interface : Nat Interface
 // Local inside Interface (true) or external Public Interface (false)
 // Twice Nat Enabled (true)

@@ -18,6 +18,7 @@ package processor
 
 import (
 	"errors"
+	"net"
 
 	"github.com/ligato/cn-infra/logging"
 	"github.com/ligato/cn-infra/servicelabel"
@@ -503,19 +504,45 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 				gatewayService.Pod.ID.Name, intfInfo.Name)
 			egrVrfID = intfInfo.VrfID
 		} else {
-			// Case 2 or Case 3
+			// Case 2 or Case 3 or Case4
+			// Expected to have a valid Next Hop IP Address
+			// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
+			ip := net.ParseIP(cfg.GatewayAddress)
+			if ip.To4() == nil {
+				sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+				return nil
+			}
+			gatewayIP = cfg.GatewayAddress
+			// Get VRF information where route needs to be installed
+			if common.IsGlobalVrf(cfg.GatewayNetworkScope) == true {
+				egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
+			} else {
+				egrVrfID, _ = sp.IPNet.GetOrAllocateVrfID(cfg.GatewayNetworkScope)
+			}
+			// Egress Interface?? Is it required?? To Check - VENKAT
+			egrIntf = config.NotRequired
 		}
-
 	} else {
-		// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
-		intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
-		if err != nil {
-			return err
+
+		// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
+		ip := net.ParseIP(cfg.GatewayAddress)
+		if ip.To4() == nil {
+			sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+			// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
+			// Assumption here is there is only one interface in the given networkScope that leads towards
+			// base VPP
+			intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+			if err != nil {
+				return err
+			}
+			// gateway IP
+			gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
+			// Get Egress Interface Name
+			egrIntf = intfInfo.Name
+		} else {
+			gatewayIP = cfg.GatewayAddress
+			egrIntf = config.NotRequired
 		}
-		// gateway IP
-		gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
-		// Get Egress Interface Name
-		egrIntf = intfInfo.Name
 		egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
 	}
 
@@ -575,13 +602,6 @@ func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.
 		return err
 	}
 
-	// Get Gateway service info
-	g, err := common.ParseSaseServiceName(cfg.GatewayServiceId)
-	gatewayService, ok := sp.services[g]
-	if !ok {
-		return errors.New("ProcessDeletedServiceRouteConfig: Service Not Enabled")
-	}
-
 	// Get VRF information where route needs to be installed
 	if common.IsGlobalVrf(cfg.RouteNetworkScope) == true {
 		routeVrf = sp.ContivConf.GetRoutingConfig().MainVRFID
@@ -589,11 +609,20 @@ func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.
 		routeVrf, _ = sp.IPNet.GetOrAllocateVrfID(cfg.RouteNetworkScope)
 	}
 
+	// Get Gateway service info
+	// Move it inside base vpp case
+	g, err := common.ParseSaseServiceName(cfg.GatewayServiceId)
+	gatewayService, ok := sp.services[g]
+	if !ok {
+		return errors.New("ProcessDeletedServiceRouteConfig: Service Not Enabled")
+	}
+
 	sp.Log.Info("ProcessDeletedServiceRouteConfig: vrf for the route installation", routeVrf)
 
 	// Case 1: Route to be added in base vswitch destined towards a remote VPP CNF
 	// Case 2: Route being added within base vswitch destined to external networks
 	// Case 3: What about route to DDI apps - TBD
+	// Case 4: Routes in Custom VRF in base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		if gatewayService.GetServicePodLabel() != common.GetBaseServiceLabel() {
 			sp.Log.Info("ProcessDeletedServiceRouteConfig: Route added in base vpp towards VPP CNF", serviceInfo, gatewayService)
@@ -612,20 +641,46 @@ func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.
 				gatewayService.Pod.ID.Name, intfInfo.Name)
 			egrVrfID = intfInfo.VrfID
 		} else {
-			// Case 2 or Case 3
+			// Case 2 or Case 3 or Case4
+			// Expected to have a valid Next Hop IP Address
+			// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
+			ip := net.ParseIP(cfg.GatewayAddress)
+			if ip.To4() == nil {
+				sp.Log.Info("ProcessDeletedServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+				return nil
+			}
+			gatewayIP = cfg.GatewayAddress
+			// Get VRF information where route needs to be installed
+			if common.IsGlobalVrf(cfg.GatewayNetworkScope) == true {
+				egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
+			} else {
+				egrVrfID, _ = sp.IPNet.GetOrAllocateVrfID(cfg.GatewayNetworkScope)
+			}
+			// Egress Interface?? Is it required?? To Check - VENKAT
+			egrIntf = config.NotRequired
 		}
 
 	} else {
 		// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
-		intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
-		if err != nil {
-			return err
+		// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
+		ip := net.ParseIP(cfg.GatewayAddress)
+		if ip.To4() == nil {
+			sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+			// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
+			// Assumption here is there is only one interface in the given networkScope that leads towards
+			// base VPP
+			intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+			if err != nil {
+				return err
+			}
+			// gateway IP
+			gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
+			// Get Egress Interface Name
+			egrIntf = intfInfo.Name
+		} else {
+			gatewayIP = cfg.GatewayAddress
+			egrIntf = config.NotRequired
 		}
-		// gateway IP
-		gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
-		// Get Egress Interface Name
-		egrIntf = intfInfo.Name
-		egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
 	}
 
 	// Route Type. Route Installation Vrf and egress interface Vrf if different, then InterVrf
