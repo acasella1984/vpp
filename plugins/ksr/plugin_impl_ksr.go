@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate protoc -I ./model/pod --gogo_out=plugins=grpc:./model/pod ./model/pod/pod.proto
-//go:generate protoc -I ./model/namespace --gogo_out=plugins=grpc:./model/namespace ./model/namespace/namespace.proto
-//go:generate protoc -I ./model/policy --gogo_out=plugins=grpc:./model/policy ./model/policy/policy.proto
-//go:generate protoc -I ./model/service --gogo_out=plugins=grpc:./model/service ./model/service/service.proto
-//go:generate protoc -I ./model/endpoints --gogo_out=plugins=grpc:./model/endpoints ./model/endpoints/endpoints.proto
-//go:generate protoc -I ./model/node --gogo_out=plugins=grpc:./model/node ./model/node/node.proto
-//go:generate protoc -I ./model/ksrapi --gogo_out=plugins=grpc:./model/ksrapi ./model/ksrapi/ksr_nb_api.proto
-//go:generate protoc -I ./model/sfc --gogo_out=plugins=grpc:./model/sfc ./model/sfc/sfc.proto
+//go:generate protoc -I ./model/pod --go_out=plugins=grpc:./model/pod ./model/pod/pod.proto
+//go:generate protoc -I ./model/namespace --go_out=plugins=grpc:./model/namespace ./model/namespace/namespace.proto
+//go:generate protoc -I ./model/policy --go_out=plugins=grpc:./model/policy ./model/policy/policy.proto
+//go:generate protoc -I ./model/service --go_out=plugins=grpc:./model/service ./model/service/service.proto
+//go:generate protoc -I ./model/endpoints --go_out=plugins=grpc:./model/endpoints ./model/endpoints/endpoints.proto
+//go:generate protoc -I ./model/node --go_out=plugins=grpc:./model/node ./model/node/node.proto
+//go:generate protoc -I ./model/ksrapi --go_out=plugins=grpc:./model/ksrapi ./model/ksrapi/ksr_nb_api.proto
+//go:generate protoc -I ./model/sfc --go_out=plugins=grpc:./model/sfc ./model/sfc/sfc.proto
 
 package ksr
 
@@ -35,16 +35,16 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"context"
-	"github.com/ligato/cn-infra/config"
-	"github.com/ligato/cn-infra/datasync/kvdbsync"
-	"github.com/ligato/cn-infra/db/keyval/etcd"
-	"github.com/ligato/cn-infra/health/statuscheck"
-	"github.com/ligato/cn-infra/health/statuscheck/model/status"
-	"github.com/ligato/cn-infra/infra"
-	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/cn-infra/rpc/prometheus"
-	"github.com/ligato/cn-infra/servicelabel"
-	"github.com/ligato/cn-infra/utils/safeclose"
+	"go.ligato.io/cn-infra/v2/config"
+	"go.ligato.io/cn-infra/v2/datasync/kvdbsync"
+	"go.ligato.io/cn-infra/v2/db/keyval/etcd"
+	"go.ligato.io/cn-infra/v2/health/statuscheck"
+	"go.ligato.io/cn-infra/v2/health/statuscheck/model/status"
+	"go.ligato.io/cn-infra/v2/infra"
+	"go.ligato.io/cn-infra/v2/logging"
+	"go.ligato.io/cn-infra/v2/rpc/prometheus"
+	"go.ligato.io/cn-infra/v2/servicelabel"
+	"go.ligato.io/cn-infra/v2/utils/safeclose"
 )
 
 // Plugin watches K8s resources and causes all changes to be reflected in the ETCD

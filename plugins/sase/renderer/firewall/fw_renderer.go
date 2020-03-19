@@ -34,8 +34,8 @@ import (
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
-	"github.com/ligato/cn-infra/logging"
-	vpp_acl "github.com/ligato/vpp-agent/api/models/vpp/acl"
+	"go.ligato.io/cn-infra/v2/logging"
+	vpp_acl "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/acl"
 )
 
 // Renderer implements rendering of firewall policies

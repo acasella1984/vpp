@@ -20,7 +20,7 @@ import (
 	"net"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/cn-infra/logging"
+	"go.ligato.io/cn-infra/v2/logging"
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
@@ -32,7 +32,8 @@ import (
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
-	vpp_nat "github.com/ligato/vpp-agent/api/models/vpp/nat"
+
+	vpp_nat "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/nat"
 )
 
 // Renderer implements rendering of Nat policies

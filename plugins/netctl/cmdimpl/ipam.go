@@ -22,13 +22,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/ligato/cn-infra/db/keyval/etcd"
+	"go.ligato.io/cn-infra/v2/db/keyval/etcd"
 
 	"github.com/contiv/vpp/plugins/crd/cache/telemetrymodel"
 	"github.com/contiv/vpp/plugins/ipnet"
 	"github.com/contiv/vpp/plugins/ipnet/restapi"
 	"github.com/contiv/vpp/plugins/netctl/remote"
-	vppifdescr "github.com/ligato/vpp-agent/plugins/vpp/ifplugin/descriptor"
+
+	vppifdescr "go.ligato.io/vpp-agent/v3/plugins/vpp/ifplugin/descriptor"
 )
 
 // PrintAllIpams prints IPAM information for all nodes

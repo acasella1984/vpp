@@ -18,12 +18,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/../../..
-CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
+# Set directory for dependency symlinks
+CRDGEN_DEPS_DIR=$GOPATH/pkg/mod
 
 # generate the code with:
-${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
+chmod a+x ${CRDGEN_DEPS_DIR}/k8s.io/code-generator@v0.17.1/generate-groups.sh
+${CRDGEN_DEPS_DIR}/k8s.io/code-generator@v0.17.1/generate-groups.sh "deepcopy,client,informer,lister" \
   github.com/contiv/vpp/plugins/crd/pkg/client \
   github.com/contiv/vpp/plugins/crd/pkg/apis \
   "telemetry:v1 nodeconfig:v1 contivppio:v1" \
-  --go-header-file ${SCRIPT_ROOT}/plugins/crd/scripts/custom-boilerplate.go.txt
+  --go-header-file plugins/crd/scripts/custom-boilerplate.go.txt

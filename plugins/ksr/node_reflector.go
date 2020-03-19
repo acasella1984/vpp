@@ -23,9 +23,9 @@ import (
 
 	"github.com/contiv/vpp/plugins/ksr/model/node"
 	"github.com/contiv/vpp/plugins/nodesync/vppnode"
-	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/cn-infra/datasync"
-	"github.com/ligato/cn-infra/servicelabel"
+	"github.com/golang/protobuf/proto"
+	"go.ligato.io/cn-infra/v2/datasync"
+	"go.ligato.io/cn-infra/v2/servicelabel"
 )
 
 // NodeReflector subscribes to K8s cluster to watch for changes in the

@@ -16,8 +16,8 @@ package ksr
 
 import (
 	"github.com/contiv/vpp/plugins/ksr/model/ksrapi"
-	"github.com/ligato/cn-infra/logging"
-	prometheusplugin "github.com/ligato/cn-infra/rpc/prometheus"
+	"go.ligato.io/cn-infra/v2/logging"
+	prometheusplugin "go.ligato.io/cn-infra/v2/rpc/prometheus"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"

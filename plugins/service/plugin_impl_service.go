@@ -21,9 +21,10 @@ import (
 	"github.com/contiv/vpp/plugins/ipam/ipalloc"
 
 	"github.com/contiv/vpp/plugins/statscollector"
-	"github.com/ligato/cn-infra/infra"
-	"github.com/ligato/cn-infra/servicelabel"
-	"github.com/ligato/vpp-agent/plugins/govppmux"
+	"go.ligato.io/cn-infra/v2/infra"
+	"go.ligato.io/cn-infra/v2/servicelabel"
+
+	"go.ligato.io/vpp-agent/v3/plugins/govppmux"
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
@@ -162,8 +163,7 @@ func (p *Plugin) Init() error {
 	}
 	p.Log.Infof("Service plugin configuration: %+v", *p.config)
 
-	const goVPPChanBufSize = 1 << 12
-	goVppCh, err := p.GoVPP.NewAPIChannelBuffered(goVPPChanBufSize, goVPPChanBufSize)
+	goVppCh, err := p.GoVPP.NewAPIChannel()
 	if err != nil {
 		return err
 	}

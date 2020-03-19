@@ -18,7 +18,7 @@ package processor
 
 import (
 	"github.com/contiv/vpp/plugins/sase/renderer"
-	"github.com/ligato/cn-infra/datasync"
+	"go.ligato.io/cn-infra/v2/datasync"
 )
 
 // SaseProcessorAPI defines the API of the Sase Processor.

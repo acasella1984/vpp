@@ -27,16 +27,19 @@ import (
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	"github.com/contiv/vpp/plugins/devicemanager"
 	"github.com/contiv/vpp/plugins/podmanager"
-	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/cn-infra/db/keyval"
-	"github.com/ligato/cn-infra/servicelabel"
-	linux_interfaces "github.com/ligato/vpp-agent/api/models/linux/interfaces"
-	linux_l3 "github.com/ligato/vpp-agent/api/models/linux/l3"
-	linux_namespace "github.com/ligato/vpp-agent/api/models/linux/namespace"
-	"github.com/ligato/vpp-agent/api/models/netalloc"
-	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
-	"github.com/ligato/vpp-agent/pkg/models"
+	"github.com/golang/protobuf/proto"
+        "go.ligato.io/cn-infra/v2/db/keyval"
+        "go.ligato.io/cn-infra/v2/servicelabel"
+
+        "go.ligato.io/vpp-agent/v3/proto/ligato/linux/interfaces"
+        "go.ligato.io/vpp-agent/v3/proto/ligato/linux/l3"
+        "go.ligato.io/vpp-agent/v3/proto/ligato/linux/namespace"
+
+	"go.ligato.io/vpp-agent/v3/proto/ligato/netalloc"
+        "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
+        "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
+
+	"go.ligato.io/vpp-agent/v3/pkg/models"
 )
 
 const (
@@ -257,6 +260,7 @@ func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEve
 			if err != nil || podIP == nil {
 				n.Log.Warnf("No IP allocated for the interface %s, will be left in L2 mode", customIf)
 			}
+			n.Log.Info("VENKAT: getOrAllocatePodCustomIfIP: Returned IP: ", podIP)
 		}
 
 		switch customIf.ifType {
@@ -272,6 +276,7 @@ func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEve
 			}
 			// VPP side of the memif
 			k, v := n.podVPPMemif(pod, podIP, customIf.ifName, customIf.ifNet, memifInfo, memifID)
+			n.Log.Info("VENKAT: : VPP side of the memif", k, v)
 			config[k] = v
 
 		case tapIfType:
@@ -301,12 +306,14 @@ func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEve
 			vrf, _ := n.GetOrAllocateVrfID(customIf.ifNet)
 			key, vppRoute := n.vppToPodRoute(pod, podIP, customIf.ifName, customIf.ifType, vrf)
 			config[key] = vppRoute
+			n.Log.Info("VENKAT: : vppToPodRoute", key, vppRoute)
 			// static ARP entry to pod IP from VPP
 			if customIf.ifType != memifIfType && serviceLabel == "" {
 				// only if the vswitch manages the pod interface (veth/tap without servicelabel)
 				// TODO: enable also for the case with defined service label once netalloc supports MAC addresses
 				key, vppArp := n.vppToPodArpEntry(pod, podIP, customIf.ifName, customIf.ifType)
 				config[key] = vppArp
+				n.Log.Info("VENKAT: : vppToPodArpEntry", key, vppArp)
 			}
 		}
 		if !n.isDefaultPodNetwork(customIf.ifNet) && !n.isStubNetwork(customIf.ifNet) {
@@ -336,8 +343,10 @@ func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEve
 				// MEMIF microservice
 				k, memif := n.podMicroserviceMemif(pod, podIP, customIf.ifName, memifInfo, memifID)
 				microserviceConfig[k] = memif
+				n.Log.Info("VENKAT: : podMicroserviceMemif", k, memif)
 				if podIP != nil {
 					linuxCfg := n.vppPodL3CustomIfConfig(pod, customIf)
+					n.Log.Info("VENKAT: : vppPodL3CustomIfConfig", linuxCfg)
 					mergeConfiguration(microserviceConfig, linuxCfg)
 				}
 			} else {
@@ -355,6 +364,7 @@ func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEve
 				//  - non-ligato CNF can read the allocated IP from etcd
 				k, alloc := n.podMicroserviceIPAlloc(pod, podIP, customIf.ifName, customIf.ifType, customIf.ifNet)
 				microserviceConfig[k] = alloc
+				n.Log.Info("VENKAT: : podMicroserviceIPAlloc", k, alloc)
 			}
 		}
 	}
@@ -362,9 +372,10 @@ func (n *IPNet) podCustomIfsConfig(pod *podmanager.LocalPod, eventType configEve
 	// in case of non-empty microservice config, put the config into ETCD
 	// VENKAT: This is where configs to remote VPP is posted. Post into ETCD with microservice label
 	if len(microserviceConfig) > 0 {
-		n.Log.Debugf("Adding pod-end interface config for microservice %s into ETCD", serviceLabel)
+		n.Log.Infof("Adding pod-end interface config for microservice %s into ETCD", serviceLabel)
 		broker := n.RemoteDB.NewBrokerWithAtomic(servicelabel.GetDifferentAgentPrefix(serviceLabel))
 		for k, v := range microserviceConfig {
+			n.Log.Info("VENKAT: : posting config to etcd for remote vpp cnf", k, v)
 			err := n.updateMsConfigItem(broker, k, v, eventType)
 			if err != nil {
 				n.Log.Errorf("Error by executing remote DB operation for key %s: %v", k, err)
@@ -390,6 +401,7 @@ func (n *IPNet) getOrAllocatePodCustomIfIP(pod *podmanager.LocalPod, customIf *p
 
 	podIP = n.IPAM.GetPodCustomIfIP(pod.ID, customIf.ifName, customIf.ifNet)
 	if podIP != nil {
+		// VENKAT:: Why return hostPrefixForAF?
 		_, podIP, _ = net.ParseCIDR(podIP.IP.String() + hostPrefixForAF(podIP.IP))
 	}
 	return
@@ -812,6 +824,7 @@ func (n *IPNet) podAfPacket(pod *podmanager.LocalPod, podIP *net.IPNet, customIf
 /******************************** memif interface ********************************/
 
 // podVPPSideTAPName returns logical name of the memif interface on VPP connected to a given pod.
+// VENKAT: base VPP side memifName
 func (n *IPNet) podVPPSideMemifName(pod *podmanager.LocalPod, ifName string) string {
 	return trimInterfaceName(podMemifLogicalNamePrefix+ifName+"-"+pod.ContainerID, logicalIfNameMaxLen)
 }
@@ -867,6 +880,7 @@ func (n *IPNet) podMicroserviceSideIfName(pod *podmanager.LocalPod, ifName strin
 }
 
 // podMicroserviceMemif returns the configuration for memif interface on the Pod (microservice) side.
+// VENKAT: This is where VPP CNF Pod side memif config is built
 func (n *IPNet) podMicroserviceMemif(pod *podmanager.LocalPod, ip *net.IPNet, ifName string,
 	memifInfo *devicemanager.MemifInfo, memifID uint32) (key string, config *vpp_interfaces.Interface) {
 

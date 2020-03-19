@@ -12,7 +12,7 @@ import (
 
 	"github.com/contiv/vpp/plugins/crd/api"
 	"github.com/contiv/vpp/plugins/crd/pkg/apis/telemetry/v1"
-	"github.com/ligato/cn-infra/logging"
+	"go.ligato.io/cn-infra/v2/logging"
 
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
 	listers "github.com/contiv/vpp/plugins/crd/pkg/client/listers/telemetry/v1"

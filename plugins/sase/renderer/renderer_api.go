@@ -6,8 +6,8 @@ import (
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/cn-infra/db/keyval"
-	"github.com/ligato/cn-infra/servicelabel"
+	"go.ligato.io/cn-infra/v2/db/keyval"
+	"go.ligato.io/cn-infra/v2/servicelabel"
 )
 
 // SaseServiceRendererAPI defines the APIs for Sase Service rendering.

@@ -22,15 +22,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ligato/cn-infra/logging"
+	"go.ligato.io/cn-infra/v2/logging"
 
 	"fmt"
 	"github.com/contiv/vpp/mock/localclient"
 	"github.com/contiv/vpp/plugins/ipnet"
 	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
 	"github.com/contiv/vpp/plugins/policy/renderer"
-	"github.com/ligato/cn-infra/datasync/syncbase"
-	"github.com/ligato/vpp-agent/api/models/vpp/acl"
+	"go.ligato.io/cn-infra/v2/datasync/syncbase"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp/acl"
 )
 
 // maxPortNum is the maximum possible port number.

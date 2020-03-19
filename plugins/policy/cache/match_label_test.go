@@ -19,8 +19,8 @@ import (
 
 	policymodel "github.com/contiv/vpp/plugins/ksr/model/policy"
 	"github.com/contiv/vpp/plugins/policy/cache/testdata"
-	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/cn-infra/logging/logrus"
+	"go.ligato.io/cn-infra/v2/logging"
+	"go.ligato.io/cn-infra/v2/logging/logrus"
 	"github.com/onsi/gomega"
 )
 

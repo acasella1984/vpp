@@ -22,7 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
 
-	"github.com/ligato/cn-infra/logging"
+	"go.ligato.io/cn-infra/v2/logging"
 	"testing"
 )
 
@@ -255,5 +255,10 @@ func (mg *mockGauge) Add(float64) {
 // Sub subtracts the given value from the Gauge. (The value can be
 // negative, resulting in an increase of the Gauge.)
 func (mg *mockGauge) Sub(float64) {
+
+}
+
+// SetToCurrentTime sets the Gauge to the current Unix time in seconds.
+func (mg *mockGauge) SetToCurrentTime() {
 
 }

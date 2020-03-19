@@ -19,10 +19,11 @@ import (
 	"golang.org/x/sys/unix"
 	"net"
 
-	"github.com/ligato/cn-infra/infra"
-	"github.com/ligato/vpp-agent/api/models/vpp/l3"
-	"github.com/ligato/vpp-agent/pkg/models"
+	"go.ligato.io/cn-infra/v2/infra"
 	"github.com/vishvananda/netlink"
+
+	"go.ligato.io/vpp-agent/v3/pkg/models"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"

@@ -11,9 +11,9 @@ import (
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
-	"github.com/ligato/cn-infra/logging"
-	vpp_interfaces "github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	vpp_ipsec "github.com/ligato/vpp-agent/api/models/vpp/ipsec"
+	"go.ligato.io/cn-infra/v2/logging"
+	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
+	vpp_ipsec "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/ipsec"
 )
 
 // Renderer implements rendering of Nat policies
@@ -166,7 +166,7 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 
 	// Render Inbound and Outbound Security associations
 	vppSaIn := &vpp_ipsec.SecurityAssociation{
-		Index:     config.DefaultInboundSAIndex,
+		Index:     config.DefaultInboundSAIndex, 
 		Spi:       config.DefaultInboundSPIIndex,
 		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
 		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,

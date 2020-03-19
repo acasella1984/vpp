@@ -68,7 +68,7 @@ cd vpp-vswitch
 ./build.sh
 
 # builds the new images (vpp-cni, vpp-ksr)
-#cd ..
+cd ..
 ./build-new.sh
 
 # remove dangling images

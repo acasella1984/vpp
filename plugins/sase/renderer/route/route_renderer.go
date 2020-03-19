@@ -19,7 +19,7 @@ package routeservice
 import (
 	"fmt"
 
-	vpp_l3 "github.com/ligato/vpp-agent/api/models/vpp/l3"
+	vpp_l3 "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/l3"
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
@@ -31,8 +31,8 @@ import (
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/renderer"
 	"github.com/contiv/vpp/plugins/statscollector"
-	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/vpp-agent/pkg/models"
+	"go.ligato.io/cn-infra/v2/logging"
+	"go.ligato.io/vpp-agent/v3/pkg/models"
 )
 
 // Renderer implements rendering of Nat policies

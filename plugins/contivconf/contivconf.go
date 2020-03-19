@@ -17,6 +17,7 @@ package contivconf
 import (
 	"context"
 	"fmt"
+	"go.ligato.io/vpp-agent/v3/plugins/govppmux"
 	"net"
 	"sort"
 	"strings"
@@ -28,12 +29,12 @@ import (
 	"github.com/vishvananda/netlink"
 	"google.golang.org/grpc"
 
-	"github.com/ligato/cn-infra/db/keyval"
-	"github.com/ligato/cn-infra/infra"
-	"github.com/ligato/cn-infra/servicelabel"
+	"go.ligato.io/cn-infra/v2/db/keyval"
+	"go.ligato.io/cn-infra/v2/infra"
+	"go.ligato.io/cn-infra/v2/servicelabel"
 
-	"github.com/ligato/vpp-agent/api/models/vpp/interfaces"
-	intf_vppcalls "github.com/ligato/vpp-agent/plugins/vpp/ifplugin/vppcalls"
+	intf_vppcalls "go.ligato.io/vpp-agent/v3/plugins/vpp/ifplugin/vppcalls"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	stn_grpc "github.com/contiv/vpp/cmd/contiv-stn/model/stn"
@@ -146,8 +147,9 @@ type ContivConf struct {
 	// node-specific configuration defined via CRD, can be nil
 	nodeConfigCRD *config.NodeConfig
 
-	// GoVPP channel used to get the list of DPDK interfaces
-	govppCh govpp.Channel
+	// GoVPP context
+	cancel context.CancelFunc
+	ctx    context.Context
 
 	// list of DPDK interfaces configured on VPP sorted by index
 	dpdkIfaces []string
@@ -351,6 +353,19 @@ func (c *ContivConf) Init() (err error) {
 		if err != nil {
 			return err
 		}
+		// load configuration into embedded structs as well
+		_, err = c.Cfg.LoadValue(&c.config.InterfaceConfig)
+		if err != nil {
+			return err
+		}
+		_, err = c.Cfg.LoadValue(&c.config.RoutingConfig)
+		if err != nil {
+			return err
+		}
+		_, err = c.Cfg.LoadValue(&c.config.IPNeighborScanConfig)
+		if err != nil {
+			return err
+		}
 	}
 	c.Log.Infof("Contiv configuration: %+v", *c.config)
 
@@ -472,13 +487,8 @@ func (c *ContivConf) Init() (err error) {
 		c.config.EnableGSO = false
 	}
 
-	// create GoVPP channel for contiv-agent
-	if c.ContivAgentDeps != nil && c.UnitTestDeps == nil {
-		c.govppCh, err = c.GoVPP.NewAPIChannel()
-		if err != nil {
-			return err
-		}
-	}
+	// create context
+	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	if c.ContivInitDeps != nil {
 		// in contiv-init the Resync() method is not run, instead everything
@@ -737,6 +747,7 @@ func (c *ContivConf) GetVmxnet3Config() (*Vmxnet3Config, error) {
 
 // Close is NOOP.
 func (c *ContivConf) Close() error {
+	c.cancel()
 	return nil
 }
 
@@ -931,9 +942,10 @@ func (c *ContivConf) getFirstHostInterfaceName() string {
 
 // dumpDPDKInterfaces dumps DPDK interfaces configured on VPP.
 func (c *ContivConf) dumpDPDKInterfaces() (ifaces []string, err error) {
-	ifHandler := intf_vppcalls.CompatibleInterfaceVppHandler(c.govppCh, c.Log)
+	// make a type assertion to be able to pass the GoVPP instance to compatible handlers.
+	ifHandler := intf_vppcalls.CompatibleInterfaceVppHandler(c.GoVPP.(*govppmux.Plugin), c.Log)
 
-	dump, err := ifHandler.DumpInterfacesByType(vpp_interfaces.Interface_DPDK)
+	dump, err := ifHandler.DumpInterfacesByType(c.ctx, vpp_interfaces.Interface_DPDK)
 	if err != nil {
 		return ifaces, err
 	}

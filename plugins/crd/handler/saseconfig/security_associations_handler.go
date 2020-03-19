@@ -14,7 +14,7 @@
  * // limitations under the License.
  */
 
-//go:generate protoc -I ./model --gogo_out=plugins=grpc:./model ./model/securityassociations.proto
+//go:generate protoc -I ./model --go_out=plugins=grpc:./model ./model/securityassociations.proto
 
 package saseconfiguration
 
@@ -27,7 +27,7 @@ import (
 	"github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
-	"github.com/ligato/cn-infra/logging"
+	"go.ligato.io/cn-infra/v2/logging"
 )
 
 // SecurityAssociationsHandler implements the Handler interface for CRD<->KVDB Reflector.

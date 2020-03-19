@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/cn-infra/logging"
+	"github.com/golang/protobuf/proto"
+	"go.ligato.io/cn-infra/v2/logging"
 
 	"k8s.io/apimachinery/pkg/fields"
 	k8sRuntime "k8s.io/apimachinery/pkg/runtime"

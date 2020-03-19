@@ -18,8 +18,8 @@ import (
 	nodemodel "github.com/contiv/vpp/plugins/ksr/model/node"
 	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"
 	vppnodemodel "github.com/contiv/vpp/plugins/nodesync/vppnode"
-	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/cn-infra/datasync"
+	"github.com/golang/protobuf/proto"
+	"go.ligato.io/cn-infra/v2/datasync"
 	"reflect"
 
 	"fmt"

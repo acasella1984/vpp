@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"github.com/ligato/cn-infra/config"
+	"go.ligato.io/cn-infra/v2/config"
 	"golang.org/x/net/html"
 	"net/http"
 	"os"

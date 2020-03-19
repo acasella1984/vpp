@@ -15,10 +15,11 @@
 package pluginvpp
 
 import (
-	"github.com/ligato/cn-infra/idxmap"
-	"github.com/ligato/cn-infra/logging/logrus"
-	"github.com/ligato/vpp-agent/api/models/vpp"
-	"github.com/ligato/vpp-agent/plugins/vpp/ifplugin/ifaceidx"
+	"go.ligato.io/cn-infra/v2/idxmap"
+	"go.ligato.io/cn-infra/v2/logging/logrus"
+
+	"go.ligato.io/vpp-agent/v3/plugins/vpp/ifplugin/ifaceidx"
+	"go.ligato.io/vpp-agent/v3/proto/ligato/vpp"
 )
 
 // MockVppIfPlugin is a mock for VPP ifplugin.

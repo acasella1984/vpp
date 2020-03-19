@@ -18,8 +18,8 @@ import (
 	"golang.org/x/net/context"
 	"strings"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/ligato/cn-infra/datasync"
+	"github.com/golang/protobuf/proto"
+	"go.ligato.io/cn-infra/v2/datasync"
 
 	"github.com/contiv/vpp/dbresources"
 	controller "github.com/contiv/vpp/plugins/controller/api"

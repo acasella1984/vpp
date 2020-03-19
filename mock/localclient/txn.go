@@ -4,13 +4,13 @@ package localclient
 import (
 	"sync"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 
-	"github.com/ligato/cn-infra/datasync"
-	"github.com/ligato/cn-infra/datasync/syncbase"
+	"go.ligato.io/cn-infra/v2/datasync"
+	"go.ligato.io/cn-infra/v2/datasync/syncbase"
 
-	"github.com/ligato/vpp-agent/clientv2/linux"
-	"github.com/ligato/vpp-agent/clientv2/vpp"
+	"go.ligato.io/vpp-agent/v3/clientv2/linux"
+	"go.ligato.io/vpp-agent/v3/clientv2/vpp"
 
 	mockcontroller "github.com/contiv/vpp/mock/localclient/controller"
 	mocklinux "github.com/contiv/vpp/mock/localclient/dsl/linux"

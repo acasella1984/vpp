@@ -20,15 +20,16 @@ import (
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	"github.com/contiv/vpp/plugins/grpc/rpc"
 
-	"github.com/ligato/cn-infra/db/keyval"
-	"github.com/ligato/cn-infra/infra"
-	"github.com/ligato/cn-infra/logging"
-	"github.com/ligato/cn-infra/rpc/grpc"
+	"go.ligato.io/cn-infra/v2/db/keyval"
+	"go.ligato.io/cn-infra/v2/infra"
+	"go.ligato.io/cn-infra/v2/logging"
+	"go.ligato.io/cn-infra/v2/rpc/grpc"
 
-	"github.com/ligato/vpp-agent/pkg/models"
+	"go.ligato.io/vpp-agent/v3/pkg/models"
+	"go.ligato.io/vpp-agent/v3/plugins/orchestrator"
 )
 
-//go:generate protoc --proto_path=rpc --proto_path=$GOPATH/src --gogo_out=plugins=grpc:rpc rpc/rpc.proto
+//go:generate protoc --proto_path=rpc --proto_path=$GOPATH/src/github.com/ligato/vpp-agent/proto --go_out=plugins=grpc,paths=source_relative:rpc rpc/rpc.proto
 
 // Plugin implements GRPC access to Contiv's VPP-agent.
 type Plugin struct {
@@ -97,7 +98,7 @@ func (p *Plugin) GetConfigSnapshot() (controller.KeyValuePairs, error) {
 			break
 		}
 		key := kv.GetKey()
-		value, err := models.UnmarshalLazyValue(key, kv)
+		value, err := orchestrator.UnmarshalLazyValue(key, kv)
 		if err != nil {
 			p.Log.Warnf("Failed to de-serialize value received from GRPC for key: %s", key)
 			continue

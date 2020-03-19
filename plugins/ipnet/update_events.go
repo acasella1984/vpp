@@ -34,6 +34,7 @@ import (
 //   - NodeUpdate for other nodes
 //   - Shutdown event
 // VENKAT: This is where handling of Pod Create/Update/Delete done. IMPORTANT
+// also handles updatePodCustomIfs
 func (n *IPNet) Update(event controller.Event, txn controller.UpdateOperations) (change string, err error) {
 
 	// add pod from CNI
@@ -46,6 +47,7 @@ func (n *IPNet) Update(event controller.Event, txn controller.UpdateOperations) 
 
 		// if the pod metadata is already known and pod already has an IP address, progress with pod custom ifs update
 		if podMeta, hadPodMeta := n.PodManager.GetPods()[addPod.Pod]; hadPodMeta {
+			// VENKAT: PodCustomIfs
 			if podMeta.IPAddress != "" && hasContivCustomIfAnnotation(podMeta.Annotations) {
 				err = n.EventLoop.PushEvent(&PodCustomIfUpdate{
 					PodID:       addPod.Pod,
@@ -63,6 +65,7 @@ func (n *IPNet) Update(event controller.Event, txn controller.UpdateOperations) 
 
 	// del pod from CNI
 	if delPod, isDeletePod := event.(*podmanager.DeletePod); isDeletePod {
+		// VENKAT: PodCustomIfs
 		// delete custom interfaces
 		change, err := n.updatePodCustomIfs(delPod.Pod, txn, configDelete)
 		if err != nil {
@@ -350,6 +353,7 @@ func (n *IPNet) deletePod(event *podmanager.DeletePod, txn controller.UpdateOper
 }
 
 // updatePodCustomIfs adds or deletes pod custom interfaces configuration (if requested by pod annotations).
+// VENKAT: CustomPodIfs
 func (n *IPNet) updatePodCustomIfs(podID podmodel.ID, txn controller.UpdateOperations,
 	eventType configEventType) (change string, err error) {
 	pod := n.PodManager.GetLocalPods()[podID]

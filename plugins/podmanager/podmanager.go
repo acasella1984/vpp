@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate protoc -I ./cni --gogo_out=plugins=grpc:./cni ./cni/cni.proto
+//go:generate protoc -I ./cni --go_out=plugins=grpc:./cni ./cni/cni.proto
 
 package podmanager
 
@@ -23,8 +23,8 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 
-	"github.com/ligato/cn-infra/infra"
-	"github.com/ligato/cn-infra/rpc/grpc"
+	"go.ligato.io/cn-infra/v2/infra"
+	"go.ligato.io/cn-infra/v2/rpc/grpc"
 
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	podmodel "github.com/contiv/vpp/plugins/ksr/model/pod"

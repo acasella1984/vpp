@@ -158,8 +158,8 @@ const (
 
 // Security associations default parameters
 const (
-	DefaultInboundSAIndex      = "10"
-	DefaultOutboundSAIndex     = "20"
+	DefaultInboundSAIndex      = 10
+	DefaultOutboundSAIndex     = 20
 	DefaultInboundSPIIndex     = 1000
 	DefaultOutboundSPIIndex    = 1001
 	DefaultAuthAlgorithm       = Sha1
