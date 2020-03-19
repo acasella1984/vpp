@@ -60,7 +60,7 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
 	case *sasemodel.SaseConfig:
 		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
 	case *sasemodel.IPSecVpnTunnel:
-		rndr.AddIPSecVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
+		rndr.AddIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
 	case *sasemodel.SecurityAssociation:
 		rndr.AddSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation))
 	default:
@@ -93,7 +93,7 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 	case *sasemodel.SaseConfig:
 		rndr.DeletePolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
 	case *sasemodel.IPSecVpnTunnel:
-		rndr.DeleteIPSecVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
+		rndr.DeleteIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
 	case *sasemodel.SecurityAssociation:
 		rndr.DeleteSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation))
 	default:
@@ -157,6 +157,72 @@ func (rndr *Renderer) DeleteIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *
 
 }
 
+///////////////////// IPinIP Tunnel Routines //////////////////
+
+// AddIPinIPVpnTunnel adds ip in ip vpn tunnel
+func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+	vppIPIPTunnel := &vpp_interfaces.IPIPLink{
+		TunnelMode: vpp_interfaces.IPIPLink_POINT_TO_POINT,
+		SrcAddr:    sp.TunnelSourceIp,
+		DstAddr:    sp.TunnelDestinationIp,
+	}
+
+	vppIPinIPInterface := &vpp_interfaces.Interface{
+		Name:        sp.TunnelName,
+		Type:        vpp_interfaces.Interface_IPIP_TUNNEL,
+		Enabled:     true,
+		IpAddresses: []string{sp.TunnelSourceIp},
+		Link: &vpp_interfaces.Interface_Ipip{
+			Ipip: vppIPIPTunnel,
+		},
+	}
+
+	rndr.Log.Infof("AddIPinIPVpnTunnel: vppIPinIPInterface: %v", vppIPinIPInterface)
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface, config.Add)
+	}
+
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface, config.Add)
+}
+
+// DeleteIPinIPVpnTunnel deletes an existing ip in ip vpn tunnel
+func (rndr *Renderer) DeleteIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+
+	vppIPinIPInterface := &vpp_interfaces.Interface{
+		Name: sp.TunnelName,
+	}
+
+	rndr.Log.Infof("DeleteIPinIPVpnTunnel: vppIPinIPInterface: %v", vppIPinIPInterface)
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface, config.Delete)
+	}
+
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface, config.Delete)
+
+}
+
+/////////////////// IPinIP Tunnel Protect Routines /////////////////
+
+// IPinIPVpnTunnelProtectionAdd :
+func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(tunnelName string, saIn, saOut []uint32) error {
+
+	tunnelProtect := &vpp_ipsec.TunnelProtection{}
+
+	rndr.Log.Infof("IPinIPVpnTunnelProtectionAdd: tunnelProtect: %v", tunnelProtect)
+	return nil
+}
+
+// IPinIPVpnTunnelProtectionDelete :
+func (rndr *Renderer) IPinIPVpnTunnelProtectionDelete(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+
+	return nil
+
+}
+
 ////////////////// IPSec VPN Tunnel Config Handlers //////////////////////////////////
 
 // AddSecurityAssociation adds new security association
@@ -166,7 +232,7 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 
 	// Render Inbound and Outbound Security associations
 	vppSaIn := &vpp_ipsec.SecurityAssociation{
-		Index:     config.DefaultInboundSAIndex, 
+		Index:     config.DefaultInboundSAIndex,
 		Spi:       config.DefaultInboundSPIIndex,
 		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
 		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,
