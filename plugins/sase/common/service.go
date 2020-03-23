@@ -68,7 +68,10 @@ func GetBaseVppServices() []PodSaseServiceInfo {
 			serviceType:     firewall},
 		{serviceID: baseServiceID,
 			serviceLocation: baseServiceLocation,
-			serviceType:     nat}}
+			serviceType:     nat},
+		{serviceID: baseServiceID,
+			serviceLocation: baseServiceLocation,
+			serviceType:     ipsecVpn}}
 
 	return addService
 }
