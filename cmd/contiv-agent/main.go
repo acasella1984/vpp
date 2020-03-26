@@ -18,17 +18,17 @@ import (
 	"os"
 	"time"
 
- 	"go.ligato.io/cn-infra/v2/agent"
- 	"go.ligato.io/cn-infra/v2/db/keyval/bolt"
- 	"go.ligato.io/cn-infra/v2/db/keyval/etcd"
- 	"go.ligato.io/cn-infra/v2/health/probe"
- 	"go.ligato.io/cn-infra/v2/health/statuscheck"
- 	"go.ligato.io/cn-infra/v2/logging"
- 	"go.ligato.io/cn-infra/v2/logging/logmanager"
- 	"go.ligato.io/cn-infra/v2/logging/logrus"
- 	"go.ligato.io/cn-infra/v2/rpc/grpc"
- 	"go.ligato.io/cn-infra/v2/rpc/prometheus"
- 	"go.ligato.io/cn-infra/v2/rpc/rest"
+	"go.ligato.io/cn-infra/v2/agent"
+	"go.ligato.io/cn-infra/v2/db/keyval/bolt"
+	"go.ligato.io/cn-infra/v2/db/keyval/etcd"
+	"go.ligato.io/cn-infra/v2/health/probe"
+	"go.ligato.io/cn-infra/v2/health/statuscheck"
+	"go.ligato.io/cn-infra/v2/logging"
+	"go.ligato.io/cn-infra/v2/logging/logmanager"
+	"go.ligato.io/cn-infra/v2/logging/logrus"
+	"go.ligato.io/cn-infra/v2/rpc/grpc"
+	"go.ligato.io/cn-infra/v2/rpc/prometheus"
+	"go.ligato.io/cn-infra/v2/rpc/rest"
 
 	"github.com/contiv/vpp/plugins/bgpreflector"
 	"github.com/contiv/vpp/plugins/contivconf"
@@ -57,6 +57,7 @@ import (
 	"go.ligato.io/vpp-agent/v3/plugins/telemetry"
 	vpp_aclplugin "go.ligato.io/vpp-agent/v3/plugins/vpp/aclplugin"
 	vpp_ifplugin "go.ligato.io/vpp-agent/v3/plugins/vpp/ifplugin"
+	vpp_ipsecplugin "go.ligato.io/vpp-agent/v3/plugins/vpp/ipsecplugin"
 	vpp_l2plugin "go.ligato.io/vpp-agent/v3/plugins/vpp/l2plugin"
 	vpp_l3plugin "go.ligato.io/vpp-agent/v3/plugins/vpp/l3plugin"
 	vpp_natplugin "go.ligato.io/vpp-agent/v3/plugins/vpp/natplugin"
@@ -93,6 +94,7 @@ type ContivAgent struct {
 	VPPSTNPlugin        *vpp_stnplugin.STNPlugin
 	VPPPuntPlugin       *vpp_puntplugin.PuntPlugin
 	VPPSRPlugin         *vpp_srplugin.SRPlugin
+	VPPIPSecPlugin      *vpp_ipsecplugin.IPSecPlugin
 
 	Telemetry *telemetry.Plugin
 	GRPC      *grpc.Plugin
@@ -301,6 +303,7 @@ func main() {
 		VPPSTNPlugin:        &vpp_stnplugin.DefaultPlugin,
 		VPPPuntPlugin:       &vpp_puntplugin.DefaultPlugin,
 		VPPSRPlugin:         &vpp_srplugin.DefaultPlugin,
+		VPPIPSecPlugin:      &vpp_ipsecplugin.DefaultPlugin,
 		Telemetry:           &telemetry.DefaultPlugin,
 		GRPC:                &grpc.DefaultPlugin,
 		REST:                &rest_plugin.DefaultPlugin,

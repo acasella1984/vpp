@@ -179,7 +179,7 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 		},
 	}
 
-	rndr.Log.Infof("AddIPinIPVpnTunnel: vppIPinIPInterface: %v", vppIPinIPInterface)
+	rndr.Log.Info("AddIPinIPVpnTunnel: vppIPinIPInterface: ", vppIPinIPInterface)
 
 	// Test Purpose
 	if rndr.MockTest {
@@ -188,8 +188,8 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Infof(" AddIPinIPVpnTunnel: Post txn to local vpp agent",
-			"Key: ", vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), "Value: %v", vppIPinIPInterface)
+		rndr.Log.Info(" AddIPinIPVpnTunnel: Post txn to local vpp agent",
+			"Key: ", vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), "Value: ", vppIPinIPInterface)
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnel %s", vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name)))
 		txn.Put(vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface)
 	} else {
@@ -200,6 +200,8 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 	var saIn, saOut []uint32
 	saIn = append(saIn, uint32(config.DefaultInboundSAIndex))
 	saOut = append(saOut, uint32(config.DefaultOutboundSAIndex))
+
+	rndr.Log.Info("AddIPinIPVpnTunnel: Protect the Tunnel with SA: ")
 	return rndr.IPinIPVpnTunnelProtectionAdd(serviceInfo, sp.TunnelName, saIn, saOut)
 }
 
@@ -247,7 +249,7 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceIn
 		SaOut:     saOut,
 	}
 
-	rndr.Log.Infof("IPinIPVpnTunnelProtectionAdd: tunnelProtect: %v", tunnelProtect)
+	rndr.Log.Info("IPinIPVpnTunnelProtectionAdd: tunnelProtect: ", tunnelProtect)
 
 	// Test Purpose
 	if rndr.MockTest {
@@ -256,10 +258,10 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceIn
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Infof(" IPinIPVpnTunnelProtectionAdd: Post txn to local vpp agent",
-			"Key: ", models.Key(tunnelProtect), "Value: %v", tunnelProtect)
+		rndr.Log.Info(" IPinIPVpnTunnelProtectionAdd: Post txn to local vpp agent",
+			"Key: ", models.Key(tunnelProtect), "Value: ", tunnelProtect)
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnelProtectionAdd %s", models.Key(tunnelProtect)))
-		txn.Put(tunnelProtect.Interface, tunnelProtect)
+		txn.Put(models.Key(tunnelProtect), tunnelProtect)
 		return nil
 	}
 
@@ -274,7 +276,7 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionDelete(serviceInfo *common.Servic
 		Interface: tunnelName,
 	}
 
-	rndr.Log.Infof("IPinIPVpnTunnelProtectionDelete: tunnelProtect: %v", tunnelProtect)
+	rndr.Log.Info("IPinIPVpnTunnelProtectionDelete: tunnelProtect: ", tunnelProtect)
 
 	// Test Purpose
 	if rndr.MockTest {
@@ -283,10 +285,10 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionDelete(serviceInfo *common.Servic
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Infof(" IPinIPVpnTunnelProtectionDelete: Post txn to local vpp agent",
-			"Key: ", models.Key(tunnelProtect), "Value: %v", tunnelProtect)
+		rndr.Log.Info(" IPinIPVpnTunnelProtectionDelete: Post txn to local vpp agent",
+			"Key: ", models.Key(tunnelProtect), "Value: ", tunnelProtect)
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnelProtectionDelete %s", models.Key(tunnelProtect)))
-		txn.Delete(tunnelProtect.Interface)
+		txn.Delete(models.Key(tunnelProtect))
 		return nil
 	}
 
@@ -311,7 +313,7 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 		CryptoKey: sp.EncryptSharedKey,
 	}
 
-	rndr.Log.Infof("AddSecurityAssociation: vppSaInbound: %v", vppSaIn)
+	rndr.Log.Info("AddSecurityAssociation: vppSaInbound: ", vppSaIn)
 	// Test Purpose
 	if rndr.MockTest {
 		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Add)
@@ -319,14 +321,14 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Infof(" AddSecurityAssociation InBound: Post txn to local vpp agent",
-			"Key: ", vpp_ipsec.SAKey(vppSaIn.Index), "Value: %v", vppSaIn)
+		rndr.Log.Info(" AddSecurityAssociation InBound: Post txn to local vpp agent",
+			"Key: ", vpp_ipsec.SAKey(vppSaIn.Index), "Value: ", vppSaIn)
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaIn.Index)))
 		txn.Put(vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn)
-		return nil
+	} else {
+		// Commit is for remote VPP based CNF
+		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Add)
 	}
-
-	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Add)
 
 	vppSaOut := &vpp_ipsec.SecurityAssociation{
 		Index:     config.DefaultOutboundSAIndex,
@@ -338,7 +340,7 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 		CryptoKey: sp.EncryptSharedKey,
 	}
 
-	rndr.Log.Infof("AddSecurityAssociation: vppSaOutbound: %v", vppSaOut)
+	rndr.Log.Info("AddSecurityAssociation: vppSaOutbound: ", vppSaOut)
 	// Test Purpose
 	if rndr.MockTest {
 		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
@@ -346,15 +348,14 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Infof(" AddSecurityAssociation OutBound: Post txn to local vpp agent",
-			"Key: ", vpp_ipsec.SAKey(vppSaOut.Index), "Value: %v", vppSaOut)
+		rndr.Log.Info(" AddSecurityAssociation OutBound: Post txn to local vpp agent",
+			"Key: ", vpp_ipsec.SAKey(vppSaOut.Index), "Value: ", vppSaOut)
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaOut.Index)))
 		txn.Put(vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut)
-		return nil
+	} else {
+		// Commit is for remote VPP based CNF
+		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
 	}
-
-	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
-
 	return nil
 }
 
@@ -371,7 +372,7 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 		Index: config.DefaultInboundSAIndex,
 	}
 
-	rndr.Log.Infof("DeleteSecurityAssociation: vppSaInbound: %v", vppSaIn)
+	rndr.Log.Info("DeleteSecurityAssociation: vppSaInbound: ", vppSaIn)
 	// Test Purpose
 	if rndr.MockTest {
 		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Delete)
@@ -379,14 +380,14 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Infof(" AddSecurityAssociation InBound: Post txn to local vpp agent",
-			"Key: ", vpp_ipsec.SAKey(vppSaIn.Index), "Value: %v", vppSaIn)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaIn.Index)))
+		rndr.Log.Info(" DeleteSecurityAssociation InBound: Post txn to local vpp agent",
+			"Key: ", vpp_ipsec.SAKey(vppSaIn.Index), "Value: ", vppSaIn)
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("DeleteSecurityAssociation %s", vpp_ipsec.SAKey(vppSaIn.Index)))
 		txn.Delete(vpp_ipsec.SAKey(vppSaIn.Index))
-		return nil
-	}
+	} else {
 
-	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Delete)
+		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Delete)
+	}
 
 	vppSaOut := &vpp_ipsec.SecurityAssociation{
 		Index: config.DefaultOutboundSAIndex,
@@ -400,14 +401,13 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Infof(" AddSecurityAssociation OutBound: Post txn to local vpp agent",
-			"Key: ", vpp_ipsec.SAKey(vppSaOut.Index), "Value: %v", vppSaOut)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaOut.Index)))
+		rndr.Log.Info(" DeleteSecurityAssociation OutBound: Post txn to local vpp agent",
+			"Key: ", vpp_ipsec.SAKey(vppSaOut.Index), "Value: ", vppSaOut)
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("DeleteSecurityAssociation %s", vpp_ipsec.SAKey(vppSaOut.Index)))
 		txn.Delete(vpp_ipsec.SAKey(vppSaOut.Index))
-		return nil
+	} else {
+		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Delete)
 	}
-
-	renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Delete)
 
 	return nil
 }
