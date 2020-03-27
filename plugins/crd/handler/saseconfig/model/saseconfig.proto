@@ -35,20 +35,23 @@ message SaseConfig {
 
     // Sase Rule Match Attribute.
     message Match {
-        // interface name 
-        string interface_name = 1;
+        // source interface name 
+        string src_interface_name = 1;
+
+        // destination interface name 
+        string dst_interface_name = 2;
 
         // source mac address 
-        string source_mac = 2;
+        string source_mac = 3;
 
         // source ip address
-        string source_ip = 3;
+        string source_ip = 4;
 
         // destination mac address 
-        string destination_mac = 4;
+        string destination_mac = 5;
 
         // destination ip address
-        string destination_ip = 5;
+        string destination_ip = 6;
 
         // Protocol 
         enum Proto {
@@ -57,10 +60,10 @@ message SaseConfig {
             UDP = 2;
         }
 
-        Proto protocol = 6;
+        Proto protocol = 7;
 
         // Application Port 
-        uint32 port = 7;
+        uint32 port = 8;
     }
     // Sase Rule Match condition
     Match match = 4;

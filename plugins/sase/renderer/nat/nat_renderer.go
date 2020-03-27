@@ -18,8 +18,7 @@ package natservice
 
 import (
 	"net"
-
-	"github.com/gogo/protobuf/proto"
+	"fmt"
 	"go.ligato.io/cn-infra/v2/logging"
 
 	"github.com/contiv/vpp/plugins/contivconf"
@@ -100,12 +99,132 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 	return nil
 }
 
+// AddPolicy adds NAT related policies
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+
+	// Source NAT configuration
+	if sp.Action == sasemodel.SaseConfig_SNAT {
+
+		// Ingress NAT Interface
+		nat44IngressIntf := &vpp_nat.Nat44Interface{
+			Name:          sp.Match.SrcInterfaceName,
+			NatInside:     true,
+			OutputFeature: true,
+		}
+
+		// Test Purpose
+		if rndr.MockTest {
+			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
+				nat44IngressIntf, config.Add)
+		}
+
+		// Txn is for local base VPP CNF
+		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+			rndr.Log.Info(" AddPolicy NAT Inside Interface: Post txn to local vpp agent",
+				"Key: ", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), "Value: ", nat44IngressIntf)
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Inside Interface %s", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name)))
+			txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
+		} else {
+			// Txn is for remote VPP based CNF
+			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
+				nat44IngressIntf, config.Add)
+		}
+
+		// Egress NAT Interface
+		nat44EgressIntf := &vpp_nat.Nat44Interface{
+			Name:          sp.Match.DstInterfaceName,
+			NatInside:     false,
+			OutputFeature: true,
+		}
+
+		// Test Purpose
+		if rndr.MockTest {
+			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
+				nat44EgressIntf, config.Add)
+		}
+
+		// Txn is for local base VPP CNF
+		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+			rndr.Log.Info(" AddPolicy NAT Outside Interface: Post txn to local vpp agent",
+				"Key: ", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), "Value: ", nat44EgressIntf)
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Outside Interface %s", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name)))
+			txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+		} else {
+			// Txn is for remote VPP based CNF
+			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
+				nat44EgressIntf, config.Add)
+		}
+	}
+	return nil
+
+}
+
+// DeletePolicy deletes NAT related policies
+func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+
+	// Source NAT configuration
+	if sp.Action == sasemodel.SaseConfig_SNAT {
+
+		// Ingress NAT Interface
+		nat44IngressIntf := &vpp_nat.Nat44Interface{
+			Name:          sp.Match.SrcInterfaceName,
+			NatInside:     true,
+			OutputFeature: true,
+		}
+
+		// Test Purpose
+		if rndr.MockTest {
+			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
+				nat44IngressIntf, config.Add)
+		}
+
+		// Txn is for local base VPP CNF
+		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+			rndr.Log.Info(" DeletePolicy NAT Inside Interface: Post txn to local vpp agent",
+				"Key: ", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), "Value: ", nat44IngressIntf)
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("DeletePolicy NAT Inside Interface %s", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name)))
+			txn.Delete(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name))
+		} else {
+			// Txn is for remote VPP based CNF
+			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
+				nat44IngressIntf, config.Delete)
+		}
+
+		// Egress NAT Interface
+		nat44EgressIntf := &vpp_nat.Nat44Interface{
+			Name:          sp.Match.DstInterfaceName,
+			NatOutside:     true,
+			OutputFeature: true,
+		}
+
+		// Test Purpose
+		if rndr.MockTest {
+			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
+				nat44EgressIntf, config.Delete)
+		}
+
+		// Txn is for local base VPP CNF
+		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+			rndr.Log.Info(" DeletePolicy NAT Outside Interface: Post txn to local vpp agent",
+				"Key: ", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), "Value: ", nat44EgressIntf)
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("DeletePolicy NAT Outside Interface %s", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name)))
+			txn.Delete(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name))
+		} else {
+			// Txn is for remote VPP based CNF
+			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
+				nat44EgressIntf, config.Delete)
+		}
+	}
+	return nil
+}
+
+/*
 // AddPolicy adds route related policies
 func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
 	var key string
 	var vppNAT proto.Message
 	// convert Sase Service Policy to native NAT representation
-	natRule := convertSasePolicyToNatRule(serviceInfo.Pod, sp)
+	natRule := convertSasePolicyToNatRule(serviceInfo, sp)
 	if natRule.Type == SourceNAT {
 		rndr.Log.Infof("AddPolicy: SNAT NatRule: %v", natRule.SNat)
 		vppNAT = rndr.renderVppSNAT(natRule)
@@ -137,7 +256,7 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 	var vppNAT proto.Message
 	rndr.Log.Info("NAT Service: DeletePolicy: ")
 	// convert Sase Service Policy to native NAT representation
-	natRule := convertSasePolicyToNatRule(serviceInfo.Pod, sp)
+	natRule := convertSasePolicyToNatRule(serviceInfo, sp)
 	rndr.Log.Infof("DeletePolicy: NatRule: %v", natRule)
 	if natRule.Type == SourceNAT {
 		vppNAT = rndr.renderVppSNAT(natRule)
@@ -156,32 +275,45 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 }
 
 // convertSasePolicyToNatRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToNatRule(pod *common.PodInfo, sp *sasemodel.SaseConfig) *NATRule {
+func convertSasePolicyToNatRule(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) *NATRule {
 
 	// Convert Sase Policy into native SNAT or DNAT rule
 	rule := &NATRule{}
 	// SNAT
 	if sp.GetAction() == sasemodel.SaseConfig_SNAT {
 		snatRule := &SNATConfig{}
-		for _, intf := range pod.Interfaces {
-			if intf.IsIngress == true {
-				// Inside Interface
-				snatRule.LocalInterfaces = append(snatRule.LocalInterfaces,
-					config.Interface{
-						Name:    intf.InternalName,
-						IsLocal: true})
-				snatRule.LocalSubnetList = append(snatRule.LocalSubnetList,
-					config.Subnets{
-						Subnet: intf.IPAddress})
-			} else {
-				// Outside Interface
-				snatRule.ExternalInterface = append(snatRule.ExternalInterface,
-					config.Interface{
-						Name:    intf.InternalName,
-						IsLocal: false})
-				snatRule.ExternalIP = append(snatRule.ExternalIP,
-					config.Subnets{
-						Subnet: intf.IPAddress})
+
+		// Commit is for local base vpp vswitch
+		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+			snatRule.LocalInterfaces = append(snatRule.LocalInterfaces,
+				config.Interface{
+					Name:    sp.Match.SrcInterfaceName,
+					IsLocal: true})
+			snatRule.ExternalInterface = append(snatRule.ExternalInterface,
+				config.Interface{
+					Name:    sp.Match.DstInterfaceName,
+					IsLocal: true})
+		} else {
+			for _, intf := range serviceInfo.Pod.Interfaces {
+				if intf.IsIngress == true {
+					// Inside Interface
+					snatRule.LocalInterfaces = append(snatRule.LocalInterfaces,
+						config.Interface{
+							Name:    intf.InternalName,
+							IsLocal: true})
+					snatRule.LocalSubnetList = append(snatRule.LocalSubnetList,
+						config.Subnets{
+							Subnet: intf.IPAddress})
+				} else {
+					// Outside Interface
+					snatRule.ExternalInterface = append(snatRule.ExternalInterface,
+						config.Interface{
+							Name:    intf.InternalName,
+							IsLocal: false})
+					snatRule.ExternalIP = append(snatRule.ExternalIP,
+						config.Subnets{
+							Subnet: intf.IPAddress})
+				}
 			}
 		}
 		// Assign SNAT rule to NATRule
@@ -191,7 +323,7 @@ func convertSasePolicyToNatRule(pod *common.PodInfo, sp *sasemodel.SaseConfig) *
 		// DNAT: TBD
 	}
 	return rule
-}
+} */
 
 // NatType :
 type NatType int

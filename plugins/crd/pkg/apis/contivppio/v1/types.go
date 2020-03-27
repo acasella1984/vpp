@@ -227,7 +227,8 @@ type SasePolicyRuleMatch struct {
 	ProtocolPort    uint32 `json:"protocolport"`
 	SourceCIDR      string `json:"sourcecidr"`
 	DestinationCIDR string `json:"destinationcidr"`
-	Port            string `json:"port"`
+	SrcPort         string `json:"srcport"`
+	DstPort			string `json:"dstport"`
 }
 
 // SasePolicyRuleAction specifies action to be taken when a policy match happens

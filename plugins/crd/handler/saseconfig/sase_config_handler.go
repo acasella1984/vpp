@@ -159,7 +159,8 @@ func convertSasePolicyRuleMatchToProto(match v1.SasePolicyRuleMatch) *model.Sase
 
 	// Policy Match Rule in ProtoBuf
 	matchPb := &model.SaseConfig_Match{
-		InterfaceName: match.Port,
+		SrcInterfaceName: match.SrcPort,
+		DstInterfaceName: match.DstPort,
 		SourceIp:      match.SourceCIDR,
 		DestinationIp: match.DestinationCIDR,
 		Protocol:      getPbProto(match.Protocol),
