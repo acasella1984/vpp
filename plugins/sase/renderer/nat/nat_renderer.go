@@ -17,9 +17,9 @@
 package natservice
 
 import (
-	"net"
 	"fmt"
 	"go.ligato.io/cn-infra/v2/logging"
+	"net"
 
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
@@ -133,7 +133,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 		// Egress NAT Interface
 		nat44EgressIntf := &vpp_nat.Nat44Interface{
 			Name:          sp.Match.DstInterfaceName,
-			NatInside:     false,
+			NatOutside:     true,
 			OutputFeature: true,
 		}
 
@@ -149,10 +149,39 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 				"Key: ", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), "Value: ", nat44EgressIntf)
 			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Outside Interface %s", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name)))
 			txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+
 		} else {
 			// Txn is for remote VPP based CNF
 			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
 				nat44EgressIntf, config.Add)
+		}
+
+		// Add Outside Interface IP Address to NAT Address Pool
+		nat44EgressAddress := &vpp_nat.Nat44AddressPool{
+			VrfId:   0,
+			FirstIp: sp.Match.DestinationIp,
+			LastIp:  sp.Match.DestinationIp,
+		}
+
+		// Test Purpose
+		if rndr.MockTest {
+			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+				nat44EgressAddress, config.Add)
+		}
+
+		// Txn is for local base VPP CNF
+		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+			rndr.Log.Info(" AddPolicy NAT AddressPool: Post txn to local vpp agent",
+				"Key: ", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+				"Value: ", nat44EgressAddress)
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT AddressPool %s", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp)))
+			txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+				nat44EgressAddress)
+
+		} else {
+			// Txn is for remote VPP based CNF
+			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+				nat44EgressAddress, config.Add)
 		}
 	}
 	return nil
@@ -193,7 +222,7 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 		// Egress NAT Interface
 		nat44EgressIntf := &vpp_nat.Nat44Interface{
 			Name:          sp.Match.DstInterfaceName,
-			NatOutside:     true,
+			NatOutside:    true,
 			OutputFeature: true,
 		}
 
@@ -213,6 +242,33 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 			// Txn is for remote VPP based CNF
 			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
 				nat44EgressIntf, config.Delete)
+		}
+
+		// Outside Interface IP Address to NAT Address Pool
+		nat44EgressAddress := &vpp_nat.Nat44AddressPool{
+			VrfId:   0,
+			FirstIp: sp.Match.DestinationIp,
+			LastIp:  sp.Match.DestinationIp,
+		}
+
+		// Test Purpose
+		if rndr.MockTest {
+			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+				nat44EgressAddress, config.Delete)
+		}
+
+		// Txn is for local base VPP CNF
+		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+			rndr.Log.Info(" DelPolicy NAT AddressPool: Post txn to local vpp agent",
+				"Key: ", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+				"Value: ", nat44EgressAddress)
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("DelPolicy NAT AddressPool %s", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp)))
+			txn.Delete(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp))
+
+		} else {
+			// Txn is for remote VPP based CNF
+			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+				nat44EgressAddress, config.Delete)
 		}
 	}
 	return nil
