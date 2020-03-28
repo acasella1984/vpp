@@ -83,6 +83,7 @@ func (sp *SaseServiceProcessor) Init() error {
 	sp.renderers = make(map[common.SaseServiceType]renderer.SaseServiceRendererAPI)
 	sp.podsList = make(map[podmodel.ID]*common.PodInfo)
 	sp.services = make(map[common.PodSaseServiceInfo]*common.ServiceInfo)
+	sp.ipSecVpnTunnel = make(map[string]*sasemodel.IPSecVpnTunnel)
 	return nil
 }
 
@@ -412,6 +413,10 @@ func (sp *SaseServiceProcessor) ProcessNewIPSecVpnTunnelConfig(cfg *sasemodel.IP
 		Config:      cfg,
 	}
 	err = rndr.AddServiceConfig(p)
+
+	// Cache the tunnel information which could be referenced in other Sase configurations
+	// eg. Route Config
+	sp.ipSecVpnTunnel[cfg.TunnelName] = cfg
 	return err
 }
 
@@ -507,43 +512,57 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 			// Case 2 or Case 3 or Case4
 			// Expected to have a valid Next Hop IP Address
 			// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
-			ip := net.ParseIP(cfg.GatewayAddress)
-			if ip.To4() == nil {
-				sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
-				return nil
+
+			// Check if egress interface is a tunnel Interface
+			if _, ok := sp.ipSecVpnTunnel[cfg.EgressInterface]; ok {
+				egrIntf = cfg.EgressInterface
+				gatewayIP = config.NotRequired
+			} else {
+
+				ip := net.ParseIP(cfg.GatewayAddress)
+				if ip.To4() == nil {
+					sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+					return nil
+				}
+				gatewayIP = cfg.GatewayAddress
+				// Egress Interface?? Is it required?? To Check - VENKAT
+				egrIntf = config.NotRequired
 			}
-			gatewayIP = cfg.GatewayAddress
 			// Get VRF information where route needs to be installed
 			if common.IsGlobalVrf(cfg.GatewayNetworkScope) == true {
 				egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
 			} else {
 				egrVrfID, _ = sp.IPNet.GetOrAllocateVrfID(cfg.GatewayNetworkScope)
 			}
-			// Egress Interface?? Is it required?? To Check - VENKAT
-			egrIntf = config.NotRequired
 		}
 	} else {
 
 		// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
-		ip := net.ParseIP(cfg.GatewayAddress)
-		if ip.To4() == nil {
-			sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
-			// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
-			// Assumption here is there is only one interface in the given networkScope that leads towards
-			// base VPP
-			intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
-			if err != nil {
-				return err
-			}
-			// gateway IP
-			gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
-			// Get Egress Interface Name
-			egrIntf = intfInfo.Name
+		// Check if egress interface is a tunnel Interface
+		if _, ok := sp.ipSecVpnTunnel[cfg.EgressInterface]; ok {
+			egrIntf = cfg.EgressInterface
+			gatewayIP = config.NotRequired
 		} else {
-			gatewayIP = cfg.GatewayAddress
-			egrIntf = config.NotRequired
+			ip := net.ParseIP(cfg.GatewayAddress)
+			if ip.To4() == nil {
+				sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+				// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
+				// Assumption here is there is only one interface in the given networkScope that leads towards
+				// base VPP
+				intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+				if err != nil {
+					return err
+				}
+				// gateway IP
+				gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
+				// Get Egress Interface Name
+				egrIntf = intfInfo.Name
+			} else {
+				gatewayIP = cfg.GatewayAddress
+				egrIntf = config.NotRequired
+			}
+			egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
 		}
-		egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
 	}
 
 	// Route Type. Route Installation Vrf and egress interface Vrf if different, then InterVrf
@@ -644,42 +663,53 @@ func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.
 			// Case 2 or Case 3 or Case4
 			// Expected to have a valid Next Hop IP Address
 			// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
-			ip := net.ParseIP(cfg.GatewayAddress)
-			if ip.To4() == nil {
-				sp.Log.Info("ProcessDeletedServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
-				return nil
+			// Check if egress interface is a tunnel Interface
+			if _, ok := sp.ipSecVpnTunnel[cfg.EgressInterface]; ok {
+				egrIntf = cfg.EgressInterface
+				gatewayIP = config.NotRequired
+			} else {
+				ip := net.ParseIP(cfg.GatewayAddress)
+				if ip.To4() == nil {
+					sp.Log.Info("ProcessDeletedServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+					return nil
+				}
+				gatewayIP = cfg.GatewayAddress
+				// Egress Interface?? Is it required?? To Check - VENKAT
+				egrIntf = config.NotRequired
 			}
-			gatewayIP = cfg.GatewayAddress
 			// Get VRF information where route needs to be installed
 			if common.IsGlobalVrf(cfg.GatewayNetworkScope) == true {
 				egrVrfID = sp.ContivConf.GetRoutingConfig().MainVRFID
 			} else {
 				egrVrfID, _ = sp.IPNet.GetOrAllocateVrfID(cfg.GatewayNetworkScope)
 			}
-			// Egress Interface?? Is it required?? To Check - VENKAT
-			egrIntf = config.NotRequired
 		}
 
 	} else {
 		// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
 		// Valid Gateway IP Address is provided, then we don't need to derive egress Interface
-		ip := net.ParseIP(cfg.GatewayAddress)
-		if ip.To4() == nil {
-			sp.Log.Info("ProcessNewServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
-			// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
-			// Assumption here is there is only one interface in the given networkScope that leads towards
-			// base VPP
-			intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
-			if err != nil {
-				return err
-			}
-			// gateway IP
-			gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
-			// Get Egress Interface Name
-			egrIntf = intfInfo.Name
+		if _, ok := sp.ipSecVpnTunnel[cfg.EgressInterface]; ok {
+			egrIntf = cfg.EgressInterface
+			gatewayIP = config.NotRequired
 		} else {
-			gatewayIP = cfg.GatewayAddress
-			egrIntf = config.NotRequired
+			ip := net.ParseIP(cfg.GatewayAddress)
+			if ip.To4() == nil {
+				sp.Log.Info("ProcessDeletedServiceRouteConfig: Invalid IP Address", cfg.GatewayAddress)
+				// Case 4: Route to be added in Remote VPP CNF destined towards base vswitch
+				// Assumption here is there is only one interface in the given networkScope that leads towards
+				// base VPP
+				intfInfo, err := serviceInfo.Pod.GetPodInterfaceInfoInCustomNet(cfg.GatewayNetworkScope)
+				if err != nil {
+					return err
+				}
+				// gateway IP
+				gatewayIP = sp.IPAM.PodGatewayIP(cfg.GatewayNetworkScope).String()
+				// Get Egress Interface Name
+				egrIntf = intfInfo.Name
+			} else {
+				gatewayIP = cfg.GatewayAddress
+				egrIntf = config.NotRequired
+			}
 		}
 	}
 

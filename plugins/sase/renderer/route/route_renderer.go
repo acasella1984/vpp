@@ -139,16 +139,20 @@ func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *Route
 	rndr.Log.Infof("Route Service: AddServiceRoute: ")
 
 	vppRoute := &vpp_l3.Route{
-		Type:        getVPPRouteType(sp.Type),
-		VrfId:       sp.VrfID,
-		DstNetwork:  sp.DestNetwork,
-		NextHopAddr: sp.NextHop,
+		Type:       getVPPRouteType(sp.Type),
+		VrfId:      sp.VrfID,
+		DstNetwork: sp.DestNetwork,
+		//NextHopAddr: sp.NextHop,
 		//OutgoingInterface: sp.EgressIntf.Name,
 		ViaVrfId: sp.EgressIntf.VrfID,
 	}
 
 	if sp.EgressIntf.Name != config.NotRequired {
 		vppRoute.OutgoingInterface = sp.EgressIntf.Name
+	}
+
+	if sp.NextHop != config.NotRequired {
+		vppRoute.NextHopAddr = sp.NextHop
 	}
 
 	// Mock Commit for Test Purpose
@@ -179,13 +183,17 @@ func (rndr *Renderer) DeleteServiceRoute(serviceInfo *common.ServiceInfo, sp *Ro
 		Type:        getVPPRouteType(sp.Type),
 		VrfId:       sp.VrfID,
 		DstNetwork:  sp.DestNetwork,
-		NextHopAddr: sp.NextHop,
+		//NextHopAddr: sp.NextHop,
 		//OutgoingInterface: sp.EgressIntf.Name,
 		ViaVrfId: sp.EgressIntf.VrfID,
 	}
 
 	if sp.EgressIntf.Name != config.NotRequired {
 		vppRoute.OutgoingInterface = sp.EgressIntf.Name
+	}
+
+	if sp.NextHop != config.NotRequired {
+		vppRoute.NextHopAddr = sp.NextHop
 	}
 
 	// Mock Commit for Test Purpose
