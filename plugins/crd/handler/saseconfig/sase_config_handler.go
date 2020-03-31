@@ -27,6 +27,7 @@ import (
 	"github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"go.ligato.io/cn-infra/v2/logging"
 )
 
@@ -205,3 +206,80 @@ func convertSasePolicyRuleToProto(rule v1.SaseServicePolicySpec) *model.SaseConf
 
 	return rulePb
 }
+
+// SaseServiceValidation generates OpenAPIV3 validator for Sase Service CRD
+func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
+	validation := &apiextv1beta1.CustomResourceValidation{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+			Required: []string{"spec"},
+			Type:     "object",
+			Properties: map[string]apiextv1beta1.JSONSchemaProps{
+				"spec": {
+					Type:     "object",
+					Required: []string{"serviceinstancename","match","action"},
+					Properties: map[string]apiextv1beta1.JSONSchemaProps{
+						"name": {
+							Type: "string",
+						},	
+						"serviceinstancename": {
+							Type: "string",
+						},
+						"match": {
+							Type: "object",
+							Properties: map[string]apiextv1beta1.JSONSchemaProps{
+								"protocol": {
+									Type: "string",
+								},	
+								"protocolport": {
+									Type: "integer",
+								},	
+								"sourcecidr": {
+									Type: "string",
+								},	
+								"destinationcidr": {
+									Type: "string",
+								},	
+								"srcport": {
+									Type: "string",
+								},	
+								"dstport": {
+									Type: "string",
+								},
+							},
+						},
+						"action": {
+							Type: "object",
+							Properties: map[string]apiextv1beta1.JSONSchemaProps{
+								"action": {
+									Type: "string",
+									Enum: []apiextv1beta1.JSON{
+										{
+											Raw: []byte(`"deny"`),
+										},
+										{
+											Raw: []byte(`"permit"`),
+										},
+										{
+											Raw: []byte(`"snat"`),
+										},
+										{
+											Raw: []byte(`"dnat"`),
+										},
+										{
+											Raw: []byte(`"forward"`),
+										},
+										{
+											Raw: []byte(`"secure"`),
+										},
+									},
+								},	
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return validation
+}
+

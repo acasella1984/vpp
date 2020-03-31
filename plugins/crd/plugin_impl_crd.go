@@ -345,7 +345,7 @@ func (p *Plugin) initializeCRDs() error {
 			Group:    contivppio.GroupName,
 			Version:  "v1",
 			Plural:   "saseservicepolicies",
-			//Validation: saseconfiguration.Validation(),
+			Validation: saseconfiguration.SaseServiceValidation(),
 		},
 	}
 
@@ -375,7 +375,7 @@ func (p *Plugin) initializeCRDs() error {
 			Group:    contivppio.GroupName,
 			Version:  "v1",
 			Plural:   "siteresourcegroups",
-			//Validation: saseconfiguration.Validation(),
+			//Validation: saseconfiguration.SaseServiceValidation(),
 		},
 	}
 
@@ -405,7 +405,7 @@ func (p *Plugin) initializeCRDs() error {
 			Group:    contivppio.GroupName,
 			Version:  "v1",
 			Plural:   "securityassociations",
-			//Validation: saseconfiguration.Validation(),
+			Validation: saseconfiguration.SAValidation(),
 		},
 	}
 
@@ -435,7 +435,7 @@ func (p *Plugin) initializeCRDs() error {
 			Group:    contivppio.GroupName,
 			Version:  "v1",
 			Plural:   "ipsecvpntunnels",
-			//Validation: saseconfiguration.Validation(),
+			Validation: saseconfiguration.TunnelValidation(),
 		},
 	}
 
@@ -465,7 +465,7 @@ func (p *Plugin) initializeCRDs() error {
 			Group:    contivppio.GroupName,
 			Version:  "v1",
 			Plural:   "serviceroutes",
-			//Validation: saseconfiguration.Validation(),
+			Validation: saseconfiguration.ServiceRouteValidation(),
 		},
 	}
 

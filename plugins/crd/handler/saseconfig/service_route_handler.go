@@ -27,6 +27,7 @@ import (
 	"github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"go.ligato.io/cn-infra/v2/logging"
 )
 
@@ -107,5 +108,49 @@ func (h *ServiceRouteHandler) PublishCrdStatus(obj interface{}, opRetval error) 
 	return err
 }
 
-// Validation generates OpenAPIV3 validator for SaseServicePolicy CRD
-// VENKAT:: TBD
+// ServiceRouteValidation generates OpenAPIV3 validator for IPSec Tunnel CRD
+func ServiceRouteValidation() *apiextv1beta1.CustomResourceValidation {
+	validation := &apiextv1beta1.CustomResourceValidation{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+			Required: []string{"spec"},
+			Type:     "object",
+			Properties: map[string]apiextv1beta1.JSONSchemaProps{
+				"spec": {
+					Type:     "object",
+					Required: []string{"service","routescope","destinationnetwork","gatewaynetwork"},
+					Properties: map[string]apiextv1beta1.JSONSchemaProps{
+						"service": {
+							Type: "string",
+						},
+						"routescope": {
+							Type: "string",
+						},
+						"routetype": {
+							Type: "string",
+						},	
+						"destinationnetwork": {
+							Type:        "string",
+							Description: "IPv4 or IPv6 address Network with Prefix Length",
+							Pattern: `^[0-9a-fA-F:\.]+/[0-9]+$`,
+						},
+						"gatewayip": {
+							Type:        "string",
+							Description: "IPv4 or IPv6 gateway address",
+							Pattern:     `^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`,
+						},
+						"gatewayserviceID": {
+							Type: "string",
+						},	
+						"gatewaynetwork": {
+							Type: "string",
+						},
+						"egressinterface": {
+							Type: "string",
+						},
+					},
+				},
+			},
+		},
+	}
+	return validation
+}

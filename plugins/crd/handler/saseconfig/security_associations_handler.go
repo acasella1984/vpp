@@ -27,6 +27,7 @@ import (
 	"github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"go.ligato.io/cn-infra/v2/logging"
 )
 
@@ -106,5 +107,48 @@ func (h *SecurityAssociationsHandler) PublishCrdStatus(obj interface{}, opRetval
 	return err
 }
 
-// Validation generates OpenAPIV3 validator for SaseServicePolicy CRD
-// VENKAT:: TBD
+// SAValidation generates OpenAPIV3 validator for Security Association CRD
+func SAValidation() *apiextv1beta1.CustomResourceValidation {
+	validation := &apiextv1beta1.CustomResourceValidation{
+		OpenAPIV3Schema: &apiextv1beta1.JSONSchemaProps{
+			Required: []string{"spec"},
+			Type:     "object",
+			Properties: map[string]apiextv1beta1.JSONSchemaProps{
+				"spec": {
+					Type:     "object",
+					Required: []string{"service","authkey","encryptkey"},
+					Properties: map[string]apiextv1beta1.JSONSchemaProps{
+						"service": {
+							Type: "string",
+						},	
+						"authalgo": {
+							Type: "string",
+						},
+						"authkey": {
+							Type: "string",
+						},
+						"encryptalgo": {
+							Type: "string",
+						},
+						"encryptkey": {
+							Type: "string",
+						},
+						"mode": {
+							Type: "string",
+							Enum: []apiextv1beta1.JSON{
+								{
+									Raw: []byte(`"Tunnel"`),
+								},
+								{
+									Raw: []byte(`"Transport"`),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return validation
+}
+
