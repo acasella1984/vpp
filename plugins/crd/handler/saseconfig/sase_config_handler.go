@@ -216,12 +216,12 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
 				"spec": {
 					Type:     "object",
-					Required: []string{"serviceinstancename", "match", "action"},
+					Required: []string{"service", "match", "action"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"name": {
 							Type: "string",
 						},
-						"serviceinstancename": {
+						"service": {
 							Type: "string",
 						},
 						"direction": {

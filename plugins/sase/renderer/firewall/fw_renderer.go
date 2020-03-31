@@ -135,7 +135,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Firewall Service %s", vpp_acl.Key(vppACL.Name)))
 		txn.Put(vpp_acl.Key(vppACL.Name), vppACL)
 		return nil
-	} 
+	}
 
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
 
@@ -164,6 +164,15 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Delete)
 	}
 
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Info(" Firewall Service: DeletePolicy:  Post txn to local vpp agent",
+			"Key: ", vpp_acl.Key(vppACL.Name), "Value: ", vppACL)
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Firewall Service %s", vpp_acl.Key(vppACL.Name)))
+		txn.Delete(vpp_acl.Key(vppACL.Name))
+		return nil
+	}
+
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Delete)
 }
 
@@ -173,8 +182,16 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 func convertSasePolicyToFirewallRule(sp *sasemodel.SaseConfig) (*FirewallRule, error) {
 
 	// Get Source and Destination Networks
-	_, ipv4SrcNet, _ := net.ParseCIDR(sp.Match.SourceIp)
-	_, ipv4DstNet, _ := net.ParseCIDR(sp.Match.DestinationIp)
+	_, ipv4SrcNet, err := net.ParseCIDR(sp.Match.SourceIp)
+	if err != nil {
+		// Invalid or No Src Network provided in config
+		ipv4SrcNet = nil
+	}
+	_, ipv4DstNet, err := net.ParseCIDR(sp.Match.DestinationIp)
+	if err != nil {
+		// Invalid or No Dst Network provided in config
+		ipv4DstNet = nil
+	}
 
 	// Check for supported actions for firewall service
 	if sp.Action != sasemodel.SaseConfig_PERMIT &&
@@ -268,26 +285,26 @@ func (rndr *Renderer) renderVppACLInterfaces(pod *common.PodInfo, sp *sasemodel.
 	if sp.Direction == sasemodel.SaseConfig_Ingress {
 		aclInterfaces.Ingress = append(aclInterfaces.Ingress, sp.Match.IngressInterfaceName)
 	} else {
-	// Traffic from internal entity going out. Prevent access to internal entity
+		// Traffic from internal entity going out. Prevent access to internal entity
 		aclInterfaces.Egress = append(aclInterfaces.Egress, sp.Match.EgressInterfaceName)
 	}
 
 	/*
-	// Traffic from external entity into the service which firewall is protecting
-	if dir == sasemodel.SaseConfig_Ingress {
-		for _, intf := range pod.Interfaces {
-			if intf.IsIngress == false {
-				aclInterfaces.Ingress = append(aclInterfaces.Ingress, intf.InternalName)
+		// Traffic from external entity into the service which firewall is protecting
+		if dir == sasemodel.SaseConfig_Ingress {
+			for _, intf := range pod.Interfaces {
+				if intf.IsIngress == false {
+					aclInterfaces.Ingress = append(aclInterfaces.Ingress, intf.InternalName)
+				}
 			}
-		}
-	} else {
-		// Traffic from internal entity going out. Prevent access to internal entity
-		for _, intf := range pod.Interfaces {
-			if intf.IsIngress == true {
-				aclInterfaces.Egress = append(aclInterfaces.Ingress, intf.InternalName)
+		} else {
+			// Traffic from internal entity going out. Prevent access to internal entity
+			for _, intf := range pod.Interfaces {
+				if intf.IsIngress == true {
+					aclInterfaces.Egress = append(aclInterfaces.Ingress, intf.InternalName)
+				}
 			}
-		}
-	} */
+		} */
 
 	return aclInterfaces
 }
@@ -310,10 +327,10 @@ func (rndr *Renderer) renderVppACLRule(name string, rule *FirewallRule) *vpp_acl
 
 	aclRule.IpRule = &vpp_acl.ACL_Rule_IpRule{}
 	aclRule.IpRule.Ip = &vpp_acl.ACL_Rule_IpRule_Ip{}
-	if len(rule.SrcNetwork.IP) > 0 {
+	if rule.SrcNetwork != nil && len(rule.SrcNetwork.IP) > 0 {
 		aclRule.IpRule.Ip.SourceNetwork = rule.SrcNetwork.String()
 	}
-	if len(rule.DestNetwork.IP) > 0 {
+	if rule.DestNetwork != nil && len(rule.DestNetwork.IP) > 0 {
 		aclRule.IpRule.Ip.DestinationNetwork = rule.DestNetwork.String()
 	}
 
@@ -357,14 +374,4 @@ func (rndr *Renderer) renderVppACLRule(name string, rule *FirewallRule) *vpp_acl
 	acl.Rules = append(acl.Rules, expandAnyAddr(aclRule)...)
 
 	return acl
-}
-
-// Commit proceeds with the rendering to the local vpp dataplane instead of posting to
-// etcd for re-direction.
-func (rndr *Renderer) Commit(acl *vpp_acl.ACL) error {
-
-	txn := rndr.UpdateTxnFactory(fmt.Sprintf("commit acl %s", acl.Name))
-	txn.Put(vpp_acl.Key(acl.Name), acl)
-
-	return nil
 }
