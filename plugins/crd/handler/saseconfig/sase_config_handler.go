@@ -224,11 +224,30 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 						"serviceinstancename": {
 							Type: "string",
 						},
+						"direction": {
+							Type: "string",
+							Enum: []apiextv1beta1.JSON{
+								{
+									Raw: []byte(`"Ingress"`),
+								},
+								{
+									Raw: []byte(`"Egress"`),
+								},
+							},
+						},
 						"match": {
 							Type: "object",
 							Properties: map[string]apiextv1beta1.JSONSchemaProps{
 								"protocol": {
 									Type: "string",
+									Enum: []apiextv1beta1.JSON{
+										{
+											Raw: []byte(`"TCP"`),
+										},
+										{
+											Raw: []byte(`"UDP"`),
+										},
+									},
 								},	
 								"protocolport": {
 									Type: "integer",
@@ -254,22 +273,22 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 									Type: "string",
 									Enum: []apiextv1beta1.JSON{
 										{
-											Raw: []byte(`"deny"`),
+											Raw: []byte(`"Deny"`),
 										},
 										{
-											Raw: []byte(`"permit"`),
+											Raw: []byte(`"Permit"`),
 										},
 										{
-											Raw: []byte(`"snat"`),
+											Raw: []byte(`"Snat"`),
 										},
 										{
-											Raw: []byte(`"dnat"`),
+											Raw: []byte(`"Dnat"`),
 										},
 										{
-											Raw: []byte(`"forward"`),
+											Raw: []byte(`"Forward"`),
 										},
 										{
-											Raw: []byte(`"secure"`),
+											Raw: []byte(`"Secure"`),
 										},
 									},
 								},	
