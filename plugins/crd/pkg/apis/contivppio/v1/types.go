@@ -223,12 +223,12 @@ type SaseServicePolicy struct {
 
 // SasePolicyRuleMatch specifies match conditions for a policy to be applied
 type SasePolicyRuleMatch struct {
-	Protocol        string `json:"protocol"`
-	ProtocolPort    uint32 `json:"protocolport"`
-	SourceCIDR      string `json:"sourcecidr"`
-	DestinationCIDR string `json:"destinationcidr"`
-	SrcPort         string `json:"srcport"`
-	DstPort			string `json:"dstport"`
+	Protocol         string `json:"protocol"`
+	ProtocolPort     uint32 `json:"protocolport"`
+	SourceCIDR       string `json:"sourcecidr"`
+	DestinationCIDR  string `json:"destinationcidr"`
+	IngressInterface string `json:"ingressInterface"`
+	EgressInterface  string `json:"egressInterface"`
 }
 
 // SasePolicyRuleAction specifies action to be taken when a policy match happens
@@ -239,8 +239,7 @@ type SasePolicyRuleAction struct {
 // SaseServicePolicySpec is for a specific sase service instance
 type SaseServicePolicySpec struct {
 	// Policy Rule Name
-	Name                string               `json:"name"`
-	ServiceInstanceName string               `json:"serviceinstancename"`
+	ServiceInstanceName string               `json:"service"`
 	Direction           string               `json:"direction"`
 	Match               SasePolicyRuleMatch  `json:"match"`
 	Action              SasePolicyRuleAction `json:"action"`

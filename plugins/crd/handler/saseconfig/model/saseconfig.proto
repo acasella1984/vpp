@@ -35,11 +35,11 @@ message SaseConfig {
 
     // Sase Rule Match Attribute.
     message Match {
-        // source interface name 
-        string src_interface_name = 1;
+        // ingress interface name 
+        string ingress_interface_name = 1;
 
-        // destination interface name 
-        string dst_interface_name = 2;
+        // egress interface name 
+        string egress_interface_name = 2;
 
         // source mac address 
         string source_mac = 3;
@@ -63,7 +63,7 @@ message SaseConfig {
         Proto protocol = 7;
 
         // Application Port 
-        uint32 port = 8;
+        uint32 protocol_port = 8;
     }
     // Sase Rule Match condition
     Match match = 4;

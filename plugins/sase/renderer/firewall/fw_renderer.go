@@ -118,15 +118,24 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 	// Render ACL Rules
 	vppACL := rndr.renderVppACLRule(sp.Name, fwRule)
 
-	// Render ACL Ingress/Egress Interfaces
-	vppACL.Interfaces = rndr.renderVppACLInterfaces(serviceInfo.Pod, sp.Direction)
-
 	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
+
+	// Render ACL Ingress/Egress Interfaces
+	vppACL.Interfaces = rndr.renderVppACLInterfaces(serviceInfo.Pod, sp)
 
 	// Test Purpose
 	if rndr.MockTest {
 		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
 	}
+
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Info(" Firewall Service: AddPolicy:  Post txn to local vpp agent",
+			"Key: ", vpp_acl.Key(vppACL.Name), "Value: ", vppACL)
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Firewall Service %s", vpp_acl.Key(vppACL.Name)))
+		txn.Put(vpp_acl.Key(vppACL.Name), vppACL)
+		return nil
+	} 
 
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_acl.Key(vppACL.Name), vppACL, config.Add)
 
@@ -180,7 +189,7 @@ func convertSasePolicyToFirewallRule(sp *sasemodel.SaseConfig) (*FirewallRule, e
 		SrcNetwork:  ipv4SrcNet,
 		DestNetwork: ipv4DstNet,
 		//SrcPort:     1004,
-		DestPort: uint16(sp.Match.Port),
+		DestPort: uint16(sp.Match.ProtocolPort),
 	}
 	return rule, nil
 }
@@ -250,10 +259,20 @@ func expandAnyAddr(rule *vpp_acl.ACL_Rule) []*vpp_acl.ACL_Rule {
 }
 
 // Render Interfaces for ACL Rules depending on Direction specified in the Policy rule
-func (rndr *Renderer) renderVppACLInterfaces(pod *common.PodInfo, dir sasemodel.SaseConfig_Direction) *vpp_acl.ACL_Interfaces {
+func (rndr *Renderer) renderVppACLInterfaces(pod *common.PodInfo, sp *sasemodel.SaseConfig) *vpp_acl.ACL_Interfaces {
 
 	aclInterfaces := &vpp_acl.ACL_Interfaces{}
 
+	// Expect Ingress and Egress Interfaces to be provided as part of configuration
+	// Traffic from external entity into the service which firewall is protecting
+	if sp.Direction == sasemodel.SaseConfig_Ingress {
+		aclInterfaces.Ingress = append(aclInterfaces.Ingress, sp.Match.IngressInterfaceName)
+	} else {
+	// Traffic from internal entity going out. Prevent access to internal entity
+		aclInterfaces.Egress = append(aclInterfaces.Egress, sp.Match.EgressInterfaceName)
+	}
+
+	/*
 	// Traffic from external entity into the service which firewall is protecting
 	if dir == sasemodel.SaseConfig_Ingress {
 		for _, intf := range pod.Interfaces {
@@ -268,7 +287,8 @@ func (rndr *Renderer) renderVppACLInterfaces(pod *common.PodInfo, dir sasemodel.
 				aclInterfaces.Egress = append(aclInterfaces.Ingress, intf.InternalName)
 			}
 		}
-	}
+	} */
+
 	return aclInterfaces
 }
 

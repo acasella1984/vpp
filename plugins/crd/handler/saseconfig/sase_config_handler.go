@@ -27,8 +27,8 @@ import (
 	"github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"go.ligato.io/cn-infra/v2/logging"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
 // SaseServicePolicyHandler implements the Handler interface for CRD<->KVDB Reflector.
@@ -64,7 +64,7 @@ func (h *SaseServicePolicyHandler) CrdObjectToKVData(obj interface{}) (data []kv
 
 	data = []kvdbreflector.KVData{
 		{
-			ProtoMsg:  convertSasePolicyRuleToProto(sasePolicy.Spec),
+			ProtoMsg:  convertSasePolicyRuleToProto(sasePolicy.GetName(), sasePolicy.Spec),
 			KeySuffix: sasePolicy.GetName(),
 		},
 	}
@@ -160,12 +160,12 @@ func convertSasePolicyRuleMatchToProto(match v1.SasePolicyRuleMatch) *model.Sase
 
 	// Policy Match Rule in ProtoBuf
 	matchPb := &model.SaseConfig_Match{
-		SrcInterfaceName: match.SrcPort,
-		DstInterfaceName: match.DstPort,
-		SourceIp:      match.SourceCIDR,
-		DestinationIp: match.DestinationCIDR,
-		Protocol:      getPbProto(match.Protocol),
-		Port:          match.ProtocolPort,
+		IngressInterfaceName: match.IngressInterface,
+		EgressInterfaceName:  match.EgressInterface,
+		SourceIp:             match.SourceCIDR,
+		DestinationIp:        match.DestinationCIDR,
+		Protocol:             getPbProto(match.Protocol),
+		ProtocolPort:         match.ProtocolPort,
 	}
 	return matchPb
 }
@@ -193,11 +193,11 @@ func convertSasePolicyRuleActionToProto(action v1.SasePolicyRuleAction) model.Sa
 }
 
 // convertSasePolicyRuleToProto
-func convertSasePolicyRuleToProto(rule v1.SaseServicePolicySpec) *model.SaseConfig {
+func convertSasePolicyRuleToProto(name string, rule v1.SaseServicePolicySpec) *model.SaseConfig {
 
 	// Convert config recieved in crd to protobuf
 	rulePb := &model.SaseConfig{
-		Name:                rule.Name,
+		Name:                name,
 		ServiceInstanceName: rule.ServiceInstanceName,
 		Direction:           getPbPolicyDirection(rule.Direction),
 		Match:               convertSasePolicyRuleMatchToProto(rule.Match),
@@ -216,11 +216,11 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
 				"spec": {
 					Type:     "object",
-					Required: []string{"serviceinstancename","match","action"},
+					Required: []string{"serviceinstancename", "match", "action"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"name": {
 							Type: "string",
-						},	
+						},
 						"serviceinstancename": {
 							Type: "string",
 						},
@@ -248,19 +248,19 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 											Raw: []byte(`"UDP"`),
 										},
 									},
-								},	
+								},
 								"protocolport": {
 									Type: "integer",
-								},	
+								},
 								"sourcecidr": {
 									Type: "string",
-								},	
+								},
 								"destinationcidr": {
 									Type: "string",
-								},	
+								},
 								"srcport": {
 									Type: "string",
-								},	
+								},
 								"dstport": {
 									Type: "string",
 								},
@@ -291,7 +291,7 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 											Raw: []byte(`"Secure"`),
 										},
 									},
-								},	
+								},
 							},
 						},
 					},
@@ -301,4 +301,3 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 	}
 	return validation
 }
-

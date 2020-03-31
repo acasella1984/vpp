@@ -107,7 +107,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 
 		// Ingress NAT Interface
 		nat44IngressIntf := &vpp_nat.Nat44Interface{
-			Name:          sp.Match.SrcInterfaceName,
+			Name:          sp.Match.IngressInterfaceName,
 			NatInside:     true,
 			OutputFeature: true,
 		}
@@ -132,7 +132,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 
 		// Egress NAT Interface
 		nat44EgressIntf := &vpp_nat.Nat44Interface{
-			Name:          sp.Match.DstInterfaceName,
+			Name:          sp.Match.EgressInterfaceName,
 			NatOutside:     true,
 			OutputFeature: true,
 		}
@@ -196,7 +196,7 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 
 		// Ingress NAT Interface
 		nat44IngressIntf := &vpp_nat.Nat44Interface{
-			Name:          sp.Match.SrcInterfaceName,
+			Name:          sp.Match.IngressInterfaceName,
 			NatInside:     true,
 			OutputFeature: true,
 		}
@@ -221,7 +221,7 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 
 		// Egress NAT Interface
 		nat44EgressIntf := &vpp_nat.Nat44Interface{
-			Name:          sp.Match.DstInterfaceName,
+			Name:          sp.Match.EgressInterfaceName,
 			NatOutside:    true,
 			OutputFeature: true,
 		}
