@@ -258,10 +258,10 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 								"destinationcidr": {
 									Type: "string",
 								},
-								"srcport": {
+								"ingressInterface": {
 									Type: "string",
 								},
-								"dstport": {
+								"egressInterface": {
 									Type: "string",
 								},
 							},
