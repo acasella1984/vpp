@@ -79,6 +79,7 @@ func (h *IPSecVpnTunnelHandler) convertIPSecVpnTunnelCrdToProto(crd *v1.IPSecVpn
 		TunnelDestinationIp: crd.Spec.DestinationIP,
 		TunnelSourceIp:      crd.Spec.SourceIP,
 		SecurityAssociation: crd.Spec.SecurityAssociation,
+		InterfaceType: 		 crd.Spec.InterfaceIPType,
 	}
 	return ipsecpb
 }
@@ -114,7 +115,7 @@ func TunnelValidation() *apiextv1beta1.CustomResourceValidation {
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
 				"spec": {
 					Type:     "object",
-					Required: []string{"service","destinationip","sourceip"},
+					Required: []string{"service","destinationip","sourceip","interfaceiptype"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"service": {
 							Type: "string",
@@ -131,6 +132,17 @@ func TunnelValidation() *apiextv1beta1.CustomResourceValidation {
 						},
 						"securityassociation": {
 							Type: "string",
+						},
+						"interfaceiptype": {
+							Type: "string",
+							Enum: []apiextv1beta1.JSON{
+								{
+									Raw: []byte(`"unnumbered"`),
+								},
+								{
+									Raw: []byte(`"non-unnumbered"`),
+								},
+							},
 						},
 					},
 				},

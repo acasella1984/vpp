@@ -170,13 +170,25 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 	}
 
 	vppIPinIPInterface := &vpp_interfaces.Interface{
-		Name:        sp.TunnelName,
-		Type:        vpp_interfaces.Interface_IPIP_TUNNEL,
-		Enabled:     true,
-		IpAddresses: []string{sp.TunnelSourceIp},
+		Name:    sp.TunnelName,
+		Type:    vpp_interfaces.Interface_IPIP_TUNNEL,
+		Enabled: true,
 		Link: &vpp_interfaces.Interface_Ipip{
 			Ipip: vppIPIPTunnel,
 		},
+	}
+
+	// Check for Tunnel Interface IP configuration
+	if sp.InterfaceType == config.UnnumberedIP {
+		intfName := rndr.GetInterfaceNameWithIP(serviceInfo, sp.TunnelSourceIp)
+		rndr.Log.Debug("AddIPinIPVpnTunnel: unnummbered Interface: ", intfName)
+		if intfName != config.Invalid {
+			vppIPinIPInterface.Unnumbered = &vpp_interfaces.Interface_Unnumbered{
+				InterfaceWithIp: intfName,
+			}
+		}
+	} else {
+		vppIPinIPInterface.IpAddresses = append(vppIPinIPInterface.IpAddresses, sp.TunnelSourceIp)
 	}
 
 	rndr.Log.Info("AddIPinIPVpnTunnel: vppIPinIPInterface: ", vppIPinIPInterface)
@@ -410,6 +422,37 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 	}
 
 	return nil
+}
+
+////////////////////// Helper Function to interact with other Contiv Plugins /////////////////////
+
+// GetInterfaceNameWithIP : Return Interface Name for the given IP Address
+func (rndr *Renderer) GetInterfaceNameWithIP(serviceInfo *common.ServiceInfo, ipAddress string) string {
+
+	// Base VPP vSwitch. Get information from Contiv Conf API
+	// VENKAT: TBD. Can we listen to nodeConfig crd and cache information??
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		// Check Main VPP Interfaces
+		ipWithNetworks := rndr.ContivConf.GetMainInterfaceConfiguredIPs()
+		rndr.Log.Info("GetInterfaceNameWithIP: ipWithNetworks for MainVPPInterface: ", ipWithNetworks)
+		for _, ipNet := range ipWithNetworks {
+			if ipNet.Address.String() == ipAddress {
+				return rndr.ContivConf.GetMainInterfaceName()
+			}
+		}
+		// Check Other VPP Interfaces
+		otherVppInterfaces := rndr.ContivConf.GetOtherVPPInterfaces()
+		rndr.Log.Info("GetInterfaceNameWithIP: otherVppInterfaces: ", otherVppInterfaces)
+		for _, oVppIntf := range otherVppInterfaces {
+			for _, ipNet := range oVppIntf.IPs {
+				if ipNet.Address.String() == ipAddress {
+					return oVppIntf.InterfaceName
+				}
+			}
+		}
+	}
+
+	return config.Invalid
 }
 
 ////////////////// IPSec VPN Policy handlers //////////////////////////////////

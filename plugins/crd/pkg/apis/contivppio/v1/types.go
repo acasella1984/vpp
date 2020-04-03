@@ -356,6 +356,8 @@ type IPSecVpnTunnelSpec struct {
 	SourceIP string `json:"sourceip"`
 	// Reference to security association cro name
 	SecurityAssociation string `json:"securityassociation"`
+	// Tunnel Interface IP Type
+	InterfaceIPType string `json:"interfaceiptype"`
 }
 
 // IPSecVpnTunnelList is a list of IPSecVpnTunnel

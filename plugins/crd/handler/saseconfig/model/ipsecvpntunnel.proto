@@ -28,4 +28,6 @@ message IPSecVpnTunnel {
     string tunnel_source_ip = 4;
     // Security Parameters for the tunnel
     string security_association = 5;
+    // Tunnel Interface IP Type
+    string interface_type = 6;
 }

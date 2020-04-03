@@ -30,6 +30,11 @@ type SaseServiceConfig struct {
 const (
 	// NotRequired : Constant to indicate interface not required
 	NotRequired = "notRequired"
+	// Invalid : Constant to indicate invalid config value
+	Invalid = "invalid"
+	// UnnumberedIP : Constant to indicate IP Unnumbered interface
+	UnnumberedIP = "unnumbered"
+
 )
 
 // Interface : Nat Interface
