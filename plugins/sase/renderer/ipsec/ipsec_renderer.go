@@ -56,15 +56,15 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // AddServiceConfig :
-func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool) error {
 	// Check for service config type
 	switch sp.Config.(type) {
 	case *sasemodel.SaseConfig:
-		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig), reSync)
 	case *sasemodel.IPSecVpnTunnel:
-		rndr.AddIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
+		rndr.AddIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel), reSync)
 	case *sasemodel.SecurityAssociation:
-		rndr.AddSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation))
+		rndr.AddSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation), reSync)
 	default:
 	}
 	return nil
@@ -162,7 +162,7 @@ func (rndr *Renderer) DeleteIPSecVpnTunnel(serviceInfo *common.ServiceInfo, sp *
 ///////////////////// IPinIP Tunnel Routines //////////////////
 
 // AddIPinIPVpnTunnel adds ip in ip vpn tunnel
-func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel, reSync bool) error {
 	vppIPIPTunnel := &vpp_interfaces.IPIPLink{
 		TunnelMode: vpp_interfaces.IPIPLink_POINT_TO_POINT,
 		SrcAddr:    sp.TunnelSourceIp,
@@ -202,8 +202,13 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		rndr.Log.Info(" AddIPinIPVpnTunnel: Post txn to local vpp agent",
 			"Key: ", vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), "Value: ", vppIPinIPInterface)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnel %s", vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name)))
-		txn.Put(vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface)
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnel %s", vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name)))
+			txn.Put(vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface)
+		}
 	} else {
 		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface, config.Add)
 	}
@@ -214,7 +219,7 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 	saOut = append(saOut, uint32(config.DefaultOutboundSAIndex))
 
 	rndr.Log.Info("AddIPinIPVpnTunnel: Protect the Tunnel with SA: ")
-	return rndr.IPinIPVpnTunnelProtectionAdd(serviceInfo, sp.TunnelName, saIn, saOut)
+	return rndr.IPinIPVpnTunnelProtectionAdd(serviceInfo, sp.TunnelName, saIn, saOut, reSync)
 }
 
 // DeleteIPinIPVpnTunnel deletes an existing ip in ip vpn tunnel
@@ -253,7 +258,7 @@ func (rndr *Renderer) DeleteIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp 
 /////////////////// IPinIP Tunnel Protect Routines /////////////////
 
 // IPinIPVpnTunnelProtectionAdd :
-func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceInfo, tunnelName string, saIn, saOut []uint32) error {
+func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceInfo, tunnelName string, saIn, saOut []uint32, reSync bool) error {
 
 	tunnelProtect := &vpp_ipsec.TunnelProtection{
 		Interface: tunnelName,
@@ -272,8 +277,13 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceIn
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		rndr.Log.Info(" IPinIPVpnTunnelProtectionAdd: Post txn to local vpp agent",
 			"Key: ", models.Key(tunnelProtect), "Value: ", tunnelProtect)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnelProtectionAdd %s", models.Key(tunnelProtect)))
-		txn.Put(models.Key(tunnelProtect), tunnelProtect)
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(models.Key(tunnelProtect), tunnelProtect)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnelProtectionAdd %s", models.Key(tunnelProtect)))
+			txn.Put(models.Key(tunnelProtect), tunnelProtect)
+		}
 		return nil
 	}
 
@@ -312,7 +322,7 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionDelete(serviceInfo *common.Servic
 // AddSecurityAssociation adds new security association
 // VENKAT: Optimize it to avoid intermediate conversion
 // Default Auth and Encryption algorithms initially. To Extend
-func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp *sasemodel.SecurityAssociation) error {
+func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp *sasemodel.SecurityAssociation, reSync bool) error {
 
 	// Render Inbound and Outbound Security associations
 	vppSaIn := &vpp_ipsec.SecurityAssociation{
@@ -335,8 +345,13 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		rndr.Log.Info(" AddSecurityAssociation InBound: Post txn to local vpp agent",
 			"Key: ", vpp_ipsec.SAKey(vppSaIn.Index), "Value: ", vppSaIn)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaIn.Index)))
-		txn.Put(vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn)
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaIn.Index)))
+			txn.Put(vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn)
+		}
 	} else {
 		// Commit is for remote VPP based CNF
 		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaIn.Index), vppSaIn, config.Add)
@@ -362,8 +377,13 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		rndr.Log.Info(" AddSecurityAssociation OutBound: Post txn to local vpp agent",
 			"Key: ", vpp_ipsec.SAKey(vppSaOut.Index), "Value: ", vppSaOut)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaOut.Index)))
-		txn.Put(vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut)
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSecurityAssociation %s", vpp_ipsec.SAKey(vppSaOut.Index)))
+			txn.Put(vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut)
+		}
 	} else {
 		// Commit is for remote VPP based CNF
 		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
@@ -458,7 +478,7 @@ func (rndr *Renderer) GetInterfaceNameWithIP(serviceInfo *common.ServiceInfo, ip
 ////////////////// IPSec VPN Policy handlers //////////////////////////////////
 
 // AddPolicy adds ipsec related policies
-func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig, reSync bool) error {
 	return nil
 }
 

@@ -152,7 +152,7 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 				// Get the Sase Model Config Data.
 				saseNewCfg := k8sChange.NewValue.(*sasemodel.SaseConfig)
 				if k8sChange.PrevValue == nil {
-					return sp.ProcessNewSaseServiceConfig(saseNewCfg)
+					return sp.ProcessNewSaseServiceConfig(saseNewCfg, false)
 				}
 				sasePrevCfg := k8sChange.NewValue.(*sasemodel.SaseConfig)
 				return sp.ProcessUpdateSaseServiceConfig(sasePrevCfg, saseNewCfg)
@@ -164,7 +164,7 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 				// Get the Security Association Config Data.
 				saNewCfg := k8sChange.NewValue.(*sasemodel.SecurityAssociation)
 				if k8sChange.PrevValue == nil {
-					return sp.ProcessNewSecurityAssociationConfig(saNewCfg)
+					return sp.ProcessNewSecurityAssociationConfig(saNewCfg, false)
 				}
 				saPrevCfg := k8sChange.NewValue.(*sasemodel.SecurityAssociation)
 				return sp.ProcessUpdateSecurityAssociationConfig(saPrevCfg, saNewCfg)
@@ -176,7 +176,7 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 				// Get the Site Resource Config Data.
 				srNewCfg := k8sChange.NewValue.(*sasemodel.SiteResourceGroup)
 				if k8sChange.PrevValue == nil {
-					return sp.ProcessNewSiteResourceConfig(srNewCfg)
+					return sp.ProcessNewSiteResourceConfig(srNewCfg, false)
 				}
 				srPrevCfg := k8sChange.NewValue.(*sasemodel.SiteResourceGroup)
 				return sp.ProcessUpdateSiteResourceConfig(srPrevCfg, srNewCfg)
@@ -188,7 +188,7 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 				// Get the IpSec VPN Tunnel Config Data.
 				ipsecNewCfg := k8sChange.NewValue.(*sasemodel.IPSecVpnTunnel)
 				if k8sChange.PrevValue == nil {
-					return sp.ProcessNewIPSecVpnTunnelConfig(ipsecNewCfg)
+					return sp.ProcessNewIPSecVpnTunnelConfig(ipsecNewCfg, false)
 				}
 				ipsecPrevCfg := k8sChange.NewValue.(*sasemodel.IPSecVpnTunnel)
 				return sp.ProcessUpdateIPSecVpnTunnelConfig(ipsecPrevCfg, ipsecNewCfg)
@@ -200,7 +200,7 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 				// Get the Service Route Config Data.
 				serviceRouteNewCfg := k8sChange.NewValue.(*sasemodel.ServiceRoute)
 				if k8sChange.PrevValue == nil {
-					return sp.ProcessNewServiceRouteConfig(serviceRouteNewCfg)
+					return sp.ProcessNewServiceRouteConfig(serviceRouteNewCfg, false)
 				}
 				serviceRoutePrevCfg := k8sChange.NewValue.(*sasemodel.ServiceRoute)
 				return sp.ProcessUpdateServiceRouteConfig(serviceRoutePrevCfg, serviceRouteNewCfg)
@@ -233,9 +233,64 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 
 // Resync processes a resync event.
 // The cache content is fully replaced and all registered renderers
-// receive a full snapshot of Contiv SFCs at the present state to be (re)installed.
+// receive a full snapshot of Sase Config at the present state to be (re)installed.
 func (sp *SaseServiceProcessor) Resync(kubeStateData controller.KubeStateData) error {
 
+	var reSync bool
+	// reset internal state
+	sp.reset()
+
+	sp.Log.Infof("SaseServiceProcessor Resync: Start...")
+
+	// Pod and IP Alloc are relevant for VPP based CNFs with customIfs and customNetworks
+	// Rebuild Pod DB Information
+	for _, podsProto := range kubeStateData[podmodel.PodKeyword] {
+		pod := podsProto.(*podmodel.Pod)
+		sp.Log.Infof("Resync Pods Information: %v", pod)
+		sp.ProcessNewPod(pod)
+	}
+
+	// Rebuild Pod DB Information
+	for _, ipAllocProto := range kubeStateData[ipalloc.Keyword] {
+		cIP := ipAllocProto.(*ipalloc.CustomIPAllocation)
+		sp.Log.Infof("Resync CustomIP Allocation: %v", cIP)
+		sp.ProcessCustomIfIPAlloc(cIP)
+	}
+
+	// Resync Event
+	reSync = true
+
+	// rebuild Security Associations renderer config
+	for _, securityAssociationProto := range kubeStateData[sasemodel.SecurityAssociationKey] {
+		sA := securityAssociationProto.(*sasemodel.SecurityAssociation)
+		sp.Log.Infof("Resync SecurityAssociations: %v", sA)
+		sp.ProcessNewSecurityAssociationConfig(sA, reSync)
+
+	}
+
+	// // rebuild IPSec VPN Tunnel rendered configuration
+	for _, ipSecTunnelProto := range kubeStateData[sasemodel.IPSecVpnTunnelKey] {
+		ipS := ipSecTunnelProto.(*sasemodel.IPSecVpnTunnel)
+		sp.Log.Infof("Resync IPSecTunnels: %v", ipS)
+		sp.ProcessNewIPSecVpnTunnelConfig(ipS, reSync)
+	}
+
+	// rebuild ServiceRoute renderer configuration
+	for _, serviceRouteProto := range kubeStateData[sasemodel.ServiceRouteKey] {
+		sR := serviceRouteProto.(*sasemodel.ServiceRoute)
+		sp.Log.Infof("Resync Service Routes: %v", sR)
+		sp.ProcessNewServiceRouteConfig(sR, reSync)
+
+	}
+
+	// rebuild Sase Policy renderer configurations
+	for _, sasePolicyProto := range kubeStateData[sasemodel.SasePolicyKey] {
+		sP := sasePolicyProto.(*sasemodel.SaseConfig)
+		sp.Log.Infof("Resync Sase Policies: %v", sP)
+		sp.ProcessNewSaseServiceConfig(sP, reSync)
+	}
+
+	sp.Log.Infof("SaseServiceProcessor Resync: Done...")
 	return nil
 }
 
@@ -247,7 +302,7 @@ func (sp *SaseServiceProcessor) Close() error {
 //////////////////////////////// Sase Policies Processor Routines ////////////////////////
 
 // ProcessNewSaseServiceConfig :
-func (sp *SaseServiceProcessor) ProcessNewSaseServiceConfig(cfg *sasemodel.SaseConfig) error {
+func (sp *SaseServiceProcessor) ProcessNewSaseServiceConfig(cfg *sasemodel.SaseConfig, reSync bool) error {
 	sp.Log.Infof("processNewSaseServiceConfig: %v", cfg)
 
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
@@ -265,7 +320,7 @@ func (sp *SaseServiceProcessor) ProcessNewSaseServiceConfig(cfg *sasemodel.SaseC
 		ServiceInfo: serviceInfo,
 		Config:      cfg,
 	}
-	err = rndr.AddServiceConfig(p)
+	err = rndr.AddServiceConfig(p, reSync)
 	return err
 }
 
@@ -322,7 +377,7 @@ func (sp *SaseServiceProcessor) ProcessDeletedSaseServiceConfig(cfg *sasemodel.S
 // ProcessNewSiteResourceConfig :
 // Site Resource Group consists of local and public networks and any other relevant resource information
 // within a site.
-func (sp *SaseServiceProcessor) ProcessNewSiteResourceConfig(cfg *sasemodel.SiteResourceGroup) error {
+func (sp *SaseServiceProcessor) ProcessNewSiteResourceConfig(cfg *sasemodel.SiteResourceGroup, reSync bool) error {
 	sp.Log.Infof("processNewSiteResourceConfig: %v", cfg)
 	return nil
 }
@@ -342,7 +397,7 @@ func (sp *SaseServiceProcessor) ProcessDeletedSiteResourceConfig(cfg *sasemodel.
 //////////////////////////////// Security Association Processor Routines ////////////////////////
 
 // ProcessNewSecurityAssociationConfig :
-func (sp *SaseServiceProcessor) ProcessNewSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation) error {
+func (sp *SaseServiceProcessor) ProcessNewSecurityAssociationConfig(cfg *sasemodel.SecurityAssociation, reSync bool) error {
 	sp.Log.Infof("processNewSecurityAssociationConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
@@ -359,7 +414,7 @@ func (sp *SaseServiceProcessor) ProcessNewSecurityAssociationConfig(cfg *sasemod
 		ServiceInfo: serviceInfo,
 		Config:      cfg,
 	}
-	err = rndr.AddServiceConfig(p)
+	err = rndr.AddServiceConfig(p, reSync)
 	return err
 }
 
@@ -395,7 +450,7 @@ func (sp *SaseServiceProcessor) ProcessDeletedSecurityAssociationConfig(cfg *sas
 //////////////////////////////// IPSec Vpn Tunnel Processor Routines ////////////////////////
 
 // ProcessNewIPSecVpnTunnelConfig :
-func (sp *SaseServiceProcessor) ProcessNewIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel) error {
+func (sp *SaseServiceProcessor) ProcessNewIPSecVpnTunnelConfig(cfg *sasemodel.IPSecVpnTunnel, reSync bool) error {
 	sp.Log.Infof("processNewIPSecVpnTunnelConfig: %v", cfg)
 	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
 	serviceInfo, ok := sp.services[s]
@@ -412,7 +467,7 @@ func (sp *SaseServiceProcessor) ProcessNewIPSecVpnTunnelConfig(cfg *sasemodel.IP
 		ServiceInfo: serviceInfo,
 		Config:      cfg,
 	}
-	err = rndr.AddServiceConfig(p)
+	err = rndr.AddServiceConfig(p, reSync)
 
 	// Cache the tunnel information which could be referenced in other Sase configurations
 	// eg. Route Config
@@ -451,7 +506,7 @@ func (sp *SaseServiceProcessor) ProcessDeletedIPSecVpnTunnelConfig(cfg *sasemode
 //////////////////////////////// Service Route Processor Routines ////////////////////////
 
 // ProcessNewServiceRouteConfig :
-func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.ServiceRoute) error {
+func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.ServiceRoute, reSync bool) error {
 	sp.Log.Infof("ProcessNewServiceRouteConfig: %v", cfg)
 
 	var routeVrf uint32
@@ -590,7 +645,7 @@ func (sp *SaseServiceProcessor) ProcessNewServiceRouteConfig(cfg *sasemodel.Serv
 		ServiceInfo: serviceInfo,
 		Config:      routeInfo,
 	}
-	err = rndr.AddServiceConfig(p)
+	err = rndr.AddServiceConfig(p, reSync)
 	return err
 }
 
@@ -810,6 +865,9 @@ func (sp *SaseServiceProcessor) ProcessUpdatedPod(pod *podmodel.Pod) error {
 		// New Pod Event
 		// Housekeep Pod Information
 		label := common.GetContivMicroserviceLabel(pod.Annotations)
+		if label == common.NotAvailable {
+			return nil
+		}
 		podInfo := &common.PodInfo{
 			ID:    podID,
 			Label: label,

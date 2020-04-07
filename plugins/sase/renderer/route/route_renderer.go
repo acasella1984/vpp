@@ -68,13 +68,13 @@ func (rndr *Renderer) DeInit() error {
 }
 
 // AddServiceConfig :
-func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool) error {
 	// Check for service config type
 	switch sp.Config.(type) {
 	case *sasemodel.SaseConfig:
-		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig), reSync)
 	case *RouteRule:
-		rndr.AddServiceRoute(sp.ServiceInfo, sp.Config.(*RouteRule))
+		rndr.AddServiceRoute(sp.ServiceInfo, sp.Config.(*RouteRule), reSync)
 	default:
 	}
 	return nil
@@ -101,7 +101,7 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 ////////////////// Route Policies Renderer Routines ////////////////////
 
 // AddPolicy adds route related policies
-func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig, reSync bool) error {
 	rndr.Log.Infof("Route Service: AddPolicy: ")
 	// convert Sase Service Policy to native Route representation
 	routeRule := convertSasePolicyToRouteRule(sp)
@@ -135,7 +135,7 @@ func convertSasePolicyToRouteRule(sp *sasemodel.SaseConfig) *RouteRule {
 ////////////////// Route Config Renderer Routines ////////////////////
 
 // AddServiceRoute adds route entries
-func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *RouteRule) error {
+func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *RouteRule, reSync bool) error {
 	rndr.Log.Infof("Route Service: AddServiceRoute: ")
 
 	vppRoute := &vpp_l3.Route{
@@ -164,8 +164,13 @@ func (rndr *Renderer) AddServiceRoute(serviceInfo *common.ServiceInfo, sp *Route
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		rndr.Log.Infof("Route Service: AddServiceRoute: Post txn to local vpp agent",
 			"Key: ", models.Key(vppRoute), "Value: %v", vppRoute)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Service Route %s", models.Key(vppRoute)))
-		txn.Put(models.Key(vppRoute), vppRoute)
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(models.Key(vppRoute), vppRoute)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("Service Route %s", models.Key(vppRoute)))
+			txn.Put(models.Key(vppRoute), vppRoute)
+		}
 		return nil
 	}
 
@@ -180,9 +185,9 @@ func (rndr *Renderer) DeleteServiceRoute(serviceInfo *common.ServiceInfo, sp *Ro
 	rndr.Log.Infof("Route Service: DeleteServiceRoute: ")
 
 	vppRoute := &vpp_l3.Route{
-		Type:        getVPPRouteType(sp.Type),
-		VrfId:       sp.VrfID,
-		DstNetwork:  sp.DestNetwork,
+		Type:       getVPPRouteType(sp.Type),
+		VrfId:      sp.VrfID,
+		DstNetwork: sp.DestNetwork,
 		//NextHopAddr: sp.NextHop,
 		//OutgoingInterface: sp.EgressIntf.Name,
 		ViaVrfId: sp.EgressIntf.VrfID,

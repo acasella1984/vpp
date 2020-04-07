@@ -47,6 +47,9 @@ const (
 
 	// Pod Default VRF
 	podVrf = "defaultPodVrf"
+
+	// NotAvailable Pod MS Label Not Available
+	NotAvailable = "not-available"
 )
 
 // PodSaseServiceInfo holds information about a Sase Service Instance deployed on a Pod
@@ -264,7 +267,7 @@ func GetContivMicroserviceLabel(annotations map[string]string) string {
 			return v
 		}
 	}
-	return ""
+	return NotAvailable
 }
 
 // HasSaseServicesAnnotation returns true if provided annotations contain sase service annotation, false otherwise.

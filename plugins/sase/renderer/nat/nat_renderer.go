@@ -73,11 +73,11 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // AddServiceConfig :
-func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool) error {
 	// Check for service config type
 	switch sp.Config.(type) {
 	case *sasemodel.SaseConfig:
-		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig), reSync)
 	default:
 	}
 	return nil
@@ -100,7 +100,7 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 }
 
 // AddPolicy adds NAT related policies
-func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig, reSync bool) error {
 
 	// Source NAT configuration
 	if sp.Action == sasemodel.SaseConfig_SNAT {
@@ -122,8 +122,14 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 			rndr.Log.Info(" AddPolicy NAT Inside Interface: Post txn to local vpp agent",
 				"Key: ", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), "Value: ", nat44IngressIntf)
-			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Inside Interface %s", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name)))
-			txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
+
+			if reSync == true {
+				txn := rndr.ResyncTxnFactory()
+				txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
+			} else {
+				txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Inside Interface %s", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name)))
+				txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
+			}
 		} else {
 			// Txn is for remote VPP based CNF
 			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
@@ -133,7 +139,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 		// Egress NAT Interface
 		nat44EgressIntf := &vpp_nat.Nat44Interface{
 			Name:          sp.Match.EgressInterfaceName,
-			NatOutside:     true,
+			NatOutside:    true,
 			OutputFeature: true,
 		}
 
@@ -147,8 +153,13 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 			rndr.Log.Info(" AddPolicy NAT Outside Interface: Post txn to local vpp agent",
 				"Key: ", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), "Value: ", nat44EgressIntf)
-			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Outside Interface %s", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name)))
-			txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+			if reSync == true {
+				txn := rndr.ResyncTxnFactory()
+				txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+			} else {
+				txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Outside Interface %s", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name)))
+				txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+			}
 
 		} else {
 			// Txn is for remote VPP based CNF
@@ -174,9 +185,15 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 			rndr.Log.Info(" AddPolicy NAT AddressPool: Post txn to local vpp agent",
 				"Key: ", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
 				"Value: ", nat44EgressAddress)
-			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT AddressPool %s", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp)))
-			txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
-				nat44EgressAddress)
+			if reSync == true {
+				txn := rndr.ResyncTxnFactory()
+				txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+					nat44EgressAddress)
+			} else {
+				txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT AddressPool %s", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp)))
+				txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+					nat44EgressAddress)
+			}
 
 		} else {
 			// Txn is for remote VPP based CNF

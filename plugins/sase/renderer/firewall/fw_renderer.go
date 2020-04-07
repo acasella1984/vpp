@@ -76,12 +76,12 @@ func (rndr *Renderer) AfterInit() error {
 }
 
 // AddServiceConfig :
-func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig) error {
+func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool) error {
 
 	// Check for service config type
 	switch sp.Config.(type) {
 	case *sasemodel.SaseConfig:
-		return rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+		return rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig), reSync)
 	default:
 	}
 	return nil
@@ -104,7 +104,7 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 }
 
 // AddPolicy adds firewall related policies
-func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig, reSync bool) error {
 	rndr.Log.Infof("Firewall Service: AddPolicy: ServiceInfo %v", serviceInfo, "Policy: %v", sp)
 
 	// convert Sase Service Policy to native firewall representation
@@ -132,8 +132,14 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
 		rndr.Log.Info(" Firewall Service: AddPolicy:  Post txn to local vpp agent",
 			"Key: ", vpp_acl.Key(vppACL.Name), "Value: ", vppACL)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Firewall Service %s", vpp_acl.Key(vppACL.Name)))
-		txn.Put(vpp_acl.Key(vppACL.Name), vppACL)
+
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(vpp_acl.Key(vppACL.Name), vppACL)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("Firewall Service %s", vpp_acl.Key(vppACL.Name)))
+			txn.Put(vpp_acl.Key(vppACL.Name), vppACL)
+		}
 		return nil
 	}
 

@@ -23,7 +23,7 @@ type SaseServiceRendererAPI interface {
 	AfterInit() error
 
 	// AddServiceConfig
-	AddServiceConfig(sp *config.SaseServiceConfig) error
+	AddServiceConfig(sp *config.SaseServiceConfig, reSync bool) error
 
 	// UpdateServiceConfig
 	UpdateServiceConfig(old, new *config.SaseServiceConfig) error
@@ -31,9 +31,6 @@ type SaseServiceRendererAPI interface {
 	// DeleteServiceConfig
 	DeleteServiceConfig(sp *config.SaseServiceConfig) error
 
-	// Resync provides a complete snapshot of all service function chain-related data.
-	// The renderer should resolve any discrepancies between the state of SFC in K8s
-	// and the currently rendered configuration.
 }
 
 // Commit to remote persistent DB
