@@ -470,6 +470,14 @@ func (rndr *Renderer) GetInterfaceNameWithIP(serviceInfo *common.ServiceInfo, ip
 				}
 			}
 		}
+	} else {
+		// Underlay interface is in Remote VPP CNF
+		for _, intf := range serviceInfo.Pod.Interfaces {
+			rndr.Log.Info("GetInterfaceNameWithIP: Remote VPP CNF: ", intf)
+			if intf.IPAddress == ipAddress {
+				return intf.Name
+			}
+		}
 	}
 
 	return config.Invalid
