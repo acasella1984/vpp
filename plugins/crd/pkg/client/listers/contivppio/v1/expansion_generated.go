@@ -48,6 +48,14 @@ type IPSecVpnTunnelListerExpansion interface{}
 // IPSecVpnTunnelNamespaceLister.
 type IPSecVpnTunnelNamespaceListerExpansion interface{}
 
+// NetworkFirewallProfileListerExpansion allows custom methods to be added to
+// NetworkFirewallProfileLister.
+type NetworkFirewallProfileListerExpansion interface{}
+
+// NetworkFirewallProfileNamespaceListerExpansion allows custom methods to be added to
+// NetworkFirewallProfileNamespaceLister.
+type NetworkFirewallProfileNamespaceListerExpansion interface{}
+
 // SaseServicePolicyListerExpansion allows custom methods to be added to
 // SaseServicePolicyLister.
 type SaseServicePolicyListerExpansion interface{}

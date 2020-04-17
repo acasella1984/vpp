@@ -27,6 +27,8 @@ const (
 	IPSecVpnTunnelKey = "ipsecvpntunnel"
 	// ServiceRouteKey :
 	ServiceRouteKey = "serviceroute"
+	// NetworkFirewallProfileKey :
+	NetworkFirewallProfileKey = "NetworkFirewallProfile"
 )
 
 // KeyPrefixSasePolicy return prefix for Sase Policy
@@ -52,4 +54,9 @@ func KeyPrefixIPSecVpnTunnel() string {
 // KeyPrefixServiceRoute return prefix for ServiceRoute
 func KeyPrefixServiceRoute() string {
 	return ksrkey.KsrK8sPrefix + "/" + ServiceRouteKey + "/"
+}
+
+// KeyPrefixNetworkFirewallProfile return prefix for NetworkFirewallProfile
+func KeyPrefixNetworkFirewallProfile() string {
+	return ksrkey.KsrK8sPrefix + "/" + NetworkFirewallProfileKey + "/"
 }

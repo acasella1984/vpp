@@ -100,6 +100,7 @@ type Plugin struct {
 	securityAssociationController  *controller.CrdController
 	ipsecVPNTunnelController       *controller.CrdController
 	serviceRouteController         *controller.CrdController
+	networkFirewallProfileController         *controller.CrdController
 	cache                          *cache.ContivTelemetryCache
 	processor                      api.ContivTelemetryProcessor
 	verbose                        bool
@@ -469,6 +470,36 @@ func (p *Plugin) initializeCRDs() error {
 		},
 	}
 
+		// NetworkFirewallProfile :
+		networkFirewallProfileInformer := p.sharedFactory.Contivpp().V1().NetworkFirewallProfiles().Informer()
+		networkFirewallLog := p.Log.NewLogger("networkFirewallHandler")
+		p.networkFirewallProfileController = &controller.CrdController{
+			Deps: controller.Deps{
+				Log:       p.Log.NewLogger("networkFirewallProfileController"),
+				APIClient: p.apiclientset,
+				Informer:  networkFirewallProfileInformer,
+				EventHandler: &kvdbreflector.KvdbReflector{
+					Deps: kvdbreflector.Deps{
+						Log:          networkFirewallLog,
+						ServiceLabel: p.ServiceLabel,
+						Publish:      p.Etcd.RawAccess(),
+						Informer:     networkFirewallProfileInformer,
+						Handler: &saseconfiguration.NetworkFirewallProfileHandler{
+							Log:       networkFirewallLog,
+							CrdClient: p.crdClient,
+						},
+					},
+				},
+			},
+			Spec: controller.CrdSpec{
+				TypeName: reflect.TypeOf(v1.NetworkFirewallProfile{}).Name(),
+				Group:    contivppio.GroupName,
+				Version:  "v1",
+				Plural:   "networkfirewallprofiles",
+				Validation: saseconfiguration.NetworkFirewallProfileValidation(),
+			},
+		}
+
 	p.nodeConfigController.Init()
 	p.customNetworkController.Init()
 	p.externalInterfaceController.Init()
@@ -479,6 +510,7 @@ func (p *Plugin) initializeCRDs() error {
 	p.securityAssociationController.Init()
 	p.ipsecVPNTunnelController.Init()
 	p.serviceRouteController.Init()
+	p.networkFirewallProfileController.Init()
 
 	if p.verbose {
 		p.customNetworkController.Log.SetLevel(logging.DebugLevel)
@@ -491,6 +523,7 @@ func (p *Plugin) initializeCRDs() error {
 		p.securityAssociationController.Log.SetLevel(logging.DebugLevel)
 		p.ipsecVPNTunnelController.Log.SetLevel(logging.DebugLevel)
 		p.serviceRouteController.Log.SetLevel(logging.DebugLevel)
+		p.networkFirewallProfileController.Log.SetLevel(logging.DebugLevel)
 		customConfigLog.SetLevel(logging.DebugLevel)
 	}
 
@@ -619,6 +652,7 @@ func (p *Plugin) onEtcdConnect() error {
 		go p.securityAssociationController.Run(p.ctx.Done())
 		go p.ipsecVPNTunnelController.Run(p.ctx.Done())
 		go p.serviceRouteController.Run(p.ctx.Done())
+		go p.networkFirewallProfileController.Run(p.ctx.Done())
 	}()
 	return nil
 }

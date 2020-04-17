@@ -410,3 +410,50 @@ type ServiceRouteList struct {
 	meta_v1.ListMeta `json:"metadata"`
 	Items            []ServiceRoute `json:"items"`
 }
+
+// NetworkFirewallProfile define collection of network match/action rules to apply
+// firewall policies
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type NetworkFirewallProfile struct {
+	// TypeMeta is the metadata for the resource, like kind and apiversion
+	meta_v1.TypeMeta `json:",inline"`
+	// ObjectMeta contains the metadata for the particular object
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	// Spec is the specification for the Sase Service configuration.
+	Spec NetworkFirewallRules `json:"spec"`
+	// Status informs about the status of the resource.
+	Status meta_v1.Status `json:"status,omitempty"`
+}
+
+// NetworkFirewallRules specifies match conditions 
+type NetworkFirewallRules struct {
+	// Sase Service Instance Name
+	ServiceInstanceName string `json:"service"`
+	// Direction 
+	Direction string `json:"direction"`
+	// Interface
+	Interface string `json:"interface"`
+	// Firewall Rules
+	Rules []NetworkFirewallRule `json:"rules"`
+}
+
+// NetworkFirewallRule specifies match conditions 
+type NetworkFirewallRule struct {
+	Name		string `json:"name"`
+	Protocol         string `json:"protocol"`
+	SrcProtocolPort     uint32 `json:"srcprotocolport"`
+	DstProtocolPort     uint32 `json:"dstprotocolport"`
+	SourceCIDR       string `json:"sourcecidr"`
+	DestinationCIDR  string `json:"destinationcidr"`
+	Action string `json:"action"`
+}
+
+// NetworkFirewallProfileList is a list of NetworkFirewallRulesProfile
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type NetworkFirewallProfileList struct {
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata"`
+	Items            []NetworkFirewallProfile `json:"items"`
+}

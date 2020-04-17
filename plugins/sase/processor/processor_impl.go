@@ -64,6 +64,9 @@ type SaseServiceProcessor struct {
 
 	// IPSecVpnTunnels
 	ipSecVpnTunnel map[string]*sasemodel.IPSecVpnTunnel
+
+	// Network Firewall Profiles
+	networkFirewallProfile map[string]*sasemodel.NetworkFirewallProfile
 }
 
 // Deps lists dependencies of SFC Processor.
@@ -159,6 +162,19 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			}
 			saseDelCfg := k8sChange.PrevValue.(*sasemodel.SaseConfig)
 			return sp.ProcessDeletedSaseServiceConfig(saseDelCfg)
+		case sasemodel.NetworkFirewallProfileKey:
+			if k8sChange.NewValue != nil {
+				// Get the network firewall profile
+				networkFirewallProfileNewCfg := k8sChange.NewValue.(*sasemodel.NetworkFirewallProfile)
+				if k8sChange.PrevValue == nil {
+					return sp.ProcessNewNetworkFirewallProfileConfig(networkFirewallProfileNewCfg, false)
+				}
+				networkFirewallProfilePrevCfg := k8sChange.NewValue.(*sasemodel.NetworkFirewallProfile)
+				return sp.ProcessUpdateNetworkFirewallProfileConfig(networkFirewallProfilePrevCfg, networkFirewallProfileNewCfg)
+			}
+			networkFirewallProfileDelCfg := k8sChange.PrevValue.(*sasemodel.NetworkFirewallProfile)
+			return sp.ProcessDeletedNetworkFirewallProfileConfig(networkFirewallProfileDelCfg)
+
 		case sasemodel.SecurityAssociationKey:
 			if k8sChange.NewValue != nil {
 				// Get the Security Association Config Data.
@@ -371,6 +387,80 @@ func (sp *SaseServiceProcessor) ProcessDeletedSaseServiceConfig(cfg *sasemodel.S
 	err = rndr.DeleteServiceConfig(p)
 	return err
 }
+
+//////////////////////////////// Network Firewall Profile Routines ////////////////////////
+
+// ProcessNewNetworkFirewallProfileConfig :
+func (sp *SaseServiceProcessor) ProcessNewNetworkFirewallProfileConfig(cfg *sasemodel.NetworkFirewallProfile, reSync bool) error {
+	sp.Log.Infof("ProcessNewNetworkFirewallProfileConfig: %v", cfg)
+
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessNewNetworkFirewallProfileConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.AddServiceConfig(p, reSync)
+	return err
+}
+
+// ProcessUpdateNetworkFirewallProfileConfig :
+func (sp *SaseServiceProcessor) ProcessUpdateNetworkFirewallProfileConfig(old, new *sasemodel.NetworkFirewallProfile) error {
+	sp.Log.Infof("ProcessUpdateNetworkFirewallProfileConfig: old: %v new: %v", old, new)
+	s, _ := common.ParseSaseServiceName(new.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessUpdateNetworkFirewallProfileConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	oldP := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      old,
+	}
+	newP := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      new,
+	}
+	err = rndr.UpdateServiceConfig(oldP, newP)
+	return err
+}
+
+// ProcessDeletedNetworkFirewallProfileConfig :
+func (sp *SaseServiceProcessor) ProcessDeletedNetworkFirewallProfileConfig(cfg *sasemodel.NetworkFirewallProfile) error {
+	sp.Log.Infof("ProcessDeletedNetworkFirewallProfileConfig: %v", cfg)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessDeletedNetworkFirewallProfileConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.DeleteServiceConfig(p)
+	return err
+}
+
 
 //////////////////////////////// Site Resource Group Processor Routines ////////////////////////
 

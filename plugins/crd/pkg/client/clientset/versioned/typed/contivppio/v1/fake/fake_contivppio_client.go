@@ -42,6 +42,10 @@ func (c *FakeContivppV1) IPSecVpnTunnels(namespace string) v1.IPSecVpnTunnelInte
 	return &FakeIPSecVpnTunnels{c, namespace}
 }
 
+func (c *FakeContivppV1) NetworkFirewallProfiles(namespace string) v1.NetworkFirewallProfileInterface {
+	return &FakeNetworkFirewallProfiles{c, namespace}
+}
+
 func (c *FakeContivppV1) SaseServicePolicies(namespace string) v1.SaseServicePolicyInterface {
 	return &FakeSaseServicePolicies{c, namespace}
 }

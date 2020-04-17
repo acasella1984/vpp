@@ -230,6 +230,8 @@ func (p *Plugin) HandlesEvent(event controller.Event) bool {
 		switch ksChange.Resource {
 		case sasemodel.SasePolicyKey:
 			return true
+		case sasemodel.NetworkFirewallProfileKey:
+			return true
 		case sasemodel.SiteResourceGroupKey:
 			return true
 		case sasemodel.IPSecVpnTunnelKey:

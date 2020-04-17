@@ -17,7 +17,7 @@
 package firewallservice
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -80,8 +80,8 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool
 
 	// Check for service config type
 	switch sp.Config.(type) {
-	case *sasemodel.SaseConfig:
-		return rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig), reSync)
+	case *sasemodel.NetworkFirewallProfile:
+		return rndr.CreateNetworkFirewallProfile(sp.ServiceInfo, sp.Config.(*sasemodel.NetworkFirewallProfile), reSync)
 	default:
 	}
 	return nil
@@ -96,32 +96,36 @@ func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) er
 func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 	// Check for service config type
 	switch sp.Config.(type) {
-	case *sasemodel.SaseConfig:
-		return rndr.DeletePolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
+	case *sasemodel.NetworkFirewallProfile:
+		return rndr.DeleteNetworkFirewallProfile(sp.ServiceInfo, sp.Config.(*sasemodel.NetworkFirewallProfile))
 	default:
 	}
 	return nil
 }
 
-// AddPolicy adds firewall related policies
-func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig, reSync bool) error {
-	rndr.Log.Infof("Firewall Service: AddPolicy: ServiceInfo %v", serviceInfo, "Policy: %v", sp)
+/////////////////////////// Firewall Profiles Related ////////////////
 
-	// convert Sase Service Policy to native firewall representation
-	fwRule, err := convertSasePolicyToFirewallRule(sp)
-	if err != nil {
-		return err
-	}
-
-	rndr.Log.Infof("AddPolicy: fwRule: %v", fwRule)
+// CreateNetworkFirewallProfile adds New Network firewall Profile
+func (rndr *Renderer) CreateNetworkFirewallProfile(serviceInfo *common.ServiceInfo, sp *sasemodel.NetworkFirewallProfile, reSync bool) error {
+	
+	rndr.Log.Infof("Firewall Service: CreateNetworkFirewallProfile: ServiceInfo %v", serviceInfo, "Profile: %v", sp)
 
 	// Render ACL Rules
-	vppACL := rndr.renderVppACLRule(sp.Name, fwRule)
+	vppACL := rndr.renderVppACL(sp)
 
-	rndr.Log.Infof("AddPolicy: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
+	rndr.Log.Infof("CreateNetworkFirewallProfile: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
 
-	// Render ACL Ingress/Egress Interfaces
-	vppACL.Interfaces = rndr.renderVppACLInterfaces(serviceInfo.Pod, sp)
+	// Expect Ingress and Egress Interfaces to be provided as part of configuration
+	// Traffic from external entity into the service which firewall is protecting
+	aclInterfaces := &vpp_acl.ACL_Interfaces{}
+	if sp.Direction == sasemodel.NetworkFirewallProfile_INGRESS {
+		aclInterfaces.Ingress = append(aclInterfaces.Ingress, sp.InterfaceName)
+	} else {
+		// Traffic from internal entity going out. Prevent access to internal entity
+		aclInterfaces.Egress = append(aclInterfaces.Egress, sp.InterfaceName)
+	}
+
+	vppACL.Interfaces = aclInterfaces
 
 	// Test Purpose
 	if rndr.MockTest {
@@ -130,7 +134,7 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Info(" Firewall Service: AddPolicy:  Post txn to local vpp agent",
+		rndr.Log.Info(" Firewall Service: CreateNetworkFirewallProfile:  Post txn to local vpp agent",
 			"Key: ", vpp_acl.Key(vppACL.Name), "Value: ", vppACL)
 
 		if reSync == true {
@@ -147,23 +151,20 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 
 }
 
-// UpdatePolicy updates exiting firewall  related policies
-func (rndr *Renderer) UpdatePolicy(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseConfig) error {
+// UpdateeNetworkFirewallProfile updates existing Network Firewall Profile
+func (rndr *Renderer) UpdateeNetworkFirewallProfile(serviceInfo *common.ServiceInfo, old, new *sasemodel.NetworkFirewallProfile) error {
 	return nil
 }
 
-// DeletePolicy deletes an existing firewall  policy
-func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+// DeleteNetworkFirewallProfile deletes an existing network firewall Profile
+func (rndr *Renderer) DeleteNetworkFirewallProfile(serviceInfo *common.ServiceInfo, sp *sasemodel.NetworkFirewallProfile) error {
 
-	rndr.Log.Infof("Firewall Service: DeletePolicy: ServiceInfo %v", serviceInfo, "Policy: %v", sp)
-	// convert Sase Service Policy to native firewall representation
-	fwRule, err := convertSasePolicyToFirewallRule(sp)
-	if err != nil {
-		return err
-	}
+	rndr.Log.Infof("Firewall Service: DeleteNetworkFirewallProfile: ServiceInfo %v", serviceInfo, "Policy: %v", sp)
 
-	vppACL := rndr.renderVppACLRule(sp.Name, fwRule)
-	rndr.Log.Infof("DeletePolicy: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
+	// Render ACL Rules
+	vppACL := rndr.renderVppACL(sp)
+
+	rndr.Log.Infof("DeleteNetworkFirewallProfile: vppACL: %v", vppACL, "MicroServiceLabel: %s", serviceInfo.GetServicePodLabel())
 
 	// Test Purpose
 	if rndr.MockTest {
@@ -172,7 +173,7 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Info(" Firewall Service: DeletePolicy:  Post txn to local vpp agent",
+		rndr.Log.Info(" Firewall Service: DeleteNetworkFirewallProfile:  Post txn to local vpp agent",
 			"Key: ", vpp_acl.Key(vppACL.Name), "Value: ", vppACL)
 		txn := rndr.UpdateTxnFactory(fmt.Sprintf("Firewall Service %s", vpp_acl.Key(vppACL.Name)))
 		txn.Delete(vpp_acl.Key(vppACL.Name))
@@ -184,66 +185,10 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 
 /////////////////////////// Firewall Policies related routines ////////////////
 
-// ConvertSasePolicyToFirewallRule: convert SaseServicePolicy to firewall policy
-func convertSasePolicyToFirewallRule(sp *sasemodel.SaseConfig) (*FirewallRule, error) {
-
-	// Get Source and Destination Networks
-	_, ipv4SrcNet, err := net.ParseCIDR(sp.Match.SourceIp)
-	if err != nil {
-		// Invalid or No Src Network provided in config
-		ipv4SrcNet = nil
-	}
-	_, ipv4DstNet, err := net.ParseCIDR(sp.Match.DestinationIp)
-	if err != nil {
-		// Invalid or No Dst Network provided in config
-		ipv4DstNet = nil
-	}
-
-	// Check for supported actions for firewall service
-	if sp.Action != sasemodel.SaseConfig_PERMIT &&
-		sp.Action != sasemodel.SaseConfig_DENY {
-		return nil, errors.New("Error: Invalid Firewall Action")
-	}
-
-	// Firewall rule in native form that can be consumed by renderer
-	rule := &FirewallRule{
-		Action:      sp.Action,
-		Protocol:    sp.Match.Protocol,
-		SrcNetwork:  ipv4SrcNet,
-		DestNetwork: ipv4DstNet,
-		//SrcPort:     1004,
-		DestPort: uint16(sp.Match.ProtocolPort),
-	}
-	return rule, nil
-}
-
 const (
-	// ACLNamePrefix is used to tag ACLs created for the implementation of K8s policies.
-	ACLNamePrefix = "sase-firewall-"
-
-	// ReflectiveACLName is the name of the *reflective* ACL (full name prefixed with
-	// ACLNamePrefix). Reflective ACL is used to allow responses of accepted sessions
-	// regardless of installed policies on the way back.
-	ReflectiveACLName = "REFLECTION"
-
 	ipv4AddrAny = "0.0.0.0/0"
 	ipv6AddrAny = "::/0"
 )
-
-// FirewallRule is an n-tuple with the most basic policy rule
-type FirewallRule struct {
-	// Action to perform when traffic matches.
-	Action sasemodel.SaseConfig_Action
-
-	// L3
-	SrcNetwork  *net.IPNet // empty = match all
-	DestNetwork *net.IPNet // empty = match all
-
-	// L4
-	Protocol sasemodel.SaseConfig_Match_Proto
-	SrcPort  uint16 // 0 = match all
-	DestPort uint16 // 0 = match all
-}
 
 // anyAddrForIPversion returns any addr for the IP version defined by given argument
 func anyAddrForIPversion(ip string) string {
@@ -281,103 +226,92 @@ func expandAnyAddr(rule *vpp_acl.ACL_Rule) []*vpp_acl.ACL_Rule {
 
 }
 
-// Render Interfaces for ACL Rules depending on Direction specified in the Policy rule
-func (rndr *Renderer) renderVppACLInterfaces(pod *common.PodInfo, sp *sasemodel.SaseConfig) *vpp_acl.ACL_Interfaces {
-
-	aclInterfaces := &vpp_acl.ACL_Interfaces{}
-
-	// Expect Ingress and Egress Interfaces to be provided as part of configuration
-	// Traffic from external entity into the service which firewall is protecting
-	if sp.Direction == sasemodel.SaseConfig_Ingress {
-		aclInterfaces.Ingress = append(aclInterfaces.Ingress, sp.Match.IngressInterfaceName)
-	} else {
-		// Traffic from internal entity going out. Prevent access to internal entity
-		aclInterfaces.Egress = append(aclInterfaces.Egress, sp.Match.EgressInterfaceName)
-	}
-
-	/*
-		// Traffic from external entity into the service which firewall is protecting
-		if dir == sasemodel.SaseConfig_Ingress {
-			for _, intf := range pod.Interfaces {
-				if intf.IsIngress == false {
-					aclInterfaces.Ingress = append(aclInterfaces.Ingress, intf.InternalName)
-				}
-			}
-		} else {
-			// Traffic from internal entity going out. Prevent access to internal entity
-			for _, intf := range pod.Interfaces {
-				if intf.IsIngress == true {
-					aclInterfaces.Egress = append(aclInterfaces.Ingress, intf.InternalName)
-				}
-			}
-		} */
-
-	return aclInterfaces
-}
-
 // renderACL renders ContivRuleTable into the equivalent ACL configuration.
-func (rndr *Renderer) renderVppACLRule(name string, rule *FirewallRule) *vpp_acl.ACL {
+func (rndr *Renderer) renderVppACL(profile *sasemodel.NetworkFirewallProfile) *vpp_acl.ACL {
 	const maxPortNum = ^uint16(0)
 	acl := &vpp_acl.ACL{
-		Name: name,
+		Name: profile.Name,
 	}
 
+    // Render ACL Rules
+	for _,rule := range profile.Rules {
+		aclRule := rndr.renderVppACLRule(rule)
+		acl.Rules = append(acl.Rules, expandAnyAddr(aclRule)...)
+	}
+	return acl
+}
+
+func (rndr *Renderer) renderVppACLRule(rule *sasemodel.NetworkFirewallProfile_FirewallRule) *vpp_acl.ACL_Rule {
+	const maxPortNum = ^uint16(0)
 	// VPP ACL Plugin Rule
-	// VENKAT: Note Reflective ACL? Use case
 	aclRule := &vpp_acl.ACL_Rule{}
-	if rule.Action == sasemodel.SaseConfig_DENY {
-		aclRule.Action = vpp_acl.ACL_Rule_DENY
+	if rule.Action == sasemodel.NetworkFirewallProfile_FirewallRule_PERMIT_REFLECT{
+		aclRule.Action = vpp_acl.ACL_Rule_REFLECT
 	} else {
-		aclRule.Action = vpp_acl.ACL_Rule_PERMIT
+		aclRule.Action = vpp_acl.ACL_Rule_DENY
 	}
 
 	aclRule.IpRule = &vpp_acl.ACL_Rule_IpRule{}
 	aclRule.IpRule.Ip = &vpp_acl.ACL_Rule_IpRule_Ip{}
-	if rule.SrcNetwork != nil && len(rule.SrcNetwork.IP) > 0 {
-		aclRule.IpRule.Ip.SourceNetwork = rule.SrcNetwork.String()
+
+	// Get Source and Destination Networks
+	_, ipv4SrcNet, err := net.ParseCIDR(rule.SourceCidr)
+	if err != nil {
+			// Invalid or No Src Network provided in config
+			ipv4SrcNet = nil
 	}
-	if rule.DestNetwork != nil && len(rule.DestNetwork.IP) > 0 {
-		aclRule.IpRule.Ip.DestinationNetwork = rule.DestNetwork.String()
+	_, ipv4DstNet, err := net.ParseCIDR(rule.DestinationCidr)
+	if err != nil {
+			// Invalid or No Dst Network provided in config
+			ipv4DstNet = nil
+	}
+
+	if ipv4SrcNet!= nil && len(ipv4SrcNet.IP) > 0 {
+		aclRule.IpRule.Ip.SourceNetwork = ipv4SrcNet.String()
+	}
+	if ipv4DstNet != nil && len(ipv4DstNet.IP) > 0 {
+		aclRule.IpRule.Ip.DestinationNetwork = ipv4DstNet.String()
 	}
 
 	// Protocol TCP
-	if rule.Protocol == sasemodel.SaseConfig_Match_TCP {
+	if rule.Protocol == sasemodel.NetworkFirewallProfile_FirewallRule_TCP {
 		aclRule.IpRule.Tcp = &vpp_acl.ACL_Rule_IpRule_Tcp{}
 		aclRule.IpRule.Tcp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
-		aclRule.IpRule.Tcp.SourcePortRange.LowerPort = uint32(rule.SrcPort)
-		if rule.SrcPort == 0 {
+		aclRule.IpRule.Tcp.SourcePortRange.LowerPort = uint32(rule.SrcProtoPort)
+		if rule.SrcProtoPort == 0 {
 			aclRule.IpRule.Tcp.SourcePortRange.UpperPort = uint32(maxPortNum)
 		} else {
-			aclRule.IpRule.Tcp.SourcePortRange.UpperPort = uint32(rule.SrcPort)
+			aclRule.IpRule.Tcp.SourcePortRange.UpperPort = uint32(rule.SrcProtoPort)
 		}
 		aclRule.IpRule.Tcp.DestinationPortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
-		aclRule.IpRule.Tcp.DestinationPortRange.LowerPort = uint32(rule.DestPort)
-		if rule.DestPort == 0 {
+		aclRule.IpRule.Tcp.DestinationPortRange.LowerPort = uint32(rule.DstProtoPort)
+		if rule.DstProtoPort == 0 {
 			aclRule.IpRule.Tcp.DestinationPortRange.UpperPort = uint32(maxPortNum)
 		} else {
-			aclRule.IpRule.Tcp.DestinationPortRange.UpperPort = uint32(rule.DestPort)
+			aclRule.IpRule.Tcp.DestinationPortRange.UpperPort = uint32(rule.DstProtoPort)
 		}
 	}
 
 	// Protocol UDP
-	if rule.Protocol == sasemodel.SaseConfig_Match_UDP {
+	if rule.Protocol == sasemodel.NetworkFirewallProfile_FirewallRule_UDP {
 		aclRule.IpRule.Udp = &vpp_acl.ACL_Rule_IpRule_Udp{}
 		aclRule.IpRule.Udp.SourcePortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
-		aclRule.IpRule.Udp.SourcePortRange.LowerPort = uint32(rule.SrcPort)
-		if rule.SrcPort == 0 {
+		aclRule.IpRule.Udp.SourcePortRange.LowerPort = uint32(rule.SrcProtoPort)
+		if rule.SrcProtoPort == 0 {
 			aclRule.IpRule.Udp.SourcePortRange.UpperPort = uint32(maxPortNum)
 		} else {
-			aclRule.IpRule.Udp.SourcePortRange.UpperPort = uint32(rule.SrcPort)
+			aclRule.IpRule.Udp.SourcePortRange.UpperPort = uint32(rule.SrcProtoPort)
 		}
 		aclRule.IpRule.Udp.DestinationPortRange = &vpp_acl.ACL_Rule_IpRule_PortRange{}
-		aclRule.IpRule.Udp.DestinationPortRange.LowerPort = uint32(rule.DestPort)
-		if rule.DestPort == 0 {
+		aclRule.IpRule.Udp.DestinationPortRange.LowerPort = uint32(rule.DstProtoPort)
+		if rule.DstProtoPort == 0 {
 			aclRule.IpRule.Udp.DestinationPortRange.UpperPort = uint32(maxPortNum)
 		} else {
-			aclRule.IpRule.Udp.DestinationPortRange.UpperPort = uint32(rule.DestPort)
+			aclRule.IpRule.Udp.DestinationPortRange.UpperPort = uint32(rule.DstProtoPort)
 		}
 	}
-	acl.Rules = append(acl.Rules, expandAnyAddr(aclRule)...)
 
-	return acl
+	// Protocol ICMP
+
+	return aclRule
 }

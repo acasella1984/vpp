@@ -63,6 +63,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&IPSecVpnTunnelList{},
 		&ServiceRoute{},
 		&ServiceRouteList{},
+		&NetworkFirewallProfile{},
+		&NetworkFirewallProfileList{},
 	)
 
 	// register the type in the scheme
