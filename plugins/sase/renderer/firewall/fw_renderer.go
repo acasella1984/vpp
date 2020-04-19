@@ -80,6 +80,8 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool
 
 	// Check for service config type
 	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		return rndr.AddSaseConfig(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig), reSync)
 	case *sasemodel.NetworkFirewallProfile:
 		return rndr.CreateNetworkFirewallProfile(sp.ServiceInfo, sp.Config.(*sasemodel.NetworkFirewallProfile), reSync)
 	default:
@@ -89,6 +91,17 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool
 
 // UpdateServiceConfig :
 func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) error {
+
+	// Check for service config type
+	switch new.Config.(type) {
+	case *sasemodel.SaseConfig:
+		return rndr.UpdateSaseConfig(new.ServiceInfo,
+			old.Config.(*sasemodel.SaseConfig), new.Config.(*sasemodel.SaseConfig))
+	case *sasemodel.NetworkFirewallProfile:
+		return rndr.UpdateNetworkFirewallProfile(new.ServiceInfo, 
+			old.Config.(*sasemodel.NetworkFirewallProfile), new.Config.(*sasemodel.NetworkFirewallProfile))
+	default:
+	}
 	return nil
 }
 
@@ -96,6 +109,8 @@ func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) er
 func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 	// Check for service config type
 	switch sp.Config.(type) {
+	case *sasemodel.SaseConfig:
+		return rndr.DeleteSaseConfig(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
 	case *sasemodel.NetworkFirewallProfile:
 		return rndr.DeleteNetworkFirewallProfile(sp.ServiceInfo, sp.Config.(*sasemodel.NetworkFirewallProfile))
 	default:
@@ -104,6 +119,117 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 }
 
 /////////////////////////// Firewall Profiles Related ////////////////
+
+func getNfpDirectionFromSaseConfigDirection(dir sasemodel.SaseConfig_Direction) sasemodel.NetworkFirewallProfile_Direction {
+
+	var nfpDir sasemodel.NetworkFirewallProfile_Direction
+
+	switch dir {
+	case sasemodel.SaseConfig_Ingress:
+		nfpDir = sasemodel.NetworkFirewallProfile_INGRESS
+	case sasemodel.SaseConfig_Egress:
+		nfpDir = sasemodel.NetworkFirewallProfile_EGRESS
+	}
+
+	// return direction
+	return nfpDir
+}
+
+func getNfpActionFromSaseAction(act sasemodel.SaseConfig_Action) sasemodel.NetworkFirewallProfile_FirewallRule_Action {
+
+	var nfpAct sasemodel.NetworkFirewallProfile_FirewallRule_Action
+
+	switch act {
+	case sasemodel.SaseConfig_DENY:
+		nfpAct = sasemodel.NetworkFirewallProfile_FirewallRule_DENY
+	case sasemodel.SaseConfig_PERMIT:
+		nfpAct = sasemodel.NetworkFirewallProfile_FirewallRule_PERMIT_REFLECT
+	}
+
+	// return action
+	return nfpAct
+}
+
+func getNfpProtocolFromSaseProtocol(proto sasemodel.SaseConfig_Match_Proto) sasemodel.NetworkFirewallProfile_FirewallRule_Proto{
+
+	var nfpProto sasemodel.NetworkFirewallProfile_FirewallRule_Proto
+
+	switch proto {
+	case sasemodel.SaseConfig_Match_TCP:
+		nfpProto = sasemodel.NetworkFirewallProfile_FirewallRule_TCP
+	case sasemodel.SaseConfig_Match_UDP:
+		nfpProto = sasemodel.NetworkFirewallProfile_FirewallRule_UDP
+	}
+
+	// return Proto
+	return nfpProto
+}
+
+func getNfpRuleFromSaseConfigMatchAction(m *sasemodel.SaseConfig_Match, a sasemodel.SaseConfig_Action) *sasemodel.NetworkFirewallProfile_FirewallRule {
+
+	// Get the network firewall rule
+	rule := &sasemodel.NetworkFirewallProfile_FirewallRule {
+		Protocol: getNfpProtocolFromSaseProtocol(m.Protocol),
+		SrcProtoPort: 0,
+		DstProtoPort: m.ProtocolPort,
+		SourceCidr: m.SourceIp,
+		DestinationCidr: m.DestinationIp,
+		Action: getNfpActionFromSaseAction(a),
+	}
+	return rule
+}
+
+// convertSaseConfigToNetworkFirewallProfile
+func convertSaseConfigToNetworkFirewallProfile(sp *sasemodel.SaseConfig) *sasemodel.NetworkFirewallProfile {
+
+	nfp := &sasemodel.NetworkFirewallProfile{
+		Name: sp.Name,
+		ServiceInstanceName: sp.ServiceInstanceName,
+		Direction: getNfpDirectionFromSaseConfigDirection(sp.Direction),
+	}
+
+	// Get Nfp Rules
+	nfp.Rules = append(nfp.Rules, getNfpRuleFromSaseConfigMatchAction(sp.Match, sp.Action))
+
+	// Get Interface details
+	if nfp.Direction == sasemodel.NetworkFirewallProfile_INGRESS {
+		nfp.InterfaceName = sp.Match.IngressInterfaceName
+	} else if nfp.Direction == sasemodel.NetworkFirewallProfile_EGRESS {
+		nfp.InterfaceName = sp.Match.EgressInterfaceName
+	}
+
+	return nfp
+}
+ 
+// AddSaseConfig :
+func (rndr *Renderer) AddSaseConfig(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig, reSync bool) error {
+	
+	rndr.Log.Infof("Firewall Service: AddSaseConfig: ServiceInfo %v", serviceInfo, "Config: %v", sp)
+
+	// Convert SaseConfig to Network firewall profile
+	nfp := convertSaseConfigToNetworkFirewallProfile(sp)
+	return rndr.CreateNetworkFirewallProfile(serviceInfo, nfp, reSync)
+}
+
+// UpdateSaseConfig :
+func (rndr *Renderer) UpdateSaseConfig(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseConfig) error {
+	
+	rndr.Log.Infof("Firewall Service: UpdateSaseConfig ServiceInfo %v", serviceInfo, "New Config: %v", new,
+		 "Old Config: %v", old)
+
+	oldNfp := convertSaseConfigToNetworkFirewallProfile(old)
+	newNfp := convertSaseConfigToNetworkFirewallProfile(new)
+	return rndr.UpdateNetworkFirewallProfile(serviceInfo, oldNfp, newNfp)
+}
+
+// DeleteSaseConfig :
+func (rndr *Renderer) DeleteSaseConfig(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
+	
+	rndr.Log.Infof("Firewall Service: DeleteSaseConfig: ServiceInfo %v", serviceInfo, "Config: %v", sp)
+
+	nfp := convertSaseConfigToNetworkFirewallProfile(sp)
+	return rndr.DeleteNetworkFirewallProfile(serviceInfo, nfp)
+}
 
 // CreateNetworkFirewallProfile adds New Network firewall Profile
 func (rndr *Renderer) CreateNetworkFirewallProfile(serviceInfo *common.ServiceInfo, sp *sasemodel.NetworkFirewallProfile, reSync bool) error {
@@ -151,9 +277,11 @@ func (rndr *Renderer) CreateNetworkFirewallProfile(serviceInfo *common.ServiceIn
 
 }
 
-// UpdateeNetworkFirewallProfile updates existing Network Firewall Profile
-func (rndr *Renderer) UpdateeNetworkFirewallProfile(serviceInfo *common.ServiceInfo, old, new *sasemodel.NetworkFirewallProfile) error {
-	return nil
+// UpdateNetworkFirewallProfile updates existing Network Firewall Profile
+func (rndr *Renderer) UpdateNetworkFirewallProfile(serviceInfo *common.ServiceInfo, old, new *sasemodel.NetworkFirewallProfile) error {
+	
+	rndr.Log.Infof("UpdateNetworkFirewallProfile: %v", new)
+	return rndr.CreateNetworkFirewallProfile(serviceInfo, new, false)
 }
 
 // DeleteNetworkFirewallProfile deletes an existing network firewall Profile

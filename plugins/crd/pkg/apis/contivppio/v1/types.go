@@ -318,6 +318,8 @@ type SecurityAssociationSpec struct {
 	// Encryption algorithm and key
 	EncryptAlgo string `json:"encryptalgo"`
 	EncryptKey  string `json:"encryptkey"`
+	InboundSAID uint32 `json:"inboundsaid"`
+	OutboundSAID uint32 `json:"outboundsaid"`
 	// Tunnel Mode or Transport Mode
 	Mode string `json:"mode"`
 }

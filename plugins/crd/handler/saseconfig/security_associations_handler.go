@@ -80,6 +80,8 @@ func (h *SecurityAssociationsHandler) securityAssociationCrdToProto(crd *v1.Secu
 		AuthSharedKey:       crd.Spec.AuthKey,
 		EncryptAlgorithm:    crd.Spec.EncryptAlgo,
 		EncryptSharedKey:    crd.Spec.EncryptKey,
+		SaInboundId:		 crd.Spec.InboundSAID,
+		SaOutboundId: 		 crd.Spec.OutboundSAID,
 		Mode:                crd.Spec.Mode,
 	}
 	return ssapb
@@ -132,6 +134,12 @@ func SAValidation() *apiextv1beta1.CustomResourceValidation {
 						},
 						"encryptkey": {
 							Type: "string",
+						},
+						"inboundsaid": {
+							Type: "integer",
+						},
+						"outboundsaid": {
+							Type: "integer",
 						},
 						"mode": {
 							Type: "string",

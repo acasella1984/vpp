@@ -2,6 +2,7 @@ package ipsecservice
 
 import (
 	"fmt"
+	"errors"
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
@@ -21,6 +22,7 @@ import (
 // Renderer implements rendering of Nat policies
 type Renderer struct {
 	Deps
+	SAInfo  map[string]*SAIdInfo
 }
 
 // Deps lists dependencies of the Renderer.
@@ -42,11 +44,19 @@ func (rndr *Renderer) Init() error {
 	if rndr.Config == nil {
 		rndr.Config = config.DefaultIPSecConfig()
 	}
+	
+	// Init SAInfo Map
+	rndr.SAInfo = make(map[string]*SAIdInfo)
+
 	return nil
 }
 
 // DeInit clean up service config
 func (rndr *Renderer) DeInit() error {
+
+	// DeInit SAInfo Map
+	rndr.SAInfo = nil
+
 	return nil
 }
 
@@ -213,10 +223,16 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppIPinIPInterface.Name), vppIPinIPInterface, config.Add)
 	}
 
-	// Add default saIn and saOut for now - VENKAT TBD
+	// Get Security Association Information from the SA Name reference
+	sa, err := rndr.CacheSAConfigGet(sp.SecurityAssociation)
+	if err != nil {
+		rndr.Log.Debug("AddIPinIPVpnTunnel: Security Association Not Found: ", sp.SecurityAssociation)
+		return nil
+	}
+
 	var saIn, saOut []uint32
-	saIn = append(saIn, uint32(config.DefaultInboundSAIndex))
-	saOut = append(saOut, uint32(config.DefaultOutboundSAIndex))
+	saIn = append(saIn, uint32(sa.InboundID))
+	saOut = append(saOut, uint32(sa.OutboundID))
 
 	rndr.Log.Info("AddIPinIPVpnTunnel: Protect the Tunnel with SA: ")
 	return rndr.IPinIPVpnTunnelProtectionAdd(serviceInfo, sp.TunnelName, saIn, saOut, reSync)
@@ -326,8 +342,8 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 
 	// Render Inbound and Outbound Security associations
 	vppSaIn := &vpp_ipsec.SecurityAssociation{
-		Index:     config.DefaultInboundSAIndex,
-		Spi:       config.DefaultInboundSPIIndex,
+		Index:     sp.SaInboundId,
+		Spi:       config.DefaultInboundSPIIndex + sp.SaInboundId,	
 		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
 		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,
 		IntegKey:  sp.AuthSharedKey,
@@ -358,8 +374,9 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	}
 
 	vppSaOut := &vpp_ipsec.SecurityAssociation{
-		Index:     config.DefaultOutboundSAIndex,
-		Spi:       config.DefaultOutboundSPIIndex,
+		Index:     sp.SaOutboundId,
+		//Spi:       config.DefaultOutboundSPIIndex,
+		Spi:       config.DefaultInboundSPIIndex + sp.SaOutboundId,	
 		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
 		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,
 		IntegKey:  sp.AuthSharedKey,
@@ -388,6 +405,10 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 		// Commit is for remote VPP based CNF
 		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Add)
 	}
+
+	// Cache SA Index Information
+	rndr.CacheSAConfigAdd(sp)
+
 	return nil
 }
 
@@ -441,8 +462,53 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_ipsec.SAKey(vppSaOut.Index), vppSaOut, config.Delete)
 	}
 
+	// Delete SA Cache Information
+	rndr.CacheSAConfigDelete(sp.Name)
+
 	return nil
 }
+
+// SAIdInfo : SA Index Info
+type SAIdInfo struct{
+	Name string 
+	InboundID uint32
+	OutboundID uint32 
+}
+
+// CacheSAConfigAdd :
+func (rndr *Renderer) CacheSAConfigAdd(sp *sasemodel.SecurityAssociation) error {
+
+	// Add SA Info to the cache
+	rndr.SAInfo[sp.Name] = &SAIdInfo{
+		Name: sp.Name,
+		InboundID: sp.SaInboundId,
+		OutboundID: sp.SaOutboundId,
+	}
+
+	return nil
+}
+
+// CacheSAConfigDelete :
+func (rndr *Renderer) CacheSAConfigDelete(saName string) error {
+
+	// Delete SA Info from cache
+	delete(rndr.SAInfo, saName)
+	return nil
+}
+
+// CacheSAConfigGet :
+func (rndr *Renderer) CacheSAConfigGet(saName string) (*SAIdInfo, error) {
+
+	// Get SA Info from the cache
+	info, ok := rndr.SAInfo[saName]
+	if !ok {
+		return nil, errors.New("CacheSAConfigGet: Not Found")
+	}
+
+	return info, nil
+}
+
+
 
 ////////////////////// Helper Function to interact with other Contiv Plugins /////////////////////
 

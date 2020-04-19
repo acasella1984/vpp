@@ -30,6 +30,10 @@ message SecurityAssociation {
     string encrypt_algorithm = 5;
     // Encryption Shared Key
     string encrypt_shared_key = 6;
+    // Inbound SA Index
+    uint32 sa_inbound_id = 7;
+    // Outbound SA Index
+    uint32 sa_outbound_id = 8;
     // Mode Tunnel or Transport Mode
-    string mode = 7;
+    string mode = 9;
 }
