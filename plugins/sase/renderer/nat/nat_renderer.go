@@ -167,13 +167,21 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 				nat44EgressIntf, config.Add)
 		}
 
-		// Add Outside Interface IP Address to NAT Address Pool
-		nat44EgressAddress := &vpp_nat.Nat44AddressPool{
-			VrfId:   0,
-			FirstIp: sp.Match.DestinationIp,
-			LastIp:  sp.Match.DestinationIp,
+		// Get IpAddresses associated with egress Interface
+		ipAddrPool := rndr.GetIPAddressFromInterfaceName(serviceInfo, sp.Match.EgressInterfaceName)
+
+		if len(ipAddrPool) == 0 {
+			rndr.Log.Info(" AddPolicy NAT AddressPool: No Addresses Configured on EgressInterface ", sp.Match.EgressInterfaceName)
+			return nil
 		}
 
+		// Outside Interface IP Address to NAT Address Pool
+		nat44EgressAddress := &vpp_nat.Nat44AddressPool{
+			VrfId:   0,
+			FirstIp: ipAddrPool[0],
+			LastIp:  ipAddrPool[len(ipAddrPool)-1],
+		}
+	
 		// Test Purpose
 		if rndr.MockTest {
 			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
@@ -261,11 +269,19 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 				nat44EgressIntf, config.Delete)
 		}
 
+		// Get IpAddresses associated with egress Interface
+		ipAddrPool := rndr.GetIPAddressFromInterfaceName(serviceInfo, sp.Match.EgressInterfaceName)
+
+		if len(ipAddrPool) == 0 {
+			rndr.Log.Info(" DelPolicy NAT AddressPool: No Addresses Configured on EgressInterface ", sp.Match.EgressInterfaceName)
+			return nil
+		}
+
 		// Outside Interface IP Address to NAT Address Pool
 		nat44EgressAddress := &vpp_nat.Nat44AddressPool{
 			VrfId:   0,
-			FirstIp: sp.Match.DestinationIp,
-			LastIp:  sp.Match.DestinationIp,
+			FirstIp: ipAddrPool[0],
+			LastIp:  ipAddrPool[len(ipAddrPool)-1],
 		}
 
 		// Test Purpose
@@ -290,6 +306,52 @@ func (rndr *Renderer) DeletePolicy(serviceInfo *common.ServiceInfo, sp *sasemode
 	}
 	return nil
 }
+
+// GetIPAddressFromInterfaceName : Return IP Address for a given Interface
+func (rndr *Renderer) GetIPAddressFromInterfaceName(serviceInfo *common.ServiceInfo, interfaceName string) []string {
+
+	var ipAddrPool []string
+
+	// Base VPP vSwitch. Get information from Contiv Conf API
+	// VENKAT: TBD. Can we listen to nodeConfig crd and cache information??
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		// Check Main VPP Interfaces
+		if rndr.ContivConf.GetMainInterfaceName() == interfaceName {
+			ipWithNetworks := rndr.ContivConf.GetMainInterfaceConfiguredIPs()
+			rndr.Log.Info("GetInterfaceNameWithIP: ipWithNetworks for MainVPPInterface: ", ipWithNetworks)
+			for _, ipNet := range ipWithNetworks {
+				// Add the Addresses associated with Main Interface to address pool
+				ipAddrPool = append(ipAddrPool, ipNet.Address.String())
+			}
+			return ipAddrPool
+		}
+
+		// Check Other VPP Interfaces
+		otherVppInterfaces := rndr.ContivConf.GetOtherVPPInterfaces()
+		rndr.Log.Info("GetInterfaceNameWithIP: otherVppInterfaces: ", otherVppInterfaces)
+		for _, oVppIntf := range otherVppInterfaces {
+			if oVppIntf.InterfaceName == interfaceName {
+				for _, ipNet := range oVppIntf.IPs {
+					ipAddrPool = append(ipAddrPool, ipNet.Address.String())
+				}
+			    return ipAddrPool
+			}
+		}
+	} else {
+		// Underlay interface is in Remote VPP CNF
+		for _, intf := range serviceInfo.Pod.Interfaces {
+			// VENKAT: Multiple Addresses Per Interface. TBD
+			if intf.Name == interfaceName {
+			 rndr.Log.Info("GetInterfaceNameWithIP: Remote VPP CNF: ", intf)
+			 ipAddrPool = append(ipAddrPool, intf.IPAddress)
+			 return ipAddrPool
+			}
+		}
+	}
+
+	return ipAddrPool
+}
+
 
 /*
 // AddPolicy adds route related policies
