@@ -160,3 +160,26 @@ func SAValidation() *apiextv1beta1.CustomResourceValidation {
 	return validation
 }
 
+// SAPrinterColumns for custom printer columns in the crd
+func SAPrinterColumns() []apiextv1beta1.CustomResourceColumnDefinition {
+
+	// Printer Columns array
+	pc := []apiextv1beta1.CustomResourceColumnDefinition{
+		{
+			Name:     "Service",
+			Type:     "string",
+			JSONPath: ".spec.service",
+		},
+		{
+			Name:     "InboundSA",
+			Type:     "integer",
+			JSONPath: ".spec.inboundsaid",
+		},
+		{
+			Name:     "OutboundSA",
+			Type:     "integer",
+			JSONPath: ".spec.outboundsaid",
+		},
+	}
+	return pc
+}

@@ -61,6 +61,7 @@ type CrdSpec struct {
 	Version    string
 	Plural     string
 	Validation *apiextv1beta1.CustomResourceValidation
+	PrinterColumn []apiextv1beta1.CustomResourceColumnDefinition
 }
 
 // Event indicate the informerEvent
@@ -251,6 +252,12 @@ func (c *CrdController) createCRD(FullName, Group, Version, Plural, Name string)
 			Validation: validation,
 		},
 	}
+
+	// Additional Printer Columns for the CRD
+	if len(c.Spec.PrinterColumn) > 0 {
+		crd.Spec.AdditionalPrinterColumns = c.Spec.PrinterColumn
+	}
+
 	_, err := c.APIClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
 	if apierrors.IsAlreadyExists(err) {
 		return nil

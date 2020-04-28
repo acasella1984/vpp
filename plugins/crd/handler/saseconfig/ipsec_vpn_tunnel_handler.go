@@ -151,3 +151,32 @@ func TunnelValidation() *apiextv1beta1.CustomResourceValidation {
 	}
 	return validation
 }
+
+// TunnelPrinterColumns for custom printer columns in the crd
+func TunnelPrinterColumns() []apiextv1beta1.CustomResourceColumnDefinition {
+
+	// Printer Columns array
+	pc := []apiextv1beta1.CustomResourceColumnDefinition{
+		{
+			Name:     "Service",
+			Type:     "string",
+			JSONPath: ".spec.service",
+		},
+		{
+			Name:     "TunnelSource",
+			Type:     "string",
+			JSONPath: ".spec.sourceip",
+		},
+		{
+			Name:     "TunnelDestination",
+			Type:     "string",
+			JSONPath: ".spec.destinationip",
+		},
+		{
+			Name:     "securityassociation",
+			Type:     "string",
+			JSONPath: ".spec.securityassociation",
+		},
+	}
+	return pc
+}

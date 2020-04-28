@@ -347,6 +347,7 @@ func (p *Plugin) initializeCRDs() error {
 			Version:  "v1",
 			Plural:   "saseservicepolicies",
 			Validation: saseconfiguration.SaseServiceValidation(),
+			PrinterColumn: saseconfiguration.SaseServicePrinterColumns(),
 		},
 	}
 
@@ -407,6 +408,7 @@ func (p *Plugin) initializeCRDs() error {
 			Version:  "v1",
 			Plural:   "securityassociations",
 			Validation: saseconfiguration.SAValidation(),
+			PrinterColumn: saseconfiguration.SAPrinterColumns(),
 		},
 	}
 
@@ -437,6 +439,7 @@ func (p *Plugin) initializeCRDs() error {
 			Version:  "v1",
 			Plural:   "ipsecvpntunnels",
 			Validation: saseconfiguration.TunnelValidation(),
+			PrinterColumn: saseconfiguration.TunnelPrinterColumns(),
 		},
 	}
 
@@ -467,6 +470,7 @@ func (p *Plugin) initializeCRDs() error {
 			Version:  "v1",
 			Plural:   "serviceroutes",
 			Validation: saseconfiguration.ServiceRouteValidation(),
+			PrinterColumn: saseconfiguration.ServiceRoutePrinterColumns(),
 		},
 	}
 

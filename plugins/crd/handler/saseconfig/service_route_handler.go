@@ -154,3 +154,37 @@ func ServiceRouteValidation() *apiextv1beta1.CustomResourceValidation {
 	}
 	return validation
 }
+
+// ServiceRoutePrinterColumns for custom printer columns in the crd
+func ServiceRoutePrinterColumns() []apiextv1beta1.CustomResourceColumnDefinition {
+
+	// Printer Columns array
+	pc := []apiextv1beta1.CustomResourceColumnDefinition{
+		{
+			Name:     "Service",
+			Type:     "string",
+			JSONPath: ".spec.service",
+		},
+		{
+			Name:     "Vrf",
+			Type:     "string",
+			JSONPath: ".spec.routescope",
+		},
+		{
+			Name:     "Destination",
+			Type:     "string",
+			JSONPath: ".spec.destinationnetwork",
+		},
+		{
+			Name:     "Gateway",
+			Type:     "string",
+			JSONPath: ".spec.gatewayip",
+		},
+		{
+			Name:     "EgressInterface",
+			Type:     "string",
+			JSONPath: ".spec.egressinterface",
+		},
+	}
+	return pc
+}

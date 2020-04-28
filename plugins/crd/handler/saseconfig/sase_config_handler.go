@@ -301,3 +301,42 @@ func SaseServiceValidation() *apiextv1beta1.CustomResourceValidation {
 	}
 	return validation
 }
+
+// SaseServicePrinterColumns for custom printer columns in the crd
+func SaseServicePrinterColumns() []apiextv1beta1.CustomResourceColumnDefinition {
+
+	// Printer Columns array
+	pc := []apiextv1beta1.CustomResourceColumnDefinition{
+		{
+			Name:     "Service",
+			Type:     "string",
+			JSONPath: ".spec.service",
+		},
+		{
+			Name:     "Direction",
+			Type:     "integer",
+			JSONPath: ".spec.direction",
+		},
+		{
+			Name:     "Match-ProtocolPort",
+			Type:     "integer",
+			JSONPath: ".spec.match.protocolport",
+		},
+		{
+			Name:     "Match-IngressInterface",
+			Type:     "string",
+			JSONPath: ".spec.match.ingressInterface",
+		},
+		{
+			Name:     "Match-EgressInterface",
+			Type:     "string",
+			JSONPath: ".spec.match.egressInterface",
+		},
+		{
+			Name:     "Action",
+			Type:     "string",
+			JSONPath: ".spec.action.action",
+		},
+	}
+	return pc
+}
