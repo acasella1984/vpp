@@ -2162,10 +2162,10 @@ index 000000000..031748dd3
 +
 diff --git a/src/plugins/router-plugin/rtinject/tap_inject.c b/src/plugins/router-plugin/rtinject/tap_inject.c
 new file mode 100644
-index 000000000..718e4c779
+index 000000000..22aa4a33d
 --- /dev/null
 +++ b/src/plugins/router-plugin/rtinject/tap_inject.c
-@@ -0,0 +1,382 @@
+@@ -0,0 +1,389 @@
 +/*
 + * Copyright 2016 Intel Corporation
 + *
@@ -2299,7 +2299,7 @@ index 000000000..718e4c779
 +  ip6_register_protocol (IP_PROTOCOL_ICMP6, im->neighbor_node_index);
 +
 +  /* Register remaining protocols. */
-+  ip4_register_protocol (IP_PROTOCOL_ICMP, im->tx_node_index);
++  // ip4_register_protocol (IP_PROTOCOL_ICMP, im->tx_node_index);
 +
 +  ip4_register_protocol (IP_PROTOCOL_OSPF, im->tx_node_index);
 +  ip4_register_protocol (IP_PROTOCOL_TCP, im->tx_node_index);
@@ -2358,6 +2358,12 @@ index 000000000..718e4c779
 +
 +      if (hw->hw_class_index == ethernet_hw_interface_class.index)
 +        {
++          // HACK: Interface, which are not representing physical device have
++          // their link_speed set to 0. Leverage this information to open tap
++          // interface only for physical interfaces and ignore all other
++          // interface.
++          if (strcmp((const char *) (hw->name), "lan"))
++            continue;
 +          err = tap_inject_tap_connect (hw);
 +          if (err)
 +            break;
@@ -2955,10 +2961,10 @@ index 000000000..a221e8eaa
 +}
 diff --git a/src/plugins/router-plugin/rtinject/tap_inject_node.c b/src/plugins/router-plugin/rtinject/tap_inject_node.c
 new file mode 100644
-index 000000000..73c296451
+index 000000000..9a4af7bc2
 --- /dev/null
 +++ b/src/plugins/router-plugin/rtinject/tap_inject_node.c
-@@ -0,0 +1,374 @@
+@@ -0,0 +1,375 @@
 +/*
 + * Copyright 2016 Intel Corporation
 + *
@@ -3069,16 +3075,17 @@ index 000000000..73c296451
 +      b = vlib_get_buffer (vm, bi);
 +
 +      fd = tap_inject_lookup_tap_fd (vnet_buffer (b)->sw_if_index[VLIB_RX]);
-+      if (fd == ~0)
-+        {
-+          vlib_buffer_free (vm, &bi, 1);
-+          continue;
-+        }
++//      if (fd == ~0)
++//        {
++//          vlib_buffer_free (vm, &bi, 1);
++//          continue;
++//        }
 +
 +      /* Re-wind the buffer to the start of the Ethernet header. */
 +      vlib_buffer_advance (b, -b->current_data);
 +
-+      tap_inject_tap_send_buffer (fd, b);
++      if (fd != ~0)
++          tap_inject_tap_send_buffer (fd, b);
 +
 +      /* Send the buffer to a neighbor node too? */
 +      {
@@ -3089,7 +3096,7 @@ index 000000000..73c296451
 +          {
 +            ethernet_arp_header_t * arp = (void *)(eth + 1);
 +
-+            if (arp->opcode == ntohs (ETHERNET_ARP_OPCODE_reply))
++            if (arp->opcode == ntohs (ETHERNET_ARP_OPCODE_reply) || fd == ~0)
 +              next = NEXT_NEIGHBOR_ARP;
 +          }
 +        else if (ether_type == ETHERNET_TYPE_IP6)
