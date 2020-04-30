@@ -1,8 +1,8 @@
 package ipsecservice
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
@@ -22,7 +22,8 @@ import (
 // Renderer implements rendering of Nat policies
 type Renderer struct {
 	Deps
-	SAInfo  map[string]*SAIdInfo
+	SAInfo               map[string]*SAIdInfo
+	PendingTunnelProtect map[string][]string
 }
 
 // Deps lists dependencies of the Renderer.
@@ -44,9 +45,12 @@ func (rndr *Renderer) Init() error {
 	if rndr.Config == nil {
 		rndr.Config = config.DefaultIPSecConfig()
 	}
-	
+
 	// Init SAInfo Map
 	rndr.SAInfo = make(map[string]*SAIdInfo)
+
+	// Init PendingTunnelProtect Map
+	rndr.PendingTunnelProtect = make(map[string][]string)
 
 	return nil
 }
@@ -227,6 +231,9 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 	sa, err := rndr.CacheSAConfigGet(sp.SecurityAssociation)
 	if err != nil {
 		rndr.Log.Debug("AddIPinIPVpnTunnel: Security Association Not Found: ", sp.SecurityAssociation)
+
+		// Add the dependency in the pending tunnel protect list
+		rndr.AddTunnelToPendingTunnelProtectList(sp.TunnelName, sp.SecurityAssociation)
 		return nil
 	}
 
@@ -241,11 +248,18 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 // DeleteIPinIPVpnTunnel deletes an existing ip in ip vpn tunnel
 func (rndr *Renderer) DeleteIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
 
-	// Delete Tunnel Protection. VENKAT: To have some check to suggest if tunnel protect is
-	// enabled or not - TBD
-	err := rndr.IPinIPVpnTunnelProtectionDelete(serviceInfo, sp.TunnelName)
-	if err != nil {
-		rndr.Log.Debug("IPinIPVpnTunnelProtectionDelete: return error", err)
+	// Check if tunnel present in the pending list and delete it
+	rndr.DeleteTunnelFromPendingTunnelProtectList(sp.TunnelName, sp.SecurityAssociation)
+
+	// Check if SA exists
+	_, err := rndr.CacheSAConfigGet(sp.SecurityAssociation)
+	if err == nil {
+		// Delete Tunnel Protection. VENKAT: To have some check to suggest if tunnel protect is
+		// enabled or not - TBD
+		err := rndr.IPinIPVpnTunnelProtectionDelete(serviceInfo, sp.TunnelName)
+		if err != nil {
+			rndr.Log.Debug("IPinIPVpnTunnelProtectionDelete: return error", err)
+		}
 	}
 
 	vppIPinIPInterface := &vpp_interfaces.Interface{
@@ -343,7 +357,7 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	// Render Inbound and Outbound Security associations
 	vppSaIn := &vpp_ipsec.SecurityAssociation{
 		Index:     sp.SaInboundId,
-		Spi:       config.DefaultInboundSPIIndex + sp.SaInboundId,	
+		Spi:       config.DefaultInboundSPIIndex + sp.SaInboundId,
 		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
 		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,
 		IntegKey:  sp.AuthSharedKey,
@@ -374,9 +388,9 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	}
 
 	vppSaOut := &vpp_ipsec.SecurityAssociation{
-		Index:     sp.SaOutboundId,
+		Index: sp.SaOutboundId,
 		//Spi:       config.DefaultOutboundSPIIndex,
-		Spi:       config.DefaultInboundSPIIndex + sp.SaOutboundId,	
+		Spi:       config.DefaultInboundSPIIndex + sp.SaOutboundId,
 		Protocol:  vpp_ipsec.SecurityAssociation_ESP,
 		IntegAlg:  vpp_ipsec.IntegAlg_SHA1_96,
 		IntegKey:  sp.AuthSharedKey,
@@ -409,6 +423,21 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 	// Cache SA Index Information
 	rndr.CacheSAConfigAdd(sp)
 
+	// Check if there are any pending tunnels that needs to be protected using the SA
+	if _, ok := rndr.PendingTunnelProtect[sp.Name]; ok {
+		// call tunnel protect for all the tunnels in the pending list
+		for _, tunnl := range rndr.PendingTunnelProtect[sp.Name] {
+			var saIn, saOut []uint32
+			saIn = append(saIn, uint32(sp.SaInboundId))
+			saOut = append(saOut, uint32(sp.SaOutboundId))
+
+			rndr.Log.Info("AddSecurityAssociation: Protect the Tunnel with SA: ", tunnl, sp.SaInboundId, sp.SaOutboundId)
+			rndr.IPinIPVpnTunnelProtectionAdd(serviceInfo, tunnl, saIn, saOut, reSync)
+		}
+		// Delete the SA from the pending list
+		delete(rndr.PendingTunnelProtect, sp.Name)
+	}
+
 	return nil
 }
 
@@ -422,7 +451,7 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 
 	// Render Inbound and Outbound Security associations
 	vppSaIn := &vpp_ipsec.SecurityAssociation{
-		Index: config.DefaultInboundSAIndex,
+		Index: sp.SaInboundId,
 	}
 
 	rndr.Log.Info("DeleteSecurityAssociation: vppSaInbound: ", vppSaIn)
@@ -443,7 +472,7 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 	}
 
 	vppSaOut := &vpp_ipsec.SecurityAssociation{
-		Index: config.DefaultOutboundSAIndex,
+		Index: sp.SaOutboundId,
 	}
 
 	rndr.Log.Infof("DeleteSecurityAssociation: vppSaOutbound: %v", vppSaOut)
@@ -469,10 +498,10 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 }
 
 // SAIdInfo : SA Index Info
-type SAIdInfo struct{
-	Name string 
-	InboundID uint32
-	OutboundID uint32 
+type SAIdInfo struct {
+	Name       string
+	InboundID  uint32
+	OutboundID uint32
 }
 
 // CacheSAConfigAdd :
@@ -480,8 +509,8 @@ func (rndr *Renderer) CacheSAConfigAdd(sp *sasemodel.SecurityAssociation) error 
 
 	// Add SA Info to the cache
 	rndr.SAInfo[sp.Name] = &SAIdInfo{
-		Name: sp.Name,
-		InboundID: sp.SaInboundId,
+		Name:       sp.Name,
+		InboundID:  sp.SaInboundId,
 		OutboundID: sp.SaOutboundId,
 	}
 
@@ -508,7 +537,25 @@ func (rndr *Renderer) CacheSAConfigGet(saName string) (*SAIdInfo, error) {
 	return info, nil
 }
 
+// AddTunnelToPendingTunnelProtectList :
+func (rndr *Renderer) AddTunnelToPendingTunnelProtectList(tunnelName string, sa string) {
+	// Add SA to the pending Map
+	rndr.PendingTunnelProtect[sa] = append(rndr.PendingTunnelProtect[sa], tunnelName)
+}
 
+// DeleteTunnelFromPendingTunnelProtectList :
+func (rndr *Renderer) DeleteTunnelFromPendingTunnelProtectList(tunnelName string, sa string) {
+
+	if _, ok := rndr.PendingTunnelProtect[sa]; ok {
+		// Delete tunnel from the tunnel pending list
+		for i := len(rndr.PendingTunnelProtect[sa]) - 1; i >= 0; i-- {
+			if rndr.PendingTunnelProtect[sa][i] == tunnelName {
+				rndr.PendingTunnelProtect[sa] = append(rndr.PendingTunnelProtect[sa][:i], rndr.PendingTunnelProtect[sa][i+1:]...)
+			}
+		}
+		return
+	}
+}
 
 ////////////////////// Helper Function to interact with other Contiv Plugins /////////////////////
 
