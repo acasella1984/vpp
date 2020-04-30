@@ -2162,7 +2162,7 @@ index 000000000..031748dd3
 +
 diff --git a/src/plugins/router-plugin/rtinject/tap_inject.c b/src/plugins/router-plugin/rtinject/tap_inject.c
 new file mode 100644
-index 000000000..22aa4a33d
+index 000000000..99d0a9a50
 --- /dev/null
 +++ b/src/plugins/router-plugin/rtinject/tap_inject.c
 @@ -0,0 +1,389 @@
@@ -2299,6 +2299,7 @@ index 000000000..22aa4a33d
 +  ip6_register_protocol (IP_PROTOCOL_ICMP6, im->neighbor_node_index);
 +
 +  /* Register remaining protocols. */
++  // FIXME: Process ICMP message in VPP
 +  // ip4_register_protocol (IP_PROTOCOL_ICMP, im->tx_node_index);
 +
 +  ip4_register_protocol (IP_PROTOCOL_OSPF, im->tx_node_index);
@@ -2961,10 +2962,10 @@ index 000000000..a221e8eaa
 +}
 diff --git a/src/plugins/router-plugin/rtinject/tap_inject_node.c b/src/plugins/router-plugin/rtinject/tap_inject_node.c
 new file mode 100644
-index 000000000..9a4af7bc2
+index 000000000..bad789ebd
 --- /dev/null
 +++ b/src/plugins/router-plugin/rtinject/tap_inject_node.c
-@@ -0,0 +1,375 @@
+@@ -0,0 +1,379 @@
 +/*
 + * Copyright 2016 Intel Corporation
 + *
@@ -3075,6 +3076,9 @@ index 000000000..9a4af7bc2
 +      b = vlib_get_buffer (vm, bi);
 +
 +      fd = tap_inject_lookup_tap_fd (vnet_buffer (b)->sw_if_index[VLIB_RX]);
++      // Do not delete buffer here - if we don't have valid fd then we don't
++      // have tap interface for this interface. So rather deleting the frame
++      // process it in vpp
 +//      if (fd == ~0)
 +//        {
 +//          vlib_buffer_free (vm, &bi, 1);
@@ -3096,6 +3100,7 @@ index 000000000..9a4af7bc2
 +          {
 +            ethernet_arp_header_t * arp = (void *)(eth + 1);
 +
++	    // Also forward ARP request when you don't have TAP interface opened
 +            if (arp->opcode == ntohs (ETHERNET_ARP_OPCODE_reply) || fd == ~0)
 +              next = NEXT_NEIGHBOR_ARP;
 +          }
