@@ -105,108 +105,116 @@ func (rndr *Renderer) AddPolicy(serviceInfo *common.ServiceInfo, sp *sasemodel.S
 	// Source NAT configuration
 	if sp.Action == sasemodel.SaseConfig_SNAT {
 
-		// Ingress NAT Interface
-		nat44IngressIntf := &vpp_nat.Nat44Interface{
-			Name:          sp.Match.IngressInterfaceName,
-			NatInside:     true,
-			OutputFeature: true,
-		}
-
-		// Test Purpose
-		if rndr.MockTest {
-			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
-				nat44IngressIntf, config.Add)
-		}
-
-		// Txn is for local base VPP CNF
-		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-			rndr.Log.Info(" AddPolicy NAT Inside Interface: Post txn to local vpp agent",
-				"Key: ", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), "Value: ", nat44IngressIntf)
-
-			if reSync == true {
-				txn := rndr.ResyncTxnFactory()
-				txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
-			} else {
-				txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Inside Interface %s", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name)))
-				txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
-			}
-		} else {
-			// Txn is for remote VPP based CNF
-			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
-				nat44IngressIntf, config.Add)
-		}
-
-		// Egress NAT Interface
-		nat44EgressIntf := &vpp_nat.Nat44Interface{
-			Name:          sp.Match.EgressInterfaceName,
-			NatOutside:    true,
-			OutputFeature: true,
-		}
-
-		// Test Purpose
-		if rndr.MockTest {
-			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
-				nat44EgressIntf, config.Add)
-		}
-
-		// Txn is for local base VPP CNF
-		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-			rndr.Log.Info(" AddPolicy NAT Outside Interface: Post txn to local vpp agent",
-				"Key: ", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), "Value: ", nat44EgressIntf)
-			if reSync == true {
-				txn := rndr.ResyncTxnFactory()
-				txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
-			} else {
-				txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Outside Interface %s", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name)))
-				txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+		if sp.Match.IngressInterfaceName != "" {
+			// Ingress NAT Interface
+			nat44IngressIntf := &vpp_nat.Nat44Interface{
+				Name:          sp.Match.IngressInterfaceName,
+				NatInside:     true,
+				OutputFeature: true,
 			}
 
-		} else {
-			// Txn is for remote VPP based CNF
-			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
-				nat44EgressIntf, config.Add)
-		}
-
-		// Get IpAddresses associated with egress Interface
-		ipAddrPool := rndr.GetIPAddressFromInterfaceName(serviceInfo, sp.Match.EgressInterfaceName)
-
-		if len(ipAddrPool) == 0 {
-			rndr.Log.Info(" AddPolicy NAT AddressPool: No Addresses Configured on EgressInterface ", sp.Match.EgressInterfaceName)
-			return nil
-		}
-
-		// Outside Interface IP Address to NAT Address Pool
-		nat44EgressAddress := &vpp_nat.Nat44AddressPool{
-			VrfId:   0,
-			FirstIp: ipAddrPool[0],
-			LastIp:  ipAddrPool[len(ipAddrPool)-1],
-		}
-	
-		// Test Purpose
-		if rndr.MockTest {
-			return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
-				nat44EgressAddress, config.Add)
-		}
-
-		// Txn is for local base VPP CNF
-		if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-			rndr.Log.Info(" AddPolicy NAT AddressPool: Post txn to local vpp agent",
-				"Key: ", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
-				"Value: ", nat44EgressAddress)
-			if reSync == true {
-				txn := rndr.ResyncTxnFactory()
-				txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
-					nat44EgressAddress)
-			} else {
-				txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT AddressPool %s", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp)))
-				txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
-					nat44EgressAddress)
+			// Test Purpose
+			if rndr.MockTest {
+				return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
+					nat44IngressIntf, config.Add)
 			}
 
-		} else {
-			// Txn is for remote VPP based CNF
-			renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
-				nat44EgressAddress, config.Add)
+			// Txn is for local base VPP CNF
+			if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+				rndr.Log.Info(" AddPolicy NAT Inside Interface: Post txn to local vpp agent",
+					"Key: ", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), "Value: ", nat44IngressIntf)
+
+				if reSync == true {
+					txn := rndr.ResyncTxnFactory()
+					// Apply New Configuration
+					txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
+				} else {
+					txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Inside Interface %s", vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name)))
+					txn.Put(vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name), nat44IngressIntf)
+				}
+			} else {
+				// Txn is for remote VPP based CNF
+				// Capture the error - VENKAT
+				renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44IngressIntf.Name),
+					nat44IngressIntf, config.Add)
+			}
+		}
+
+		if sp.Match.EgressInterfaceName != "" {
+
+			// Egress NAT Interface
+			nat44EgressIntf := &vpp_nat.Nat44Interface{
+				Name:          sp.Match.EgressInterfaceName,
+				NatOutside:    true,
+				OutputFeature: true,
+			}
+
+			// Test Purpose
+			if rndr.MockTest {
+				return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
+					nat44EgressIntf, config.Add)
+			}
+
+			// Txn is for local base VPP CNF
+			if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+				rndr.Log.Info(" AddPolicy NAT Outside Interface: Post txn to local vpp agent",
+					"Key: ", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), "Value: ", nat44EgressIntf)
+				if reSync == true {
+					txn := rndr.ResyncTxnFactory()
+					txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+				} else {
+					txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT Outside Interface %s", vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name)))
+					txn.Put(vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name), nat44EgressIntf)
+				}
+
+			} else {
+				// Txn is for remote VPP based CNF
+				renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44InterfaceKey(nat44EgressIntf.Name),
+					nat44EgressIntf, config.Add)
+			}
+
+			// Get IpAddresses associated with egress Interface
+			ipAddrPool := rndr.GetIPAddressFromInterfaceName(serviceInfo, sp.Match.EgressInterfaceName)
+
+			if len(ipAddrPool) == 0 {
+				rndr.Log.Info(" AddPolicy NAT AddressPool: No Addresses Configured on EgressInterface ", sp.Match.EgressInterfaceName)
+				return nil
+			}
+
+			// Outside Interface IP Address to NAT Address Pool
+			nat44EgressAddress := &vpp_nat.Nat44AddressPool{
+				VrfId:   0,
+				FirstIp: ipAddrPool[0],
+				LastIp:  ipAddrPool[len(ipAddrPool)-1],
+			}
+
+			// Test Purpose
+			if rndr.MockTest {
+				return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+					nat44EgressAddress, config.Add)
+			}
+
+			// Txn is for local base VPP CNF
+			if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+				rndr.Log.Info(" AddPolicy NAT AddressPool: Post txn to local vpp agent",
+					"Key: ", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+					"Value: ", nat44EgressAddress)
+				if reSync == true {
+					txn := rndr.ResyncTxnFactory()
+					txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+						nat44EgressAddress)
+				} else {
+					txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddPolicy NAT AddressPool %s", vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp)))
+					txn.Put(vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+						nat44EgressAddress)
+				}
+
+			} else {
+				// Txn is for remote VPP based CNF
+				renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_nat.Nat44AddressPoolKey(nat44EgressAddress.VrfId, nat44EgressAddress.FirstIp, nat44EgressAddress.LastIp),
+					nat44EgressAddress, config.Add)
+			}
+
 		}
 	}
 	return nil
@@ -334,7 +342,7 @@ func (rndr *Renderer) GetIPAddressFromInterfaceName(serviceInfo *common.ServiceI
 				for _, ipNet := range oVppIntf.IPs {
 					ipAddrPool = append(ipAddrPool, ipNet.Address.String())
 				}
-			    return ipAddrPool
+				return ipAddrPool
 			}
 		}
 	} else {
@@ -342,16 +350,15 @@ func (rndr *Renderer) GetIPAddressFromInterfaceName(serviceInfo *common.ServiceI
 		for _, intf := range serviceInfo.Pod.Interfaces {
 			// VENKAT: Multiple Addresses Per Interface. TBD
 			if intf.Name == interfaceName {
-			 rndr.Log.Info("GetInterfaceNameWithIP: Remote VPP CNF: ", intf)
-			 ipAddrPool = append(ipAddrPool, intf.IPAddress)
-			 return ipAddrPool
+				rndr.Log.Info("GetInterfaceNameWithIP: Remote VPP CNF: ", intf)
+				ipAddrPool = append(ipAddrPool, intf.IPAddress)
+				return ipAddrPool
 			}
 		}
 	}
 
 	return ipAddrPool
 }
-
 
 /*
 // AddPolicy adds route related policies
