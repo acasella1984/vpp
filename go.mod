@@ -4,7 +4,10 @@ go 1.13
 
 require (
 	git.fd.io/govpp.git v0.2.1-0.20200131102335-2df59463fcbb
+	github.com/Infoblox-CTO/janus-common v0.0.0-20181108112319-844c41a11f63
+	github.com/Infoblox-CTO/ngp.app.common v1.0.3
 	github.com/Microsoft/go-winio v0.4.12 // indirect
+	github.com/RackSec/srslog v0.0.0-20180709174129-a4725f04ec91 // indirect
 	github.com/apparentlymart/go-cidr v0.0.0-20170616213631-2bd8b58cf427
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
 	github.com/containernetworking/cni v0.7.1
@@ -22,7 +25,7 @@ require (
 	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/ligato/cn-infra v2.2.1-0.20191030081411-42c7431fdca1+incompatible
-	github.com/ligato/vpp-agent v2.5.1+incompatible
+	github.com/ligato/vpp-agent v2.5.1+incompatible // indirect
 	github.com/namsral/flag v1.7.4-pre
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.9.1
@@ -44,7 +47,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.17.1
 	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/code-generator v0.17.4
+	k8s.io/code-generator v0.17.4 // indirect
 	k8s.io/kubelet v0.0.0
 	k8s.io/kubernetes v1.17.1
 )
