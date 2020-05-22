@@ -6,7 +6,13 @@ RUN apt-get update && apt-get install -y \
  make \
  wget \
  git \
- gcc
+ gcc \
+ openssh-client
+
+RUN git config --global "url.git@github.com:.insteadof" "https://github.com/"
+
+COPY .ssh /root/.ssh
+RUN chmod 600 /root/.ssh/*
 
 # install vpp
 WORKDIR $VPP_BUILD_DIR

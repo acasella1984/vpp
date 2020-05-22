@@ -9,6 +9,7 @@ COVER_DIR ?= /tmp/
 
 export GO111MODULE=on
 export GOPROXY=https://goproxy.io
+export GOPRIVATE += ,github.com/Infoblox-CTO
 
 # Build commands
 build: contiv-agent contiv-ksr contiv-crd contiv-cni contiv-stn contiv-init contiv-netctl contiv-ui-backend

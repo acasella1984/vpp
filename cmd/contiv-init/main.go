@@ -42,6 +42,9 @@ import (
 	"github.com/contiv/vpp/plugins/controller"
 	"github.com/contiv/vpp/plugins/nodesync"
 	"github.com/contiv/vpp/plugins/nodesync/vppnode"
+
+	"github.com/Infoblox-CTO/janus-common/log"
+	logutil "github.com/Infoblox-CTO/ngp.app.common/log"
 )
 
 const (
@@ -300,8 +303,27 @@ func prepareForLocalResync(nodeName string, boltDB contivconf.KVBrokerFactory, e
 	return err
 }
 
+func testOnpremLogger() {
+	err := logutil.LoggerClientInit("info")
+
+	if err != nil {
+		// Despite log formatting was unable to initialize properly, the logging
+		// facility should still be safe to use.
+		log.Errorf("Failed to initialize log formatting: %s", err)
+	}
+
+	for {
+		time.Sleep(10 * time.Second)
+		log.Errorf("XXXXXXXXXX Testing ngp.onprem.logger communication XXXXXXXXXX")
+		log.StandardLogger().Errorf("YYYYYYYYYY Testing ngp.onprem.logger communication (2) YYYYYYYYYY")
+		//logger.Debugf("XXXXXXXXXX Testing ngp.onprem.logger communication XXXXXXXXXX")
+	}
+}
+
 func main() {
 	logger.Debugf("Starting contiv-init process")
+
+	go testOnpremLogger()
 
 	// init and parse flags
 	contivConf := contivconf.NewPlugin()
