@@ -65,12 +65,19 @@ function validate_docker_tag() {
 }
 
 if [ "${REBUILD_VPP}" -eq 1 ] || [ -z "$(validate_docker_tag contivvpp/dev-vswitch-${BUILDARCH} ${TAG}-${VPP})" ]; then
+  # stage Infoblox-CTO packages
+  ./pull-ibpkg.sh
+
+  cp -a $(go env GOPATH)/src/
   # execute the build
   # use no cache and force rm because docker cannot handle dynamic FROM and so trying to use cache is useless
   docker build --no-cache=true --force-rm=true -f docker/vpp-vswitch/dev/${DOCKERFILE} -t contivvpp/dev-vswitch-${BUILDARCH}:${TAG}-${VPP} \
   --build-arg VPP_IMAGE=${VPP_IMAGE}-${BUILDARCH}:${VPP_COMMIT_VERSION} \
     ${VPP_BUILD_ARGS} \
     ${DOCKER_BUILD_ARGS} .
+
+  # remove staged Infoblox-CTO packages
+  rm -rf ibpkg-mod*.tgz
 fi
 
 docker tag contivvpp/dev-vswitch-${BUILDARCH}:${TAG}-${VPP} contivvpp/dev-vswitch-${BUILDARCH}:${TAG}

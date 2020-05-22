@@ -18,6 +18,10 @@ RUN if [ -n "$VPP_INSTALL_PKG" ]; then \
 # copy source files to the container
 COPY / /root/go/src/github.com/contiv/vpp
 
+# populate Infoblox-CTO packages
+ADD ibpkg-mod.tgz /root/go/pkg/mod/github.com/
+ADD ibpkg-mod-cache.tgz /root/go/pkg/mod/cache/download/github.com/
+
 # install Go
 ENV GOLANG_VERSION 1.13.8
 RUN if [ -n "$VPP_INSTALL_PKG" ]; then \
