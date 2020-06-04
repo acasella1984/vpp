@@ -3,6 +3,7 @@ package ipsecservice
 import (
 	"errors"
 	"fmt"
+
 	"github.com/contiv/vpp/plugins/contivconf"
 	controller "github.com/contiv/vpp/plugins/controller/api"
 	sasemodel "github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
@@ -76,7 +77,8 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool
 	case *sasemodel.SaseConfig:
 		rndr.AddPolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig), reSync)
 	case *sasemodel.IPSecVpnTunnel:
-		rndr.AddIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel), reSync)
+		//rndr.AddIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel), reSync)
+		rndr.AddGreTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel), reSync)
 	case *sasemodel.SecurityAssociation:
 		rndr.AddSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation), reSync)
 	default:
@@ -92,7 +94,9 @@ func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) er
 		rndr.UpdatePolicy(new.ServiceInfo, old.Config.(*sasemodel.SaseConfig),
 			new.Config.(*sasemodel.SaseConfig))
 	case *sasemodel.IPSecVpnTunnel:
-		rndr.UpdateIPSecVpnTunnel(new.ServiceInfo, new.Config.(*sasemodel.IPSecVpnTunnel),
+		//rndr.UpdateIPSecVpnTunnel(new.ServiceInfo, new.Config.(*sasemodel.IPSecVpnTunnel),
+		//	old.Config.(*sasemodel.IPSecVpnTunnel))
+		rndr.UpdateGreTunnel(new.ServiceInfo, new.Config.(*sasemodel.IPSecVpnTunnel),
 			old.Config.(*sasemodel.IPSecVpnTunnel))
 	case *sasemodel.SecurityAssociation:
 		rndr.UpdateSecurityAssociation(new.ServiceInfo, new.Config.(*sasemodel.SecurityAssociation),
@@ -109,7 +113,8 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 	case *sasemodel.SaseConfig:
 		rndr.DeletePolicy(sp.ServiceInfo, sp.Config.(*sasemodel.SaseConfig))
 	case *sasemodel.IPSecVpnTunnel:
-		rndr.DeleteIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
+		//rndr.DeleteIPinIPVpnTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
+		rndr.DeleteGreTunnel(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
 	case *sasemodel.SecurityAssociation:
 		rndr.DeleteSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation))
 	default:
@@ -242,7 +247,7 @@ func (rndr *Renderer) AddIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp *sa
 	saOut = append(saOut, uint32(sa.OutboundID))
 
 	rndr.Log.Info("AddIPinIPVpnTunnel: Protect the Tunnel with SA: ")
-	return rndr.IPinIPVpnTunnelProtectionAdd(serviceInfo, sp.TunnelName, saIn, saOut, reSync)
+	return rndr.IPSecTunnelProtectionAdd(serviceInfo, sp.TunnelName, saIn, saOut, reSync)
 }
 
 // DeleteIPinIPVpnTunnel deletes an existing ip in ip vpn tunnel
@@ -256,9 +261,9 @@ func (rndr *Renderer) DeleteIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp 
 	if err == nil {
 		// Delete Tunnel Protection. VENKAT: To have some check to suggest if tunnel protect is
 		// enabled or not - TBD
-		err := rndr.IPinIPVpnTunnelProtectionDelete(serviceInfo, sp.TunnelName)
+		err := rndr.IPSecTunnelProtectionDelete(serviceInfo, sp.TunnelName)
 		if err != nil {
-			rndr.Log.Debug("IPinIPVpnTunnelProtectionDelete: return error", err)
+			rndr.Log.Debug("IPSecTunnelProtectionDelete: return error", err)
 		}
 	}
 
@@ -287,8 +292,8 @@ func (rndr *Renderer) DeleteIPinIPVpnTunnel(serviceInfo *common.ServiceInfo, sp 
 
 /////////////////// IPinIP Tunnel Protect Routines /////////////////
 
-// IPinIPVpnTunnelProtectionAdd :
-func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceInfo, tunnelName string, saIn, saOut []uint32, reSync bool) error {
+// IPSecTunnelProtectionAdd :
+func (rndr *Renderer) IPSecTunnelProtectionAdd(serviceInfo *common.ServiceInfo, tunnelName string, saIn, saOut []uint32, reSync bool) error {
 
 	tunnelProtect := &vpp_ipsec.TunnelProtection{
 		Interface: tunnelName,
@@ -296,7 +301,7 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceIn
 		SaOut:     saOut,
 	}
 
-	rndr.Log.Info("IPinIPVpnTunnelProtectionAdd: tunnelProtect: ", tunnelProtect)
+	rndr.Log.Info("IPSecTunnelProtectionAdd: tunnelProtect: ", tunnelProtect)
 
 	// Test Purpose
 	if rndr.MockTest {
@@ -305,13 +310,13 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceIn
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Info(" IPinIPVpnTunnelProtectionAdd: Post txn to local vpp agent",
+		rndr.Log.Info(" IPSecTunnelProtectionAdd: Post txn to local vpp agent",
 			"Key: ", models.Key(tunnelProtect), "Value: ", tunnelProtect)
 		if reSync == true {
 			txn := rndr.ResyncTxnFactory()
 			txn.Put(models.Key(tunnelProtect), tunnelProtect)
 		} else {
-			txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnelProtectionAdd %s", models.Key(tunnelProtect)))
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPSecTunnelProtectionAdd %s", models.Key(tunnelProtect)))
 			txn.Put(models.Key(tunnelProtect), tunnelProtect)
 		}
 		return nil
@@ -322,13 +327,13 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionAdd(serviceInfo *common.ServiceIn
 }
 
 // IPinIPVpnTunnelProtectionDelete :
-func (rndr *Renderer) IPinIPVpnTunnelProtectionDelete(serviceInfo *common.ServiceInfo, tunnelName string) error {
+func (rndr *Renderer) IPSecTunnelProtectionDelete(serviceInfo *common.ServiceInfo, tunnelName string) error {
 
 	tunnelProtect := &vpp_ipsec.TunnelProtection{
 		Interface: tunnelName,
 	}
 
-	rndr.Log.Info("IPinIPVpnTunnelProtectionDelete: tunnelProtect: ", tunnelProtect)
+	rndr.Log.Info("IPSecTunnelProtectionDelete: tunnelProtect: ", tunnelProtect)
 
 	// Test Purpose
 	if rndr.MockTest {
@@ -337,9 +342,9 @@ func (rndr *Renderer) IPinIPVpnTunnelProtectionDelete(serviceInfo *common.Servic
 
 	// Commit is for local base vpp vswitch
 	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
-		rndr.Log.Info(" IPinIPVpnTunnelProtectionDelete: Post txn to local vpp agent",
+		rndr.Log.Info(" IPSecTunnelProtectionDelete: Post txn to local vpp agent",
 			"Key: ", models.Key(tunnelProtect), "Value: ", tunnelProtect)
-		txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPinIPVpnTunnelProtectionDelete %s", models.Key(tunnelProtect)))
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("IPSecTunnelProtectionDelete %s", models.Key(tunnelProtect)))
 		txn.Delete(models.Key(tunnelProtect))
 		return nil
 	}
@@ -432,7 +437,7 @@ func (rndr *Renderer) AddSecurityAssociation(serviceInfo *common.ServiceInfo, sp
 			saOut = append(saOut, uint32(sp.SaOutboundId))
 
 			rndr.Log.Info("AddSecurityAssociation: Protect the Tunnel with SA: ", tunnl, sp.SaInboundId, sp.SaOutboundId)
-			rndr.IPinIPVpnTunnelProtectionAdd(serviceInfo, tunnl, saIn, saOut, reSync)
+			rndr.IPSecTunnelProtectionAdd(serviceInfo, tunnl, saIn, saOut, reSync)
 		}
 		// Delete the SA from the pending list
 		delete(rndr.PendingTunnelProtect, sp.Name)
@@ -495,6 +500,121 @@ func (rndr *Renderer) DeleteSecurityAssociation(serviceInfo *common.ServiceInfo,
 	rndr.CacheSAConfigDelete(sp.Name)
 
 	return nil
+}
+
+///////////////////// GRE Tunnel Routines //////////////////
+
+// AddGreTunnel adds Gre tunnel
+func (rndr *Renderer) AddGreTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel, reSync bool) error {
+	vppGreTunnel := &vpp_interfaces.GreLink{
+		TunnelType: vpp_interfaces.GreLink_L3,
+		SrcAddr:    sp.TunnelSourceIp,
+		DstAddr:    sp.TunnelDestinationIp,
+	}
+
+	vppGreInterface := &vpp_interfaces.Interface{
+		Name:    sp.TunnelName,
+		Type:    vpp_interfaces.Interface_GRE_TUNNEL,
+		Enabled: true,
+		Link: &vpp_interfaces.Interface_Gre{
+			Gre: vppGreTunnel,
+		},
+	}
+
+	// Check for Tunnel Interface IP configuration
+	if sp.InterfaceType == config.UnnumberedIP {
+		intfName := rndr.GetInterfaceNameWithIP(serviceInfo, sp.TunnelSourceIp)
+		rndr.Log.Debug("AddIPinIPVpnTunnel: unnummbered Interface: ", intfName)
+		if intfName != config.Invalid {
+			vppGreInterface.Unnumbered = &vpp_interfaces.Interface_Unnumbered{
+				InterfaceWithIp: intfName,
+			}
+		}
+	} else {
+		vppGreInterface.IpAddresses = append(vppGreInterface.IpAddresses, sp.TunnelSourceIp)
+	}
+
+	rndr.Log.Info("AddGreTunnel: vppGreInterface: ", vppGreInterface)
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppGreInterface.Name), vppGreInterface, config.Add)
+	}
+
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Info(" AddGreTunnel: Post txn to local vpp agent",
+			"Key: ", vpp_interfaces.InterfaceKey(vppGreInterface.Name), "Value: ", vppGreInterface)
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(vpp_interfaces.InterfaceKey(vppGreInterface.Name), vppGreInterface)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("GreTunnel %s", vpp_interfaces.InterfaceKey(vppGreInterface.Name)))
+			txn.Put(vpp_interfaces.InterfaceKey(vppGreInterface.Name), vppGreInterface)
+		}
+	} else {
+		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppGreInterface.Name), vppGreInterface, config.Add)
+	}
+
+	// Get Security Association Information from the SA Name reference
+	sa, err := rndr.CacheSAConfigGet(sp.SecurityAssociation)
+	if err != nil {
+		rndr.Log.Debug("AddGreTunnel: Security Association Not Found: ", sp.SecurityAssociation)
+
+		// Add the dependency in the pending tunnel protect list
+		rndr.AddTunnelToPendingTunnelProtectList(sp.TunnelName, sp.SecurityAssociation)
+		return nil
+	}
+
+	var saIn, saOut []uint32
+	saIn = append(saIn, uint32(sa.InboundID))
+	saOut = append(saOut, uint32(sa.OutboundID))
+
+	rndr.Log.Info("AddGreTunnel: Protect the Tunnel with SA: ")
+	return rndr.IPSecTunnelProtectionAdd(serviceInfo, sp.TunnelName, saIn, saOut, reSync)
+}
+
+// UpdateGreTunnel updates exiting ipsec vpn tunnel
+func (rndr *Renderer) UpdateGreTunnel(serviceInfo *common.ServiceInfo, old, new *sasemodel.IPSecVpnTunnel) error {
+	return nil
+}
+
+// DeleteGreTunnel deletes an existing gre tunnel
+func (rndr *Renderer) DeleteGreTunnel(serviceInfo *common.ServiceInfo, sp *sasemodel.IPSecVpnTunnel) error {
+
+	// Check if tunnel present in the pending list and delete it
+	rndr.DeleteTunnelFromPendingTunnelProtectList(sp.TunnelName, sp.SecurityAssociation)
+
+	// Check if SA exists
+	_, err := rndr.CacheSAConfigGet(sp.SecurityAssociation)
+	if err == nil {
+		err := rndr.IPSecTunnelProtectionDelete(serviceInfo, sp.TunnelName)
+		if err != nil {
+			rndr.Log.Debug("IPSecTunnelProtectionDelete: return error", err)
+		}
+	}
+
+	vppGreInterface := &vpp_interfaces.Interface{
+		Name: sp.TunnelName,
+	}
+
+	rndr.Log.Infof("DeleteGreTunnel: vppGreInterface: %v", vppGreInterface)
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppGreInterface.Name), vppGreInterface, config.Delete)
+	}
+
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Infof(" DeleteIGreTunnel: Post txn to local vpp agent",
+			"Key: ", vpp_interfaces.InterfaceKey(vppGreInterface.Name), "Value: %v", vppGreInterface)
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("GreTunnel %s", vpp_interfaces.InterfaceKey(vppGreInterface.Name)))
+		txn.Delete(vpp_interfaces.InterfaceKey(vppGreInterface.Name))
+		return nil
+	}
+
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppGreInterface.Name), vppGreInterface, config.Delete)
 }
 
 // SAIdInfo : SA Index Info
