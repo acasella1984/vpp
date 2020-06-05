@@ -34,8 +34,21 @@ const (
 	Invalid = "invalid"
 	// UnnumberedIP : Constant to indicate IP Unnumbered interface
 	UnnumberedIP = "unnumbered"
+	// L2Mode :
+	L2Mode = "layer2"
+	// L3Mode :
+	L3Mode = "layer3"
 
+	// Interface Types
+	
+	// InterfaceTap :
+	InterfaceTap = "tap"
+	// InterfaceMemif :
+	InterfaceMemif = "memif"
+	// InterfaceVeth :
+	InterfaceVeth = "veth"
 )
+
 
 // Interface : Nat Interface
 // Local inside Interface (true) or external Public Interface (false)

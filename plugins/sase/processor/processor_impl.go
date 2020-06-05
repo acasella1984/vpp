@@ -903,9 +903,24 @@ func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.
 
 // ProcessNewSaseServiceInterfaceConfig :
 func (sp *SaseServiceProcessor) ProcessNewSaseServiceInterfaceConfig(cfg *sasemodel.SaseServiceInterface, reSync bool) error {
-
 	sp.Log.Infof("ProcessNewSaseServiceInterfaceConfig: cfg %v", cfg)
-	return nil
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessNewSaseServiceInterfaceConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.AddServiceConfig(p, reSync)
+	return err
 }
 
 // ProcessUpdateSaseServiceInterfaceConfig :
@@ -919,7 +934,23 @@ func (sp *SaseServiceProcessor) ProcessUpdateSaseServiceInterfaceConfig(old, new
 func (sp *SaseServiceProcessor) ProcessDeletedSaseServiceInterfaceConfig(cfg *sasemodel.SaseServiceInterface) error {
 
 	sp.Log.Infof("ProcessDeletedSaseServiceInterfaceConfig: cfg %v", cfg)
-	return nil
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessDeletedSaseServiceInterfaceConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.DeleteServiceConfig(p)
+	return err
 }
 
 
