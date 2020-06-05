@@ -316,9 +316,9 @@ type SecurityAssociationSpec struct {
 	AuthAlgo string `json:"authalgo"`
 	AuthKey  string `json:"authkey"`
 	// Encryption algorithm and key
-	EncryptAlgo string `json:"encryptalgo"`
-	EncryptKey  string `json:"encryptkey"`
-	InboundSAID uint32 `json:"inboundsaid"`
+	EncryptAlgo  string `json:"encryptalgo"`
+	EncryptKey   string `json:"encryptkey"`
+	InboundSAID  uint32 `json:"inboundsaid"`
 	OutboundSAID uint32 `json:"outboundsaid"`
 	// Tunnel Mode or Transport Mode
 	Mode string `json:"mode"`
@@ -352,7 +352,7 @@ type IPSecVpnTunnel struct {
 type IPSecVpnTunnelSpec struct {
 	// Sase Service Instance Name
 	ServiceInstanceName string `json:"service"`
-	// Tunnel Type 
+	// Tunnel Type
 	TunnelType string `json:"tunneltype"`
 	// Tunnel Destination IP
 	DestinationIP string `json:"destinationip"`
@@ -431,11 +431,11 @@ type NetworkFirewallProfile struct {
 	Status meta_v1.Status `json:"status,omitempty"`
 }
 
-// NetworkFirewallRules specifies match conditions 
+// NetworkFirewallRules specifies match conditions
 type NetworkFirewallRules struct {
 	// Sase Service Instance Name
 	ServiceInstanceName string `json:"service"`
-	// Direction 
+	// Direction
 	Direction string `json:"direction"`
 	// Interface
 	Interface string `json:"interface"`
@@ -443,15 +443,15 @@ type NetworkFirewallRules struct {
 	Rules []NetworkFirewallRule `json:"rules"`
 }
 
-// NetworkFirewallRule specifies match conditions 
+// NetworkFirewallRule specifies match conditions
 type NetworkFirewallRule struct {
-	Name		string `json:"name"`
-	Protocol         string `json:"protocol"`
-	SrcProtocolPort     uint32 `json:"srcprotocolport"`
-	DstProtocolPort     uint32 `json:"dstprotocolport"`
-	SourceCIDR       string `json:"sourcecidr"`
-	DestinationCIDR  string `json:"destinationcidr"`
-	Action string `json:"action"`
+	Name            string `json:"name"`
+	Protocol        string `json:"protocol"`
+	SrcProtocolPort uint32 `json:"srcprotocolport"`
+	DstProtocolPort uint32 `json:"dstprotocolport"`
+	SourceCIDR      string `json:"sourcecidr"`
+	DestinationCIDR string `json:"destinationcidr"`
+	Action          string `json:"action"`
 }
 
 // NetworkFirewallProfileList is a list of NetworkFirewallRulesProfile
@@ -461,7 +461,6 @@ type NetworkFirewallProfileList struct {
 	meta_v1.ListMeta `json:"metadata"`
 	Items            []NetworkFirewallProfile `json:"items"`
 }
-
 
 // SaseServiceInterface defines service interface in vpp where sase services can be configured
 // +genclient

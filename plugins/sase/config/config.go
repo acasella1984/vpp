@@ -40,7 +40,7 @@ const (
 	L3Mode = "layer3"
 
 	// Interface Types
-	
+
 	// InterfaceTap :
 	InterfaceTap = "tap"
 	// InterfaceMemif :
@@ -48,7 +48,6 @@ const (
 	// InterfaceVeth :
 	InterfaceVeth = "veth"
 )
-
 
 // Interface : Nat Interface
 // Local inside Interface (true) or external Public Interface (false)
@@ -109,6 +108,13 @@ func (at ProtocolType) String() string {
 	}
 	return "INVALID"
 }
+
+// TunnelType string constants
+const (
+	InterfaceIPSecTunnel  = "IPSec"
+	InterfaceGreTunnel    = "GRE"
+	InterfaceIPinIPTunnel = "IPinIP"
+)
 
 ////////////////// Security Parameters /////////////////////
 

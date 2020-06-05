@@ -27,8 +27,8 @@ import (
 	"github.com/contiv/vpp/plugins/crd/handler/saseconfig/model"
 	v1 "github.com/contiv/vpp/plugins/crd/pkg/apis/contivppio/v1"
 	crdClientSet "github.com/contiv/vpp/plugins/crd/pkg/client/clientset/versioned"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"go.ligato.io/cn-infra/v2/logging"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
 // IPSecVpnTunnelHandler implements the Handler interface for CRD<->KVDB Reflector.
@@ -79,7 +79,8 @@ func (h *IPSecVpnTunnelHandler) convertIPSecVpnTunnelCrdToProto(crd *v1.IPSecVpn
 		TunnelDestinationIp: crd.Spec.DestinationIP,
 		TunnelSourceIp:      crd.Spec.SourceIP,
 		SecurityAssociation: crd.Spec.SecurityAssociation,
-		InterfaceType: 		 crd.Spec.InterfaceIPType,
+		InterfaceType:       crd.Spec.InterfaceIPType,
+		TunnelType:          crd.Spec.TunnelType,
 	}
 	return ipsecpb
 }
@@ -115,11 +116,11 @@ func TunnelValidation() *apiextv1beta1.CustomResourceValidation {
 			Properties: map[string]apiextv1beta1.JSONSchemaProps{
 				"spec": {
 					Type:     "object",
-					Required: []string{"service","destinationip","sourceip","interfaceiptype"},
+					Required: []string{"service", "destinationip", "sourceip", "interfaceiptype", "tunneltype"},
 					Properties: map[string]apiextv1beta1.JSONSchemaProps{
 						"service": {
 							Type: "string",
-						},	
+						},
 						"destinationip": {
 							Type:        "string",
 							Description: "IPv4 or IPv6 address",
@@ -141,6 +142,20 @@ func TunnelValidation() *apiextv1beta1.CustomResourceValidation {
 								},
 								{
 									Raw: []byte(`"non-unnumbered"`),
+								},
+							},
+						},
+						"tunneltype": {
+							Type: "string",
+							Enum: []apiextv1beta1.JSON{
+								{
+									Raw: []byte(`"IPSec"`),
+								},
+								{
+									Raw: []byte(`"GRE"`),
+								},
+								{
+									Raw: []byte(`"IPinIP"`),
 								},
 							},
 						},
@@ -176,6 +191,11 @@ func TunnelPrinterColumns() []apiextv1beta1.CustomResourceColumnDefinition {
 			Name:     "securityassociation",
 			Type:     "string",
 			JSONPath: ".spec.securityassociation",
+		},
+		{
+			Name:     "TunnelType",
+			Type:     "string",
+			JSONPath: ".spec.tunneltype",
 		},
 	}
 	return pc
