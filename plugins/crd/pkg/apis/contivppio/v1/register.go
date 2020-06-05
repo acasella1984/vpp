@@ -65,6 +65,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ServiceRouteList{},
 		&NetworkFirewallProfile{},
 		&NetworkFirewallProfileList{},
+		&SaseServiceInterface{},
+		&SaseServiceInterfaceList{},
 	)
 
 	// register the type in the scheme

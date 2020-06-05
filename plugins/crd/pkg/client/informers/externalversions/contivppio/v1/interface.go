@@ -32,6 +32,8 @@ type Interface interface {
 	IPSecVpnTunnels() IPSecVpnTunnelInformer
 	// NetworkFirewallProfiles returns a NetworkFirewallProfileInformer.
 	NetworkFirewallProfiles() NetworkFirewallProfileInformer
+	// SaseServiceInterfaces returns a SaseServiceInterfaceInformer.
+	SaseServiceInterfaces() SaseServiceInterfaceInformer
 	// SaseServicePolicies returns a SaseServicePolicyInformer.
 	SaseServicePolicies() SaseServicePolicyInformer
 	// SecurityAssociations returns a SecurityAssociationInformer.
@@ -78,6 +80,11 @@ func (v *version) IPSecVpnTunnels() IPSecVpnTunnelInformer {
 // NetworkFirewallProfiles returns a NetworkFirewallProfileInformer.
 func (v *version) NetworkFirewallProfiles() NetworkFirewallProfileInformer {
 	return &networkFirewallProfileInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// SaseServiceInterfaces returns a SaseServiceInterfaceInformer.
+func (v *version) SaseServiceInterfaces() SaseServiceInterfaceInformer {
+	return &saseServiceInterfaceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // SaseServicePolicies returns a SaseServicePolicyInformer.

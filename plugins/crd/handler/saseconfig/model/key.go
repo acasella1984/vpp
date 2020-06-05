@@ -29,6 +29,8 @@ const (
 	ServiceRouteKey = "serviceroute"
 	// NetworkFirewallProfileKey :
 	NetworkFirewallProfileKey = "NetworkFirewallProfile"
+	// SaseServiceInterfaceKey :
+	SaseServiceInterfaceKey = "saseserviceinterfacekey"
 )
 
 // KeyPrefixSasePolicy return prefix for Sase Policy
@@ -59,4 +61,9 @@ func KeyPrefixServiceRoute() string {
 // KeyPrefixNetworkFirewallProfile return prefix for NetworkFirewallProfile
 func KeyPrefixNetworkFirewallProfile() string {
 	return ksrkey.KsrK8sPrefix + "/" + NetworkFirewallProfileKey + "/"
+}
+
+// KeyPrefixSaseServiceInterface return prefix for Sase Service Interface
+func KeyPrefixSaseServiceInterface() string {
+	return ksrkey.KsrK8sPrefix + "/" + SaseServiceInterfaceKey + "/"
 }

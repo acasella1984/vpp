@@ -223,6 +223,18 @@ func (sp *SaseServiceProcessor) Update(event controller.Event) error {
 			}
 			serviceRouteDelCfg := k8sChange.PrevValue.(*sasemodel.ServiceRoute)
 			return sp.ProcessDeletedServiceRouteConfig(serviceRouteDelCfg)
+		case sasemodel.SaseServiceInterfaceKey:
+			if k8sChange.NewValue != nil {
+				// Get the Sase Service Interface
+				serviceInterfaceNewCfg := k8sChange.NewValue.(*sasemodel.SaseServiceInterface)
+				if k8sChange.PrevValue == nil {
+					return sp.ProcessNewSaseServiceInterfaceConfig(serviceInterfaceNewCfg, false)
+				}
+				serviceInterfacePrevCfg := k8sChange.NewValue.(*sasemodel.SaseServiceInterface)
+				return sp.ProcessUpdateSaseServiceInterfaceConfig(serviceInterfacePrevCfg, serviceInterfaceNewCfg)
+			}
+			serviceInterfaceDelCfg := k8sChange.PrevValue.(*sasemodel.SaseServiceInterface)
+			return sp.ProcessDeletedSaseServiceInterfaceConfig(serviceInterfaceDelCfg)
 		case podmodel.PodKeyword:
 			if k8sChange.NewValue != nil {
 				pod := k8sChange.NewValue.(*podmodel.Pod)
@@ -886,6 +898,61 @@ func (sp *SaseServiceProcessor) ProcessDeletedServiceRouteConfig(cfg *sasemodel.
 	err = rndr.DeleteServiceConfig(p)
 	return err
 }
+
+//////////////////////////////// Service Route Processor Routines ////////////////////////
+
+// ProcessNewSaseServiceInterfaceConfig :
+func (sp *SaseServiceProcessor) ProcessNewSaseServiceInterfaceConfig(cfg *sasemodel.SaseServiceInterface, reSync bool) error {
+	sp.Log.Infof("ProcessNewSaseServiceInterfaceConfig: cfg %v", cfg)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessNewSaseServiceInterfaceConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.AddServiceConfig(p, reSync)
+	return err
+}
+
+// ProcessUpdateSaseServiceInterfaceConfig :
+func (sp *SaseServiceProcessor) ProcessUpdateSaseServiceInterfaceConfig(old, new *sasemodel.SaseServiceInterface) error {
+
+	sp.Log.Infof("ProcessUpdateSaseServiceInterfaceConfig: old: %v new: %v", old, new)
+	return nil
+}
+
+// ProcessDeletedSaseServiceInterfaceConfig :
+func (sp *SaseServiceProcessor) ProcessDeletedSaseServiceInterfaceConfig(cfg *sasemodel.SaseServiceInterface) error {
+
+	sp.Log.Infof("ProcessDeletedSaseServiceInterfaceConfig: cfg %v", cfg)
+	s, _ := common.ParseSaseServiceName(cfg.ServiceInstanceName)
+	serviceInfo, ok := sp.services[s]
+	if !ok {
+		return errors.New("ProcessDeletedSaseServiceInterfaceConfig: Service Not Enabled")
+	}
+	rndr, err := sp.GetRenderer(serviceInfo.GetServiceType())
+	if err != nil {
+		return err
+	}
+
+	// Fill in the relevant information
+	p := &config.SaseServiceConfig{
+		ServiceInfo: serviceInfo,
+		Config:      cfg,
+	}
+	err = rndr.DeleteServiceConfig(p)
+	return err
+}
+
 
 /////////////////////////// Pod Events ////////////////////////////////////////////
 

@@ -80,6 +80,8 @@ func (rndr *Renderer) AddServiceConfig(sp *config.SaseServiceConfig, reSync bool
 		rndr.AddIPSecServiceConfig(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel), reSync)
 	case *sasemodel.SecurityAssociation:
 		rndr.AddSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation), reSync)
+	case *sasemodel.SaseServiceInterface:
+		rndr.AddSaseServiceInterface(sp.ServiceInfo, sp.Config.(*sasemodel.SaseServiceInterface), reSync)
 	default:
 	}
 	return nil
@@ -98,6 +100,9 @@ func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) er
 	case *sasemodel.SecurityAssociation:
 		rndr.UpdateSecurityAssociation(new.ServiceInfo, new.Config.(*sasemodel.SecurityAssociation),
 			old.Config.(*sasemodel.SecurityAssociation))
+	case *sasemodel.SaseServiceInterface:
+		rndr.UpdateSaseServiceInterface(new.ServiceInfo, new.Config.(*sasemodel.SaseServiceInterface),
+			old.Config.(*sasemodel.SaseServiceInterface))
 	default:
 	}
 	return nil
@@ -113,6 +118,8 @@ func (rndr *Renderer) DeleteServiceConfig(sp *config.SaseServiceConfig) error {
 		rndr.DeleteIPSecServiceConfig(sp.ServiceInfo, sp.Config.(*sasemodel.IPSecVpnTunnel))
 	case *sasemodel.SecurityAssociation:
 		rndr.DeleteSecurityAssociation(sp.ServiceInfo, sp.Config.(*sasemodel.SecurityAssociation))
+	case *sasemodel.SaseServiceInterface:
+		rndr.DeleteSaseServiceInterface(sp.ServiceInfo, sp.Config.(*sasemodel.SaseServiceInterface))
 	default:
 	}
 
@@ -393,6 +400,99 @@ func (rndr *Renderer) IPSecTunnelProtectionDelete(serviceInfo *common.ServiceInf
 	}
 
 	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), models.Key(tunnelProtect), tunnelProtect, config.Delete)
+}
+
+/////////////////// Sase Service Interface Handler Routines /////////////////
+
+// AddSaseServiceInterface :
+func (rndr *Renderer) AddSaseServiceInterface(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseServiceInterface, reSync bool) error {
+
+	vppInterface := &vpp_interfaces.Interface{
+		Name: sp.InterfaceName,
+	}
+
+	if sp.InterfaceType == config.InterfaceTap {
+		vppTapLink := &vpp_interfaces.TapLink{
+			Version: 2,
+			HostIfName: sp.InterfaceName,
+		}
+
+		vppInterface.Type = vpp_interfaces.Interface_TAP
+		vppInterface.Enabled = true
+		vppInterface.Link = &vpp_interfaces.Interface_Tap{
+			Tap: vppTapLink,
+		}
+	}
+
+	// L3 Interface
+	if sp.InterfaceMode == config.L3Mode {
+		// Check for Tunnel Interface IP configuration
+		if sp.InterfaceType == config.UnnumberedIP {
+			intfName := rndr.GetInterfaceNameWithIP(serviceInfo, sp.InterfaceParent)
+			rndr.Log.Debug("AddSaseServiceInterface: unnummbered Interface: ", intfName)
+			if intfName != config.Invalid {
+				vppInterface.Unnumbered = &vpp_interfaces.Interface_Unnumbered{
+					InterfaceWithIp: intfName,
+				}
+			}
+		} else {
+			vppInterface.IpAddresses = append(vppInterface.IpAddresses, sp.InterfaceL3Address)
+		}
+	}
+
+	rndr.Log.Info("AddSaseServiceInterface: vppInterface: ", vppInterface)
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppInterface.Name), vppInterface, config.Add)
+	}
+
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Info(" AddSaseServiceInterface: Post txn to local vpp agent",
+			"Key: ", vpp_interfaces.InterfaceKey(vppInterface.Name), "Value: ", vppInterface)
+		if reSync == true {
+			txn := rndr.ResyncTxnFactory()
+			txn.Put(vpp_interfaces.InterfaceKey(vppInterface.Name), vppInterface)
+		} else {
+			txn := rndr.UpdateTxnFactory(fmt.Sprintf("AddSaseServiceInterface %s", vpp_interfaces.InterfaceKey(vppInterface.Name)))
+			txn.Put(vpp_interfaces.InterfaceKey(vppInterface.Name), vppInterface)
+		}
+	} else {
+		renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppInterface.Name), vppInterface, config.Add)
+	}
+	return nil
+}
+
+// UpdateSaseServiceInterface :
+func (rndr *Renderer) UpdateSaseServiceInterface(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseServiceInterface) error {
+	return nil
+}
+
+// DeleteSaseServiceInterface deletes an existing Interface
+func (rndr *Renderer) DeleteSaseServiceInterface(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseServiceInterface) error {
+
+	vppInterface := &vpp_interfaces.Interface{
+		Name: sp.InterfaceName,
+	}
+
+	rndr.Log.Infof("DeleteSaseServiceInterface: vppInterface: %v", vppInterface)
+
+	// Test Purpose
+	if rndr.MockTest {
+		return renderer.MockCommit(serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppInterface.Name), vppInterface, config.Delete)
+	}
+
+	// Commit is for local base vpp vswitch
+	if serviceInfo.GetServicePodLabel() == common.GetBaseServiceLabel() {
+		rndr.Log.Infof(" DeleteSaseServiceInterface: Post txn to local vpp agent",
+			"Key: ", vpp_interfaces.InterfaceKey(vppInterface.Name), "Value: %v", vppInterface)
+		txn := rndr.UpdateTxnFactory(fmt.Sprintf("DeleteSaseServiceInterface %s", vpp_interfaces.InterfaceKey(vppInterface.Name)))
+		txn.Delete(vpp_interfaces.InterfaceKey(vppInterface.Name))
+		return nil
+	}
+
+	return renderer.Commit(rndr.RemoteDB, serviceInfo.GetServicePodLabel(), vpp_interfaces.InterfaceKey(vppInterface.Name), vppInterface, config.Delete)
 }
 
 ////////////////// IPSec VPN Tunnel Config Handlers //////////////////////////////////

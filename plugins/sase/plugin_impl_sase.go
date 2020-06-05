@@ -240,6 +240,8 @@ func (p *Plugin) HandlesEvent(event controller.Event) bool {
 			return true
 		case sasemodel.ServiceRouteKey:
 			return true
+		case sasemodel.SaseServiceInterfaceKey:
+			return true
 		case podmodel.PodKeyword:
 			return true
 		case ipalloc.Keyword:
