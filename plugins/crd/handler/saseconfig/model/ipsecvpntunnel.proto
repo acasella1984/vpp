@@ -30,4 +30,6 @@ message IPSecVpnTunnel {
     string security_association = 5;
     // Tunnel Interface IP Type
     string interface_type = 6;
+    // Tunnel Type
+    string tunnel_type = 7;
 }

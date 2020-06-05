@@ -34,7 +34,6 @@ const (
 	Invalid = "invalid"
 	// UnnumberedIP : Constant to indicate IP Unnumbered interface
 	UnnumberedIP = "unnumbered"
-
 )
 
 // Interface : Nat Interface
@@ -96,6 +95,13 @@ func (at ProtocolType) String() string {
 	}
 	return "INVALID"
 }
+
+// TunnelType string constants
+const (
+	InterfaceIPSecTunnel  = "IPSec"
+	InterfaceGreTunnel    = "GRE"
+	InterfaceIPinIPTunnel = "IPinIP"
+)
 
 ////////////////// Security Parameters /////////////////////
 
