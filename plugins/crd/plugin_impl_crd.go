@@ -34,15 +34,15 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/contiv/vpp/plugins/crd/utils"
-       "go.ligato.io/cn-infra/v2/config"
-       "go.ligato.io/cn-infra/v2/datasync"
-       "go.ligato.io/cn-infra/v2/datasync/resync"
-       "go.ligato.io/cn-infra/v2/db/keyval/etcd"
-       "go.ligato.io/cn-infra/v2/infra"
-       "go.ligato.io/cn-infra/v2/logging"
-       "go.ligato.io/cn-infra/v2/rpc/rest"
-       "go.ligato.io/cn-infra/v2/servicelabel"
-       "go.ligato.io/cn-infra/v2/utils/safeclose"
+	"go.ligato.io/cn-infra/v2/config"
+	"go.ligato.io/cn-infra/v2/datasync"
+	"go.ligato.io/cn-infra/v2/datasync/resync"
+	"go.ligato.io/cn-infra/v2/db/keyval/etcd"
+	"go.ligato.io/cn-infra/v2/infra"
+	"go.ligato.io/cn-infra/v2/logging"
+	"go.ligato.io/cn-infra/v2/rpc/rest"
+	"go.ligato.io/cn-infra/v2/servicelabel"
+	"go.ligato.io/cn-infra/v2/utils/safeclose"
 
 	"github.com/contiv/vpp/plugins/crd/api"
 	"github.com/contiv/vpp/plugins/crd/cache"
@@ -89,21 +89,22 @@ type Plugin struct {
 	pendingResync  datasync.ResyncEvent
 	pendingChanges []datasync.ChangeEvent
 
-	telemetryController            *controller.CrdController
-	nodeConfigController           *controller.CrdController
-	customNetworkController        *controller.CrdController
-	externalInterfaceController    *controller.CrdController
-	serviceFunctionChainController *controller.CrdController
-	customConfigController         *controller.CrdController
-	saseServiceController          *controller.CrdController
-	siteResourceGroupController    *controller.CrdController
-	securityAssociationController  *controller.CrdController
-	ipsecVPNTunnelController       *controller.CrdController
-	serviceRouteController         *controller.CrdController
-	networkFirewallProfileController         *controller.CrdController
-	cache                          *cache.ContivTelemetryCache
-	processor                      api.ContivTelemetryProcessor
-	verbose                        bool
+	telemetryController              *controller.CrdController
+	nodeConfigController             *controller.CrdController
+	customNetworkController          *controller.CrdController
+	externalInterfaceController      *controller.CrdController
+	serviceFunctionChainController   *controller.CrdController
+	customConfigController           *controller.CrdController
+	saseServiceController            *controller.CrdController
+	siteResourceGroupController      *controller.CrdController
+	securityAssociationController    *controller.CrdController
+	ipsecVPNTunnelController         *controller.CrdController
+	serviceRouteController           *controller.CrdController
+	networkFirewallProfileController *controller.CrdController
+	saseServiceInterfaceController *controller.CrdController
+	cache                            *cache.ContivTelemetryCache
+	processor                        api.ContivTelemetryProcessor
+	verbose                          bool
 
 	crdClient     *crdClientSet.Clientset
 	apiclientset  *apiextcs.Clientset
@@ -342,11 +343,11 @@ func (p *Plugin) initializeCRDs() error {
 			},
 		},
 		Spec: controller.CrdSpec{
-			TypeName: reflect.TypeOf(v1.SaseServicePolicy{}).Name(),
-			Group:    contivppio.GroupName,
-			Version:  "v1",
-			Plural:   "saseservicepolicies",
-			Validation: saseconfiguration.SaseServiceValidation(),
+			TypeName:      reflect.TypeOf(v1.SaseServicePolicy{}).Name(),
+			Group:         contivppio.GroupName,
+			Version:       "v1",
+			Plural:        "saseservicepolicies",
+			Validation:    saseconfiguration.SaseServiceValidation(),
 			PrinterColumn: saseconfiguration.SaseServicePrinterColumns(),
 		},
 	}
@@ -403,11 +404,11 @@ func (p *Plugin) initializeCRDs() error {
 			},
 		},
 		Spec: controller.CrdSpec{
-			TypeName: reflect.TypeOf(v1.SecurityAssociation{}).Name(),
-			Group:    contivppio.GroupName,
-			Version:  "v1",
-			Plural:   "securityassociations",
-			Validation: saseconfiguration.SAValidation(),
+			TypeName:      reflect.TypeOf(v1.SecurityAssociation{}).Name(),
+			Group:         contivppio.GroupName,
+			Version:       "v1",
+			Plural:        "securityassociations",
+			Validation:    saseconfiguration.SAValidation(),
 			PrinterColumn: saseconfiguration.SAPrinterColumns(),
 		},
 	}
@@ -434,11 +435,11 @@ func (p *Plugin) initializeCRDs() error {
 			},
 		},
 		Spec: controller.CrdSpec{
-			TypeName: reflect.TypeOf(v1.IPSecVpnTunnel{}).Name(),
-			Group:    contivppio.GroupName,
-			Version:  "v1",
-			Plural:   "ipsecvpntunnels",
-			Validation: saseconfiguration.TunnelValidation(),
+			TypeName:      reflect.TypeOf(v1.IPSecVpnTunnel{}).Name(),
+			Group:         contivppio.GroupName,
+			Version:       "v1",
+			Plural:        "ipsecvpntunnels",
+			Validation:    saseconfiguration.TunnelValidation(),
 			PrinterColumn: saseconfiguration.TunnelPrinterColumns(),
 		},
 	}
@@ -465,44 +466,74 @@ func (p *Plugin) initializeCRDs() error {
 			},
 		},
 		Spec: controller.CrdSpec{
-			TypeName: reflect.TypeOf(v1.ServiceRoute{}).Name(),
-			Group:    contivppio.GroupName,
-			Version:  "v1",
-			Plural:   "serviceroutes",
-			Validation: saseconfiguration.ServiceRouteValidation(),
+			TypeName:      reflect.TypeOf(v1.ServiceRoute{}).Name(),
+			Group:         contivppio.GroupName,
+			Version:       "v1",
+			Plural:        "serviceroutes",
+			Validation:    saseconfiguration.ServiceRouteValidation(),
 			PrinterColumn: saseconfiguration.ServiceRoutePrinterColumns(),
 		},
 	}
 
-		// NetworkFirewallProfile :
-		networkFirewallProfileInformer := p.sharedFactory.Contivpp().V1().NetworkFirewallProfiles().Informer()
-		networkFirewallLog := p.Log.NewLogger("networkFirewallHandler")
-		p.networkFirewallProfileController = &controller.CrdController{
-			Deps: controller.Deps{
-				Log:       p.Log.NewLogger("networkFirewallProfileController"),
-				APIClient: p.apiclientset,
-				Informer:  networkFirewallProfileInformer,
-				EventHandler: &kvdbreflector.KvdbReflector{
-					Deps: kvdbreflector.Deps{
-						Log:          networkFirewallLog,
-						ServiceLabel: p.ServiceLabel,
-						Publish:      p.Etcd.RawAccess(),
-						Informer:     networkFirewallProfileInformer,
-						Handler: &saseconfiguration.NetworkFirewallProfileHandler{
-							Log:       networkFirewallLog,
-							CrdClient: p.crdClient,
-						},
+	// NetworkFirewallProfile :
+	networkFirewallProfileInformer := p.sharedFactory.Contivpp().V1().NetworkFirewallProfiles().Informer()
+	networkFirewallLog := p.Log.NewLogger("networkFirewallHandler")
+	p.networkFirewallProfileController = &controller.CrdController{
+		Deps: controller.Deps{
+			Log:       p.Log.NewLogger("networkFirewallProfileController"),
+			APIClient: p.apiclientset,
+			Informer:  networkFirewallProfileInformer,
+			EventHandler: &kvdbreflector.KvdbReflector{
+				Deps: kvdbreflector.Deps{
+					Log:          networkFirewallLog,
+					ServiceLabel: p.ServiceLabel,
+					Publish:      p.Etcd.RawAccess(),
+					Informer:     networkFirewallProfileInformer,
+					Handler: &saseconfiguration.NetworkFirewallProfileHandler{
+						Log:       networkFirewallLog,
+						CrdClient: p.crdClient,
 					},
 				},
 			},
-			Spec: controller.CrdSpec{
-				TypeName: reflect.TypeOf(v1.NetworkFirewallProfile{}).Name(),
-				Group:    contivppio.GroupName,
-				Version:  "v1",
-				Plural:   "networkfirewallprofiles",
-				Validation: saseconfiguration.NetworkFirewallProfileValidation(),
+		},
+		Spec: controller.CrdSpec{
+			TypeName:   reflect.TypeOf(v1.NetworkFirewallProfile{}).Name(),
+			Group:      contivppio.GroupName,
+			Version:    "v1",
+			Plural:     "networkfirewallprofiles",
+			Validation: saseconfiguration.NetworkFirewallProfileValidation(),
+		},
+	}
+
+	// SaseServiceInterface :
+	saseServiceInterfaceInformer := p.sharedFactory.Contivpp().V1().SaseServiceInterfaces().Informer()
+	saseServiceInterfaceLog := p.Log.NewLogger("saseServiceInterfaceHandler")
+	p.saseServiceInterfaceController = &controller.CrdController{
+		Deps: controller.Deps{
+			Log:       p.Log.NewLogger("saseServiceInterfaceController"),
+			APIClient: p.apiclientset,
+			Informer:  saseServiceInterfaceInformer,
+			EventHandler: &kvdbreflector.KvdbReflector{
+				Deps: kvdbreflector.Deps{
+					Log:          saseServiceInterfaceLog,
+					ServiceLabel: p.ServiceLabel,
+					Publish:      p.Etcd.RawAccess(),
+					Informer:     saseServiceInterfaceInformer,
+					Handler: &saseconfiguration.SaseServiceInterfaceHandler{
+						Log:       saseServiceInterfaceLog,
+						CrdClient: p.crdClient,
+					},
+				},
 			},
-		}
+		},
+		Spec: controller.CrdSpec{
+			TypeName:   reflect.TypeOf(v1.SaseServiceInterface{}).Name(),
+			Group:      contivppio.GroupName,
+			Version:    "v1",
+			Plural:     "saseserviceinterfaces",
+			Validation: saseconfiguration.SaseServiceInterfaceValidation(),
+		},
+	}
 
 	p.nodeConfigController.Init()
 	p.customNetworkController.Init()
@@ -515,6 +546,7 @@ func (p *Plugin) initializeCRDs() error {
 	p.ipsecVPNTunnelController.Init()
 	p.serviceRouteController.Init()
 	p.networkFirewallProfileController.Init()
+	p.saseServiceInterfaceController.Init()
 
 	if p.verbose {
 		p.customNetworkController.Log.SetLevel(logging.DebugLevel)
@@ -528,6 +560,7 @@ func (p *Plugin) initializeCRDs() error {
 		p.ipsecVPNTunnelController.Log.SetLevel(logging.DebugLevel)
 		p.serviceRouteController.Log.SetLevel(logging.DebugLevel)
 		p.networkFirewallProfileController.Log.SetLevel(logging.DebugLevel)
+		p.saseServiceInterfaceController.Log.SetLevel(logging.DebugLevel)
 		customConfigLog.SetLevel(logging.DebugLevel)
 	}
 
@@ -657,6 +690,7 @@ func (p *Plugin) onEtcdConnect() error {
 		go p.ipsecVPNTunnelController.Run(p.ctx.Done())
 		go p.serviceRouteController.Run(p.ctx.Done())
 		go p.networkFirewallProfileController.Run(p.ctx.Done())
+		go p.saseServiceInterfaceController.Run(p.ctx.Done())
 	}()
 	return nil
 }

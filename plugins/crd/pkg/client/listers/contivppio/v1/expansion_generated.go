@@ -56,6 +56,14 @@ type NetworkFirewallProfileListerExpansion interface{}
 // NetworkFirewallProfileNamespaceLister.
 type NetworkFirewallProfileNamespaceListerExpansion interface{}
 
+// SaseServiceInterfaceListerExpansion allows custom methods to be added to
+// SaseServiceInterfaceLister.
+type SaseServiceInterfaceListerExpansion interface{}
+
+// SaseServiceInterfaceNamespaceListerExpansion allows custom methods to be added to
+// SaseServiceInterfaceNamespaceLister.
+type SaseServiceInterfaceNamespaceListerExpansion interface{}
+
 // SaseServicePolicyListerExpansion allows custom methods to be added to
 // SaseServicePolicyLister.
 type SaseServicePolicyListerExpansion interface{}

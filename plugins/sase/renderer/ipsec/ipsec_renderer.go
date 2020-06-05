@@ -16,7 +16,7 @@ import (
 	"go.ligato.io/cn-infra/v2/logging"
 	"go.ligato.io/vpp-agent/v3/pkg/models"
 	vpp_interfaces "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/interfaces"
-	vpp_ipsec "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/ipsec"
+	vpp_ipsec "go.ligato.io/vpp-agent/v3/proto/ligato/vpp/ipsec"	
 )
 
 // Renderer implements rendering of Nat policies

@@ -26,6 +26,8 @@ type IPSecVpnTunnelExpansion interface{}
 
 type NetworkFirewallProfileExpansion interface{}
 
+type SaseServiceInterfaceExpansion interface{}
+
 type SaseServicePolicyExpansion interface{}
 
 type SecurityAssociationExpansion interface{}

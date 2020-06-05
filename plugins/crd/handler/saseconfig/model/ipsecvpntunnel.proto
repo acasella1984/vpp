@@ -20,14 +20,16 @@ package model;
 message IPSecVpnTunnel {
     // TunnelName
     string tunnel_name = 1;
+    // TunnelType
+    string tunnel_type = 2;
     // Sase Service Instance Name
-    string service_instance_name = 2;
+    string service_instance_name = 3;
     // Tunnel Destination IP
-    string tunnel_destination_ip = 3;
+    string tunnel_destination_ip = 4;
     // Tunnel Source IP
-    string tunnel_source_ip = 4;
+    string tunnel_source_ip = 5;
     // Security Parameters for the tunnel
-    string security_association = 5;
+    string security_association = 6;
     // Tunnel Interface IP Type
-    string interface_type = 6;
+    string interface_type = 7;
 }

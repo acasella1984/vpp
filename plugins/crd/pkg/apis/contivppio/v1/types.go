@@ -352,6 +352,8 @@ type IPSecVpnTunnel struct {
 type IPSecVpnTunnelSpec struct {
 	// Sase Service Instance Name
 	ServiceInstanceName string `json:"service"`
+	// Tunnel Type 
+	TunnelType string `json:"tunneltype"`
 	// Tunnel Destination IP
 	DestinationIP string `json:"destinationip"`
 	// Tunnel Source IP
@@ -458,4 +460,42 @@ type NetworkFirewallProfileList struct {
 	meta_v1.TypeMeta `json:",inline"`
 	meta_v1.ListMeta `json:"metadata"`
 	Items            []NetworkFirewallProfile `json:"items"`
+}
+
+
+// SaseServiceInterface defines service interface in vpp where sase services can be configured
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SaseServiceInterface struct {
+	// TypeMeta is the metadata for the resource, like kind and apiversion
+	meta_v1.TypeMeta `json:",inline"`
+	// ObjectMeta contains the metadata for the particular object
+	meta_v1.ObjectMeta `json:"metadata,omitempty"`
+	// Spec is the specification for the SaseServiceInterfaceSpec
+	Spec SaseServiceInterfaceSpec `json:"spec"`
+	// Status informs about the status of the resource.
+	Status meta_v1.Status `json:"status,omitempty"`
+}
+
+// SaseServiceInterfaceSpec is the spec for a SaseServiceInterface
+type SaseServiceInterfaceSpec struct {
+	// Sase Service Instance Name
+	ServiceInstanceName string `json:"service"`
+	// InterfaceType ()
+	InterfaceType string `json:"interfacetype"`
+	// InterfaceMode (L2/L3/Unnummbered)
+	InterfaceMode string `json:"interfacemode"`
+	// InterfaceL3Address
+	InterfaceL3Address string `json:"interfacel3address"`
+	// InterfaceParent
+	InterfaceParent string `json:"interfaceparent"`
+}
+
+// SaseServiceInterfaceList is a list of SaseServiceInterface
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type SaseServiceInterfaceList struct {
+	meta_v1.TypeMeta `json:",inline"`
+	meta_v1.ListMeta `json:"metadata"`
+	Items            []SaseServiceInterface `json:"items"`
 }
