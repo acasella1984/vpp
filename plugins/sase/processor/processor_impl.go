@@ -1203,6 +1203,15 @@ func (sp *SaseServiceProcessor) processServiceDeletion(podID podmodel.ID, delSer
 			// De-Init service
 			sp.renderers[serviceType].DeInit()
 
+			sp.Log.Info("processServiceDeletion: Render ", sp.services[s].Name, "service Delete")
+			// Delete service
+			// Fill in the relevant information
+			p := &config.SaseServiceConfig{
+				ServiceInfo: sp.services[s],
+				Config:      sp.services[s].Pod,
+			}
+			_ = sp.renderers[serviceType].DeleteServiceConfig(p)
+
 			sp.Log.Info("processServiceDeletion: Delete Service from services list")
 			// Delete Service from the service cache
 			delete(sp.services, s)

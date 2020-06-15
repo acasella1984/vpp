@@ -150,7 +150,7 @@ func (rndr *Renderer) UpdateDhcpProxy(serviceInfo *common.ServiceInfo, old, new 
 // DeleteDhcpProxy deletes an existing dhcp proxy setting
 func (rndr *Renderer) DeleteDhcpProxy(serviceInfo *common.ServiceInfo, pod *common.PodInfo) error {
 
-	rndr.Log.Infof("Dhcp Proxy Service: DeleteDhcpProxy: ServiceInfo %v", serviceInfo, "PodInfo: %v", sp)
+	rndr.Log.Infof("Dhcp Proxy Service: DeleteDhcpProxy: ServiceInfo %v", serviceInfo, "PodInfo: %v", pod)
 
 	// Render dhcp proxy vpp proto buf
 	ipAddrPool := rndr.GetVppLanInterfaceIPAddress(serviceInfo, "lan")
