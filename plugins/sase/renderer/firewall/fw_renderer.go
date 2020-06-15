@@ -98,7 +98,7 @@ func (rndr *Renderer) UpdateServiceConfig(old, new *config.SaseServiceConfig) er
 		return rndr.UpdateSaseConfig(new.ServiceInfo,
 			old.Config.(*sasemodel.SaseConfig), new.Config.(*sasemodel.SaseConfig))
 	case *sasemodel.NetworkFirewallProfile:
-		return rndr.UpdateNetworkFirewallProfile(new.ServiceInfo, 
+		return rndr.UpdateNetworkFirewallProfile(new.ServiceInfo,
 			old.Config.(*sasemodel.NetworkFirewallProfile), new.Config.(*sasemodel.NetworkFirewallProfile))
 	default:
 	}
@@ -150,7 +150,7 @@ func getNfpActionFromSaseAction(act sasemodel.SaseConfig_Action) sasemodel.Netwo
 	return nfpAct
 }
 
-func getNfpProtocolFromSaseProtocol(proto sasemodel.SaseConfig_Match_Proto) sasemodel.NetworkFirewallProfile_FirewallRule_Proto{
+func getNfpProtocolFromSaseProtocol(proto sasemodel.SaseConfig_Match_Proto) sasemodel.NetworkFirewallProfile_FirewallRule_Proto {
 
 	var nfpProto sasemodel.NetworkFirewallProfile_FirewallRule_Proto
 
@@ -168,13 +168,13 @@ func getNfpProtocolFromSaseProtocol(proto sasemodel.SaseConfig_Match_Proto) sase
 func getNfpRuleFromSaseConfigMatchAction(m *sasemodel.SaseConfig_Match, a sasemodel.SaseConfig_Action) *sasemodel.NetworkFirewallProfile_FirewallRule {
 
 	// Get the network firewall rule
-	rule := &sasemodel.NetworkFirewallProfile_FirewallRule {
-		Protocol: getNfpProtocolFromSaseProtocol(m.Protocol),
-		SrcProtoPort: 0,
-		DstProtoPort: m.ProtocolPort,
-		SourceCidr: m.SourceIp,
+	rule := &sasemodel.NetworkFirewallProfile_FirewallRule{
+		Protocol:        getNfpProtocolFromSaseProtocol(m.Protocol),
+		SrcProtoPort:    0,
+		DstProtoPort:    m.ProtocolPort,
+		SourceCidr:      m.SourceIp,
 		DestinationCidr: m.DestinationIp,
-		Action: getNfpActionFromSaseAction(a),
+		Action:          getNfpActionFromSaseAction(a),
 	}
 	return rule
 }
@@ -183,9 +183,9 @@ func getNfpRuleFromSaseConfigMatchAction(m *sasemodel.SaseConfig_Match, a sasemo
 func convertSaseConfigToNetworkFirewallProfile(sp *sasemodel.SaseConfig) *sasemodel.NetworkFirewallProfile {
 
 	nfp := &sasemodel.NetworkFirewallProfile{
-		Name: sp.Name,
+		Name:                sp.Name,
 		ServiceInstanceName: sp.ServiceInstanceName,
-		Direction: getNfpDirectionFromSaseConfigDirection(sp.Direction),
+		Direction:           getNfpDirectionFromSaseConfigDirection(sp.Direction),
 	}
 
 	// Get Nfp Rules
@@ -200,10 +200,10 @@ func convertSaseConfigToNetworkFirewallProfile(sp *sasemodel.SaseConfig) *sasemo
 
 	return nfp
 }
- 
+
 // AddSaseConfig :
 func (rndr *Renderer) AddSaseConfig(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig, reSync bool) error {
-	
+
 	rndr.Log.Infof("Firewall Service: AddSaseConfig: ServiceInfo %v", serviceInfo, "Config: %v", sp)
 
 	// Convert SaseConfig to Network firewall profile
@@ -213,9 +213,9 @@ func (rndr *Renderer) AddSaseConfig(serviceInfo *common.ServiceInfo, sp *sasemod
 
 // UpdateSaseConfig :
 func (rndr *Renderer) UpdateSaseConfig(serviceInfo *common.ServiceInfo, old, new *sasemodel.SaseConfig) error {
-	
+
 	rndr.Log.Infof("Firewall Service: UpdateSaseConfig ServiceInfo %v", serviceInfo, "New Config: %v", new,
-		 "Old Config: %v", old)
+		"Old Config: %v", old)
 
 	oldNfp := convertSaseConfigToNetworkFirewallProfile(old)
 	newNfp := convertSaseConfigToNetworkFirewallProfile(new)
@@ -224,7 +224,7 @@ func (rndr *Renderer) UpdateSaseConfig(serviceInfo *common.ServiceInfo, old, new
 
 // DeleteSaseConfig :
 func (rndr *Renderer) DeleteSaseConfig(serviceInfo *common.ServiceInfo, sp *sasemodel.SaseConfig) error {
-	
+
 	rndr.Log.Infof("Firewall Service: DeleteSaseConfig: ServiceInfo %v", serviceInfo, "Config: %v", sp)
 
 	nfp := convertSaseConfigToNetworkFirewallProfile(sp)
@@ -233,7 +233,7 @@ func (rndr *Renderer) DeleteSaseConfig(serviceInfo *common.ServiceInfo, sp *sase
 
 // CreateNetworkFirewallProfile adds New Network firewall Profile
 func (rndr *Renderer) CreateNetworkFirewallProfile(serviceInfo *common.ServiceInfo, sp *sasemodel.NetworkFirewallProfile, reSync bool) error {
-	
+
 	rndr.Log.Infof("Firewall Service: CreateNetworkFirewallProfile: ServiceInfo %v", serviceInfo, "Profile: %v", sp)
 
 	// Render ACL Rules
@@ -279,7 +279,7 @@ func (rndr *Renderer) CreateNetworkFirewallProfile(serviceInfo *common.ServiceIn
 
 // UpdateNetworkFirewallProfile updates existing Network Firewall Profile
 func (rndr *Renderer) UpdateNetworkFirewallProfile(serviceInfo *common.ServiceInfo, old, new *sasemodel.NetworkFirewallProfile) error {
-	
+
 	rndr.Log.Infof("UpdateNetworkFirewallProfile: %v", new)
 	return rndr.CreateNetworkFirewallProfile(serviceInfo, new, false)
 }
@@ -361,8 +361,8 @@ func (rndr *Renderer) renderVppACL(profile *sasemodel.NetworkFirewallProfile) *v
 		Name: profile.Name,
 	}
 
-    // Render ACL Rules
-	for _,rule := range profile.Rules {
+	// Render ACL Rules
+	for _, rule := range profile.Rules {
 		aclRule := rndr.renderVppACLRule(rule)
 		acl.Rules = append(acl.Rules, expandAnyAddr(aclRule)...)
 	}
@@ -373,7 +373,7 @@ func (rndr *Renderer) renderVppACLRule(rule *sasemodel.NetworkFirewallProfile_Fi
 	const maxPortNum = ^uint16(0)
 	// VPP ACL Plugin Rule
 	aclRule := &vpp_acl.ACL_Rule{}
-	if rule.Action == sasemodel.NetworkFirewallProfile_FirewallRule_PERMIT_REFLECT{
+	if rule.Action == sasemodel.NetworkFirewallProfile_FirewallRule_PERMIT_REFLECT {
 		aclRule.Action = vpp_acl.ACL_Rule_REFLECT
 	} else {
 		aclRule.Action = vpp_acl.ACL_Rule_DENY
@@ -385,16 +385,16 @@ func (rndr *Renderer) renderVppACLRule(rule *sasemodel.NetworkFirewallProfile_Fi
 	// Get Source and Destination Networks
 	_, ipv4SrcNet, err := net.ParseCIDR(rule.SourceCidr)
 	if err != nil {
-			// Invalid or No Src Network provided in config
-			ipv4SrcNet = nil
+		// Invalid or No Src Network provided in config
+		ipv4SrcNet = nil
 	}
 	_, ipv4DstNet, err := net.ParseCIDR(rule.DestinationCidr)
 	if err != nil {
-			// Invalid or No Dst Network provided in config
-			ipv4DstNet = nil
+		// Invalid or No Dst Network provided in config
+		ipv4DstNet = nil
 	}
 
-	if ipv4SrcNet!= nil && len(ipv4SrcNet.IP) > 0 {
+	if ipv4SrcNet != nil && len(ipv4SrcNet.IP) > 0 {
 		aclRule.IpRule.Ip.SourceNetwork = ipv4SrcNet.String()
 	}
 	if ipv4DstNet != nil && len(ipv4DstNet.IP) > 0 {

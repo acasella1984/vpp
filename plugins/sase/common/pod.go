@@ -66,6 +66,7 @@ type PodInfo struct {
 	Label       string // Microservice Label
 	Interfaces  []PodInterfaceInfo
 	ServiceList []PodSaseServiceInfo
+	IPAddress   string
 }
 
 // InterfaceMode : Operating mode of Interface

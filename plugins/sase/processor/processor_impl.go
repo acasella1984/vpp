@@ -473,7 +473,6 @@ func (sp *SaseServiceProcessor) ProcessDeletedNetworkFirewallProfileConfig(cfg *
 	return err
 }
 
-
 //////////////////////////////// Site Resource Group Processor Routines ////////////////////////
 
 // ProcessNewSiteResourceConfig :
@@ -953,7 +952,6 @@ func (sp *SaseServiceProcessor) ProcessDeletedSaseServiceInterfaceConfig(cfg *sa
 	return err
 }
 
-
 /////////////////////////// Pod Events ////////////////////////////////////////////
 
 // GetPodInfo : Get PodInfo for given pidId
@@ -1026,8 +1024,9 @@ func (sp *SaseServiceProcessor) ProcessUpdatedPod(pod *podmodel.Pod) error {
 			return nil
 		}
 		podInfo := &common.PodInfo{
-			ID:    podID,
-			Label: label,
+			ID:        podID,
+			Label:     label,
+			IPAddress: pod.IpAddress,
 		}
 		// Add PodInfo to the podlist
 		sp.AddPodInfo(podID, podInfo)
@@ -1051,6 +1050,7 @@ func (sp *SaseServiceProcessor) ProcessUpdatedPod(pod *podmodel.Pod) error {
 	if common.HasSaseServicesAnnotation(pod.Annotations) == true {
 		var saseServiceList []common.PodSaseServiceInfo
 		saseServices := common.GetSaseServices(pod.Annotations)
+		sp.Log.Info("New/ Updated pod: saseServices %v", saseServices)
 		for _, saseService := range saseServices {
 			saseServiceInfo, _ := common.ParseSaseServiceName(saseService)
 			sp.Log.Infof("New / Updated pod: SaseServiceInfo %v", saseServiceInfo)
@@ -1173,6 +1173,16 @@ func (sp *SaseServiceProcessor) processServiceAddition(podID podmodel.ID, addSer
 		sp.Log.Info("processServiceAddition: Render ", service.Name, "service Init")
 		// Init Service
 		sp.renderers[serviceType].Init()
+
+		sp.Log.Info("processServiceAddition: Render ", service.Name, "service Add")
+		// Add service
+		// Fill in the relevant information
+		p := &config.SaseServiceConfig{
+			ServiceInfo: service,
+			Config:      podInfo,
+		}
+		err = sp.renderers[serviceType].AddServiceConfig(p, false)
+		return err
 	}
 	return nil
 }

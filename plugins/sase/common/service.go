@@ -30,6 +30,8 @@ const (
 	ServiceTypeRouting
 	// ServiceTypeIPSecVpn :
 	ServiceTypeIPSecVpn // Change to just VPN
+	//ServiceTypeDhcpProxy
+	ServiceTypeDhcpProxy
 )
 
 const (
@@ -41,6 +43,8 @@ const (
 	routing = "routing"
 	// IpsecVpn :
 	ipsecVpn = "ipsecvpn"
+	// Dhcp Proxy:
+	dhcpProxy = "dhcpproxy"
 )
 
 const (
@@ -71,7 +75,11 @@ func GetBaseVppServices() []PodSaseServiceInfo {
 			serviceType:     nat},
 		{serviceID: baseServiceID,
 			serviceLocation: baseServiceLocation,
-			serviceType:     ipsecVpn}}
+			serviceType:     ipsecVpn},
+		{serviceID: baseServiceID,
+			serviceLocation: baseServiceLocation,
+			serviceType:     dhcpProxy},
+	}
 
 	return addService
 }
@@ -95,6 +103,8 @@ func (srv *ServiceInfo) GetServiceType() SaseServiceType {
 		serviceType = ServiceTypeRouting
 	case ipsecVpn:
 		serviceType = ServiceTypeIPSecVpn
+	case dhcpProxy:
+		serviceType = ServiceTypeDhcpProxy
 	default:
 	}
 

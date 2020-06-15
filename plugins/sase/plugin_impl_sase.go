@@ -30,6 +30,7 @@ import (
 	"github.com/contiv/vpp/plugins/sase/common"
 	"github.com/contiv/vpp/plugins/sase/config"
 	"github.com/contiv/vpp/plugins/sase/processor"
+	dhcpproxy "github.com/contiv/vpp/plugins/sase/renderer/dhcp_proxy"
 	firewallservice "github.com/contiv/vpp/plugins/sase/renderer/firewall"
 	ipsecservice "github.com/contiv/vpp/plugins/sase/renderer/ipsec"
 	natservice "github.com/contiv/vpp/plugins/sase/renderer/nat"
@@ -57,10 +58,11 @@ type Plugin struct {
 	// Processor
 	processor *processor.SaseServiceProcessor
 	// Renderers
-	firewallRenderer *firewallservice.Renderer
-	natRenderer      *natservice.Renderer
-	ipsecRenderer    *ipsecservice.Renderer
-	routeRenderer    *routeservice.Renderer
+	firewallRenderer  *firewallservice.Renderer
+	natRenderer       *natservice.Renderer
+	ipsecRenderer     *ipsecservice.Renderer
+	routeRenderer     *routeservice.Renderer
+	dhcpProxyRenderer *dhcpproxy.Renderer
 }
 
 // Deps defines dependencies of the Sase plugin.
@@ -179,6 +181,31 @@ func (p *Plugin) registerRouteServiceRenderer() {
 	p.processor.RegisterRenderer(common.ServiceTypeRouting, p.routeRenderer)
 }
 
+func (p *Plugin) registerDhcpProxyServiceRenderer() {
+	p.dhcpProxyRenderer = &dhcpproxy.Renderer{
+		Deps: dhcpproxy.Deps{
+			Log:        p.Log.NewLogger("-dhcpProxyRenderer"),
+			Config:     p.config,
+			ContivConf: p.ContivConf,
+			IPAM:       p.IPAM,
+			IPNet:      p.IPNet,
+			UpdateTxnFactory: func(change string) controller.UpdateOperations {
+				p.changes = append(p.changes, change)
+				return p.updateTxn
+			},
+			ResyncTxnFactory: func() controller.ResyncOperations {
+				return p.resyncTxn
+			},
+			Stats:    p.Stats,
+			RemoteDB: p.RemoteDB,
+		},
+	}
+
+	p.dhcpProxyRenderer.Init()
+	// Register renderer.
+	p.processor.RegisterRenderer(common.ServiceTypeDhcpProxy, p.dhcpProxyRenderer)
+}
+
 // Init initializes the Sase plugin and starts watching ETCD for K8s configuration.
 func (p *Plugin) Init() error {
 	var err error
@@ -205,6 +232,7 @@ func (p *Plugin) Init() error {
 	p.registerNatServiceRenderer()
 	p.registerIPSecServiceRenderer()
 	p.registerRouteServiceRenderer()
+	p.registerDhcpProxyServiceRenderer()
 
 	// Register Base VPP Switch and Services
 	p.processor.BaseVppPodServiceInit()
