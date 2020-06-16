@@ -304,19 +304,27 @@ func prepareForLocalResync(nodeName string, boltDB contivconf.KVBrokerFactory, e
 }
 
 func testOnpremLogger() {
+	opl := true
 	err := logutil.LoggerClientInit("info")
-
 	if err != nil {
 		// Despite log formatting was unable to initialize properly, the logging
 		// facility should still be safe to use.
 		log.Errorf("Failed to initialize log formatting: %s", err)
+		logger.Errorf("ZZZZZZZZZZ Failed to initialize log formatting: %s ZZZZZZZZZZ", err)
+		opl = false
 	}
+
+	stdLogger := log.StandardLogger()
 
 	for {
 		time.Sleep(10 * time.Second)
 		log.Errorf("XXXXXXXXXX Testing ngp.onprem.logger communication XXXXXXXXXX")
-		log.StandardLogger().Errorf("YYYYYYYYYY Testing ngp.onprem.logger communication (2) YYYYYYYYYY")
-		//logger.Debugf("XXXXXXXXXX Testing ngp.onprem.logger communication XXXXXXXXXX")
+		stdLogger.Errorf("YYYYYYYYYY Testing ngp.onprem.logger communication YYYYYYYYYY")
+		if opl {
+			logger.Errorf("ZZZZZZZZZZ Testing ngp.onprem.logger communication :-) ZZZZZZZZZZ")
+		} else {
+			logger.Errorf("ZZZZZZZZZZ Failed to initialize log formatting :-( ZZZZZZZZZZ")
+		}
 	}
 }
 
